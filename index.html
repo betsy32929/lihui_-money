@@ -576,6 +576,81 @@
 
     @media(max-width:1180px){.home-clean-top{grid-template-columns:1fr}.home-clean-table-head,.home-clean-row{grid-template-columns:minmax(190px,1fr) minmax(155px,1fr) minmax(120px,.8fr) 62px}.tabs{grid-template-columns:repeat(3,1fr)!important}}
 
+
+    /* V87：列印內容選擇 */
+    .print-choice-modal{
+      position:fixed;
+      inset:0;
+      z-index:99990;
+      background:rgba(15,23,42,.34);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:18px;
+    }
+    .print-choice-box{
+      width:min(760px,calc(100vw - 36px));
+      background:#fff;
+      border:1px solid #d8e2ef;
+      border-radius:24px;
+      box-shadow:0 24px 60px rgba(15,23,42,.26);
+      overflow:hidden;
+    }
+    .print-choice-head{
+      display:flex;
+      justify-content:space-between;
+      gap:12px;
+      align-items:flex-start;
+      padding:16px 18px;
+      background:linear-gradient(90deg,#f4f1ff 0%,#edf9fb 58%,#fff7ed 100%);
+      border-bottom:1px solid #e2e8f0;
+    }
+    .print-choice-head h2{margin:0;font-size:21px;font-weight:950;color:#334155;}
+    .print-choice-head p{margin:5px 0 0;color:#64748b;font-size:13px;font-weight:850;}
+    .print-choice-close{
+      border:1px solid #cbd5e1;
+      width:34px;
+      height:34px;
+      border-radius:999px;
+      background:#fff;
+      color:#64748b;
+      font-size:22px;
+      font-weight:950;
+      line-height:1;
+    }
+    .print-choice-grid{
+      display:grid;
+      grid-template-columns:repeat(2,minmax(0,1fr));
+      gap:10px;
+      padding:14px;
+    }
+    .print-choice-btn{
+      border:1px solid #d8e2ef;
+      border-left:7px solid #a78bfa;
+      border-radius:18px;
+      background:#fff;
+      padding:14px 15px;
+      text-align:left;
+      box-shadow:0 4px 12px rgba(42,65,105,.06);
+    }
+    .print-choice-btn b{display:block;font-size:17px;font-weight:950;color:#334155;margin-bottom:5px;}
+    .print-choice-btn span{display:block;font-size:12px;font-weight:850;color:#64748b;line-height:1.35;}
+    .print-choice-btn:hover{transform:translateY(-1px);box-shadow:0 9px 18px rgba(42,65,105,.12);}
+    .print-choice-btn.personal{border-left-color:#8b5cf6;background:linear-gradient(90deg,#f5f3ff,#fff 42%)}
+    .print-choice-btn.post{border-left-color:#10b981;background:linear-gradient(90deg,#f0fdf4,#fff 42%)}
+    .print-choice-btn.bank{border-left-color:#f59e0b;background:linear-gradient(90deg,#fffbeb,#fff 42%)}
+    .print-choice-btn.petty{border-left-color:#ec4899;background:linear-gradient(90deg,#fdf2f8,#fff 42%)}
+    .print-choice-btn.all{grid-column:1/-1;border-left-color:#334155;background:linear-gradient(90deg,#f8fafc,#fff 42%)}
+    #printView .pv-page + .pv-page{page-break-before:always;break-before:page;}
+    #printView .pv-simple-sub{font-size:12px;text-align:center;color:#475569;font-weight:850;margin:0 0 5px;}
+    #printView .pv-simple-section{border:1.4px solid #111827;border-radius:9px;overflow:hidden;margin-bottom:4mm;background:#fff;}
+    #printView .pv-simple-section-title{padding:4px 8px;font-size:15px;font-weight:950;border-bottom:1.3px solid #111827;background:#f8fafc;}
+    #printView .pv-simple-table .pv-money{text-align:right;font-weight:950;white-space:nowrap;color:#2563eb;}
+    #printView .pv-simple-table .pv-money.out{color:#be123c;}
+    #printView .pv-simple-table .pv-balance{text-align:right;font-weight:950;white-space:nowrap;}
+    #printView .pv-simple-table .pv-note{text-align:left;white-space:normal;overflow-wrap:anywhere;}
+    @media(max-width:760px){.print-choice-grid{grid-template-columns:1fr}.print-choice-btn.all{grid-column:auto}}
+
     @media(max-width:1120px){.wrap{min-width:1120px}}
     @media print{body{background:#fff}.topbar,.tabs,.actions,.month-row,.softbtn,.iconbtn,.pastebox,.tools,.row-actions,.phone-tabs{display:none!important}.wrap{min-width:0;max-width:none;padding:0}.panel{box-shadow:none;border:0;padding:0;background:#fff}.section,.petty-card,.noticebox{page-break-inside:avoid}.fixed-row{grid-template-columns:220px 100px 100px 1fr 0}.details{display:block}.notice-grid,.petty-detail-grid{grid-template-columns:1fr 1fr}}
 
@@ -809,7 +884,7 @@
         page-break-inside:auto!important;
         break-inside:auto!important;
       }
-      #printView.pv-scale-down .pv-page{
+      #printView.pv-scale-down .pv-personal-page{
         transform:scale(var(--pv-scale));
         transform-origin:top left;
         width:calc(100% / var(--pv-scale));
@@ -937,6 +1012,77 @@
       }
       #printView{page-break-after:avoid;}
       html,body{height:auto!important;}
+    }
+
+    /* V89：列印每頁大標題與右上角頁數 */
+    #printView .pv-page{position:relative;}
+    #printView .pv-page-no{
+      position:absolute;
+      right:2.2mm;
+      top:1.6mm;
+      font-size:11px;
+      font-weight:950;
+      color:#334155;
+      border:1px solid #cbd5e1;
+      border-radius:999px;
+      padding:1px 6px;
+      background:#fff;
+      z-index:2;
+      white-space:nowrap;
+    }
+    @media print{
+      #printView .pv-simple-table thead{display:table-header-group!important;}
+      #printView .pv-simple-table tr{page-break-inside:avoid;break-inside:avoid;}
+      /* V91：其他分類列印盡量填滿整頁後才換頁。 */
+      #printView .pv-ledger-page{page-break-after:auto!important;break-after:auto!important;}
+      #printView .pv-ledger-page h1{font-size:23px!important;line-height:1.05!important;margin:0 0 1mm!important;padding-right:22mm;}
+      #printView .pv-simple-section{margin-bottom:0!important;}
+      #printView .pv-simple-table{font-size:11.2px!important;line-height:1.08!important;table-layout:fixed!important;}
+      #printView .pv-simple-table th,
+      #printView .pv-simple-table td{padding:1.45px 4px!important;font-size:11.2px!important;line-height:1.1!important;}
+      #printView .pv-simple-table th{height:3.4mm!important;}
+      #printView .pv-simple-table .pv-note{font-size:10.9px!important;line-height:1.1!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;}
+      #printView h1{padding-right:22mm;}
+      #printView .pv-personal-page h1{padding-right:0;}
+      /* V93：其他分類列印＝舒適列高＋固定筆數切頁；前面頁面盡量填滿，最後一頁才允許留白。 */
+      #printView .pv-ledger-page{
+        page-break-inside:avoid!important;
+        break-inside:avoid!important;
+        overflow:hidden!important;
+      }
+      #printView .pv-simple-table tbody tr{
+        height:4.65mm!important;
+        max-height:4.65mm!important;
+      }
+      #printView .pv-simple-table th,
+      #printView .pv-simple-table td{
+        height:4.65mm!important;
+        max-height:4.65mm!important;
+        padding:1.2px 4px!important;
+        font-size:11.2px!important;
+        line-height:1.12!important;
+        vertical-align:middle!important;
+        overflow:hidden!important;
+      }
+      #printView .pv-simple-table th{
+        height:4.05mm!important;
+        max-height:4.05mm!important;
+        font-size:11.4px!important;
+        padding:1px 4px!important;
+      }
+      #printView .pv-simple-table td.pv-date,
+      #printView .pv-simple-table td.pv-money,
+      #printView .pv-simple-table td.pv-balance{
+        font-size:11.2px!important;
+        white-space:nowrap!important;
+      }
+      #printView .pv-simple-table .pv-note{
+        font-size:11px!important;
+        line-height:1.12!important;
+        white-space:nowrap!important;
+        overflow:hidden!important;
+        text-overflow:ellipsis!important;
+      }
     }
 
   
@@ -1181,7 +1327,7 @@
         <input id="jsonFile" type="file" accept=".json,application/json" class="hidden" onchange="importJSONFile(event)">
         <button class="act-btn act-excel" onclick="exportExcel()">匯出EXCEL</button>
         <button class="act-btn act-printset" onclick="togglePrintBreakPanel()">項目換行設定</button>
-        <button class="act-btn act-print" onclick="openPrint()">列印</button>
+        <button class="act-btn act-print" onclick="showPrintChoice()">列印</button>
       </div>
     </div>
     <div class="month-row">
@@ -1253,6 +1399,25 @@
 </div>
 
 <div id="printView"></div>
+
+<div id="printChoiceModal" class="print-choice-modal hidden" onclick="if(event.target===this)closePrintChoice()">
+  <div class="print-choice-box">
+    <div class="print-choice-head">
+      <div>
+        <h2>選擇列印內容</h2>
+        <p>選一個要列印的帳款區塊。</p>
+      </div>
+      <button type="button" class="print-choice-close" onclick="closePrintChoice()">×</button>
+    </div>
+    <div class="print-choice-grid">
+      <button type="button" class="print-choice-btn personal" onclick="openPrintMode('personal')"><b>麗卉每月帳款</b><span>收入、大橋、大社、信用卡</span></button>
+      <button type="button" class="print-choice-btn post" onclick="openPrintMode('post')"><b>郵局帳款</b><span>日期｜收入｜支出｜餘額｜備註</span></button>
+      <button type="button" class="print-choice-btn bank" onclick="openPrintMode('bank')"><b>台灣銀行帳款</b><span>日期｜收入｜支出｜餘額｜備註</span></button>
+      <button type="button" class="print-choice-btn petty" onclick="openPrintMode('petty')"><b>零用金</b><span>大姊、二姊零用金明細</span></button>
+      <button type="button" class="print-choice-btn all" onclick="openPrintMode('all')"><b>全部帳款</b><span>以上全部分頁列印</span></button>
+    </div>
+  </div>
+</div>
 
 <script>
 /* eslint-disable */
@@ -3814,7 +3979,8 @@ function printTableBox(title,cls,rows){
     </div>
   </section>`;
 }
-function renderPrint(){
+
+function buildPersonalPrintHtml(){
   const sections=printGetSections();
   const defs=[
     ['收入','pv-income',false],
@@ -3823,14 +3989,133 @@ function renderPrint(){
     ['信用卡','pv-card',true]
   ];
   const boxes=defs.map(([title,cls,isCard])=>printTableBox(title,cls,printBuildRows(title,sections[title],isCard))).join('');
-  const pv=document.getElementById('printView');
-  if(!pv)return;
-  pv.innerHTML=`<div class="pv-page">
+  return `<div class="pv-page pv-personal-page">
+    <div class="pv-page-no"></div>
     <h1>${esc(rocMonthLabel(state.activeMonth))} 帳款整理（麗卉）</h1>
     <div class="pv-sub">列印版</div>
     <div class="pv-grid">${boxes}</div>
   </div>`;
-  setTimeout(tunePrintHeights,0);
+}
+function printSimpleRowsHtml(rows){
+  return (rows||[]).map(r=>{
+    const date=r[0]||'';
+    const income=r[1]!==''&&r[1]!==null&&r[1]!==undefined?printMoney(r[1],false):'';
+    const expense=r[2]!==''&&r[2]!==null&&r[2]!==undefined?printMoney(r[2],false):'';
+    const balance=r[3]!==''&&r[3]!==null&&r[3]!==undefined?printMoney(r[3],true):'';
+    const note=r[4]||'';
+    return `<tr><td class="pv-date">${esc(date)}</td><td class="pv-money">${esc(income)}</td><td class="pv-money out">${esc(expense)}</td><td class="pv-balance">${esc(balance)}</td><td class="pv-note">${esc(note)}</td></tr>`;
+  }).join('');
+}
+function printChunkRows(rows,maxRows){
+  const arr=Array.isArray(rows)?rows:[];
+  if(!arr.length)return [[]];
+  const chunks=[];
+  for(let i=0;i<arr.length;i+=maxRows)chunks.push(arr.slice(i,i+maxRows));
+  return chunks;
+}
+function buildSimpleAccountPage(title,rows,subtitle='',opts={}){
+  const maxRows=opts.maxRows||72;
+  const chunks=printChunkRows(rows,maxRows);
+  return chunks.map((chunk,idx)=>{
+    const body=printSimpleRowsHtml(chunk)||'<tr><td colspan="5" class="pv-note">目前沒有明細</td></tr>';
+    const part=chunks.length>1?`（${idx+1}/${chunks.length}）`:'';
+    return `<div class="pv-page pv-ledger-page">
+      <div class="pv-page-no"></div>
+      <h1>${esc(title)}${esc(part)}</h1>
+      ${subtitle?`<div class="pv-simple-sub">${esc(subtitle)}</div>`:''}
+      <section class="pv-simple-section">
+        <table class="pv-simple-table">
+          <colgroup><col style="width:14%"><col style="width:14%"><col style="width:14%"><col style="width:14%"><col style="width:44%"></colgroup>
+          <thead><tr><th>日期</th><th>收入</th><th>支出</th><th>餘額</th><th>備註</th></tr></thead>
+          <tbody>${body}</tbody>
+        </table>
+      </section>
+    </div>`;
+  }).join('');
+}
+function buildLedgerPrintHtml(kind,title){
+  const rows=ledgerExcelRows(kind).slice(1);
+  return buildSimpleAccountPage(title,rows,'',{maxRows:60});
+}
+function buildPettyPrintHtml(){
+  const dajie=pettyExcelRows('dajie').slice(1);
+  const erjie=pettyExcelRows('erjie').slice(1);
+  return buildSimpleAccountPage('大姊零用金',dajie,'',{maxRows:60}) + buildSimpleAccountPage('二姊零用金',erjie,'',{maxRows:60});
+}
+function applyPrintPageNumbers(){
+  const pv=document.getElementById('printView');
+  if(!pv)return;
+  const pages=[...pv.querySelectorAll('.pv-page')];
+  const total=pages.length;
+  pages.forEach((page,i)=>{
+    let no=page.querySelector('.pv-page-no');
+    if(!no){no=document.createElement('div');no.className='pv-page-no';page.prepend(no);}
+    no.textContent=`P.${i+1}/${total}`;
+  });
+}
+function scalePersonalPrintPage(){
+  const pv=document.getElementById('printView');
+  const page=pv&&pv.querySelector('.pv-personal-page');
+  if(!pv||!page)return;
+  pv.classList.remove('pv-scale-down');
+  page.style.setProperty('--pv-scale','1');
+  const pxPerMm=96/25.4;
+  const maxPx=280*pxPerMm;
+  const h=page.scrollHeight;
+  if(h>maxPx){
+    const scale=Math.max(.84, Math.min(1, (maxPx/h)*0.985));
+    page.style.setProperty('--pv-scale', scale.toFixed(3));
+    pv.classList.add('pv-scale-down');
+  }
+}
+function showPrintChoice(){
+  const m=document.getElementById('printChoiceModal');
+  if(m)m.classList.remove('hidden');
+}
+function closePrintChoice(){
+  const m=document.getElementById('printChoiceModal');
+  if(m)m.classList.add('hidden');
+}
+function buildPrintHtmlByMode(mode){
+  if(mode==='personal')return buildPersonalPrintHtml();
+  if(mode==='post')return buildLedgerPrintHtml('postOffice','郵局帳款');
+  if(mode==='bank')return buildLedgerPrintHtml('taiwanBank','台灣銀行帳款');
+  if(mode==='petty')return buildPettyPrintHtml();
+  if(mode==='all')return buildPersonalPrintHtml()+buildLedgerPrintHtml('postOffice','郵局帳款')+buildLedgerPrintHtml('taiwanBank','台灣銀行帳款')+buildPettyPrintHtml();
+  return buildPersonalPrintHtml();
+}
+function openPrintMode(mode){
+  closePrintChoice();
+  const pv=document.getElementById('printView');
+  if(!pv)return;
+  pv.classList.remove('pv-scale-down');
+  pv.innerHTML=buildPrintHtmlByMode(mode);
+  applyPrintPageNumbers();
+
+  // V90：對照 V86，個人帳款要先完成列高壓縮與縮放，再呼叫列印，避免跳到第 2 頁。
+  if(mode==='personal' || mode==='all'){
+    tunePrintHeights();
+    scalePersonalPrintPage();
+    applyPrintPageNumbers();
+  }
+  requestAnimationFrame(()=>{
+    if(mode==='personal' || mode==='all'){
+      tunePrintHeights();
+      scalePersonalPrintPage();
+    }
+    applyPrintPageNumbers();
+    window.print();
+  });
+}
+function renderPrint(){
+  const pv=document.getElementById('printView');
+  if(!pv)return;
+  pv.classList.remove('pv-scale-down');
+  pv.innerHTML=buildPersonalPrintHtml();
+  applyPrintPageNumbers();
+  tunePrintHeights();
+  scalePersonalPrintPage();
+  applyPrintPageNumbers();
 }
 function tunePrintHeights(){
   const pv=document.getElementById('printView');
@@ -3884,31 +4169,7 @@ function tunePrintHeights(){
   }
 }
 function openPrint(){
-  renderPrint();
-  tunePrintHeights();
-
-  requestAnimationFrame(()=>{
-    const pv=document.getElementById('printView');
-    const page=pv&&pv.querySelector('.pv-page');
-    if(pv&&page){
-      pv.classList.remove('pv-scale-down');
-      page.style.setProperty('--pv-scale','1');
-
-      /*
-        V47：避免 P.2 只跑出表頭。
-        使用比實際 A4 更保守的高度，只要有一點點超出就微縮。
-      */
-      const pxPerMm=96/25.4;
-      const maxPx=280*pxPerMm;
-      const h=page.scrollHeight;
-      if(h>maxPx){
-        const scale=Math.max(.88, Math.min(1, (maxPx/h)*0.985));
-        page.style.setProperty('--pv-scale', scale.toFixed(3));
-        pv.classList.add('pv-scale-down');
-      }
-    }
-    window.print();
-  });
+  openPrintMode('personal');
 }
 function renderPrintBreakPanel(){
   const list=document.getElementById('printBreakList');
