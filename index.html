@@ -2315,6 +2315,21 @@ function num(v){return Number(moneyOnly(v))||0}
 function numSigned(v){const s=String(v??'').trim().replace(/[,，$＄\s]/g,'');const m=s.match(/^-?\d+/);return m?Number(m[0]):0}
 function fmt(v,zero=false){const n=Number(v)||0;if(!zero&&n===0)return '';return '$'+Math.round(n).toLocaleString('en-US')}
 function fmtSigned(v,zero=false){const n=numSigned(v);if(!zero&&n===0)return '';return (n<0?'-':'')+'$'+Math.abs(Math.round(n)).toLocaleString('en-US')}
+function pettyPlainAmount(v){const n=Number(v)||0;return n?String(Math.abs(Math.round(n))):''}
+function normalizePettySplitNote(note,amount){
+  const raw=String(note??'').trim();
+  if(!raw)return '';
+  const amt=pettyPlainAmount(amount);
+  if(!amt)return raw;
+  if(/^\d+\s*分攤\/[23]$/.test(raw.replace(/[,，]/g,'')))return raw.replace(/\s+/g,'');
+  const m=raw.match(/^(.*?)(?:\s*[｜| ]\s*)?(?:分攤)?\/([23])$/);
+  if(m){
+    const prefix=(m[1]||'').trim().replace(/[｜|]+$/,'').trim();
+    return (prefix?prefix+'｜':'')+amt+'分攤/'+m[2];
+  }
+  return raw;
+}
+function pettyNoteDisplay(note,amount){return normalizePettySplitNote(note,amount)}
 function signedPlain(v){const n=numSigned(v);return (n<0?'-':'')+String(Math.abs(Math.round(n)))}
 function backupStateSnapshot(reason='auto'){
   try{
@@ -3461,7 +3476,7 @@ function pettyExcelRows(who){
     const amount=num(r.amount);
     const income=r.sign==='收入'?amount:'';
     const expense=r.sign==='扣款'?amount:'';
-    const note=[r.item||'',r.note||''].filter(Boolean).join('｜');
+    const note=[r.item||'',pettyNoteDisplay(r.note||'',r.originalAmount||r.amount)].filter(Boolean).join('｜');
     rows.push([r.date||'',income,expense,balances.get(r)||0,note]);
   });
   rows.push(['','','',isDajie?c.dajieEnd:c.erjieEnd,'試算餘額']);
@@ -3517,8 +3532,8 @@ function addPettyCashflow(who){
   const expense=moneyOnly(document.getElementById(prefix+'_expense')?.value||'');
   const note=document.getElementById(prefix+'_note')?.value.trim()||'';
   if(!income&&!expense)return alert('請輸入收入或支出金額');
-  if(income)p[prefix+'Txs'].push({id:cryptoId(),type:'income',date,item:'零用金收入',amount:income,note});
-  if(expense)p[prefix+'Txs'].push({id:cryptoId(),type:'expense',date,item:'零用金支出',amount:expense,note});
+  if(income)p[prefix+'Txs'].push({id:cryptoId(),type:'income',date,item:'零用金收入',amount:income,note:normalizePettySplitNote(note,income)});
+  if(expense)p[prefix+'Txs'].push({id:cryptoId(),type:'expense',date,item:'零用金支出',amount:expense,note:normalizePettySplitNote(note,expense)});
   save();render();
 }
 function setPettyTx(who,i,field,val){
@@ -3571,9 +3586,9 @@ function copyPettyTx(who,i,btn){
 function calcPetty(){
   const petty=getGlobalData().taiwanBank.petty;
   const dajieRows=[],erjieRows=[];let dajie=numSigned(petty.dajieStart),erjie=numSigned(petty.erjieStart);
-  function add(rows,sign,date,item,amount,note='',manualIndex=null,type='auto'){rows.push({sign,date,item,amount,note,manualIndex,type});return amount}
-  (petty.dajieTxs||[]).forEach((t,i)=>{const a=num(t.amount); if(!a)return; if(t.type==='income')dajie+=add(dajieRows,'收入',t.date,t.item,a,t.note,i,'manual'); else dajie-=add(dajieRows,'扣款',t.date,t.item,a,t.note,i,'manual')});
-  (petty.erjieTxs||[]).forEach((t,i)=>{const a=num(t.amount); if(!a)return; if(t.type==='income')erjie+=add(erjieRows,'收入',t.date,t.item,a,t.note,i,'manual'); else erjie-=add(erjieRows,'扣款',t.date,t.item,a,t.note,i,'manual')});
+  function add(rows,sign,date,item,amount,note='',manualIndex=null,type='auto',originalAmount=null){rows.push({sign,date,item,amount,note,manualIndex,type,originalAmount:originalAmount||amount});return amount}
+  (petty.dajieTxs||[]).forEach((t,i)=>{const a=num(t.amount); if(!a)return; if(t.type==='income')dajie+=add(dajieRows,'收入',t.date,t.item,a,t.note,i,'manual',a); else dajie-=add(dajieRows,'扣款',t.date,t.item,a,t.note,i,'manual',a)});
+  (petty.erjieTxs||[]).forEach((t,i)=>{const a=num(t.amount); if(!a)return; if(t.type==='income')erjie+=add(erjieRows,'收入',t.date,t.item,a,t.note,i,'manual',a); else erjie-=add(erjieRows,'扣款',t.date,t.item,a,t.note,i,'manual',a)});
   const seenAutoPetty=new Set();
   Object.keys(state.months||{}).sort().forEach(monthId=>{
     const month=state.months[monthId];
@@ -3586,8 +3601,8 @@ function calcPetty(){
       if(seenAutoPetty.has(key))return;
       seenAutoPetty.add(key);
 
-      if(it.splitMode==='2'){const v=Math.round(a/2);dajie-=add(dajieRows,'扣款',dt,it.label,v,'分攤/2',null,'auto')}
-      else if(it.splitMode==='3'){const v=Math.round(a/3);dajie-=add(dajieRows,'扣款',dt,it.label,v,'分攤/3',null,'auto');erjie-=add(erjieRows,'扣款',dt,it.label,v,'分攤/3',null,'auto')}
+      if(it.splitMode==='2'){const v=Math.round(a/2);dajie-=add(dajieRows,'扣款',dt,it.label,v,pettyPlainAmount(a)+'分攤/2',null,'auto',a)}
+      else if(it.splitMode==='3'){const v=Math.round(a/3);dajie-=add(dajieRows,'扣款',dt,it.label,v,pettyPlainAmount(a)+'分攤/3',null,'auto',a);erjie-=add(erjieRows,'扣款',dt,it.label,v,pettyPlainAmount(a)+'分攤/3',null,'auto',a)}
     });
   });
   return {dajieRows,erjieRows,dajieEnd:dajie,erjieEnd:erjie}
@@ -3620,11 +3635,13 @@ function addSharedPettyExpense(){
 
   if(split==='2'){
     const v=Math.round(a/2);
-    p.dajieTxs.push({id:cryptoId(),type:'expense',date,item,amount:String(v),note:note?note+'｜分攤/2':'分攤/2'});
+    const splitNote=pettyPlainAmount(a)+'分攤/2';
+    p.dajieTxs.push({id:cryptoId(),type:'expense',date,item,amount:String(v),note:note?note+'｜'+splitNote:splitNote});
   }else{
     const v=Math.round(a/3);
-    p.dajieTxs.push({id:cryptoId(),type:'expense',date,item,amount:String(v),note:note?note+'｜分攤/3':'分攤/3'});
-    p.erjieTxs.push({id:cryptoId(),type:'expense',date,item,amount:String(v),note:note?note+'｜分攤/3':'分攤/3'});
+    const splitNote=pettyPlainAmount(a)+'分攤/3';
+    p.dajieTxs.push({id:cryptoId(),type:'expense',date,item,amount:String(v),note:note?note+'｜'+splitNote:splitNote});
+    p.erjieTxs.push({id:cryptoId(),type:'expense',date,item,amount:String(v),note:note?note+'｜'+splitNote:splitNote});
   }
   save();
   render();
@@ -3653,13 +3670,15 @@ function renderPettyCard(title,who,rows,end){
       const bal=balances.get(r)||0;
       const income=r.sign==='收入'?num(r.amount):'';
       const expense=r.sign==='扣款'?num(r.amount):'';
+      const rowAmount=expense||income||num(r.amount)||0;
+      const noteVal=pettyNoteDisplay(r.note||r.item,rowAmount);
       if(r.type==='manual'){
         return `<tr class="${cls}">
           <td class="cash-date"><input value="${esc(r.date)}" onchange="this.value=normalizeDateInput(this);setPettyTx('${who}',${r.manualIndex},'date',this.value)"></td>
           <td class="cash-income"><input class="petty-income-input amountinp" inputmode="numeric" value="${esc(income)}" oninput="setPettySideAmount('${who}',${r.manualIndex},'income',this)" onchange="render()"></td>
           <td class="cash-expense"><input class="petty-expense-input amountinp" inputmode="numeric" value="${esc(expense)}" oninput="setPettySideAmount('${who}',${r.manualIndex},'expense',this)" onchange="render()"></td>
           <td class="cash-balance ${bal<0?'negative':''}">${fmt(bal,true)}</td>
-          <td><div class="cash-note-wrap"><input class="petty-note-input" value="${esc(r.note||r.item)}" placeholder="備註" oninput="setPettyTx('${who}',${r.manualIndex},'note',this.value)"></div></td>
+          <td><div class="cash-note-wrap"><input class="petty-note-input" value="${esc(noteVal)}" placeholder="備註" oninput="setPettyTx('${who}',${r.manualIndex},'note',this.value)" onchange="this.value=normalizePettySplitNote(this.value,${rowAmount});setPettyTx('${who}',${r.manualIndex},'note',this.value);render()"></div></td>
           <td><div class="row-copy-actions"><button type="button" class="iconbtn copy" onclick="copyPettyTx('${who}',${r.manualIndex},this)" title="複製新增下一列">複</button><button class="iconbtn del" onclick="delPettyTx('${who}',${r.manualIndex})">刪</button></div></td>
         </tr>`;
       }
@@ -3668,7 +3687,7 @@ function renderPettyCard(title,who,rows,end){
         <td class="cash-balance">${income?fmt(income,true):''}</td>
         <td class="cash-balance ${expense?'negative':''}">${expense?fmt(expense,true):''}</td>
         <td class="cash-balance ${bal<0?'negative':''}">${fmt(bal,true)}</td>
-        <td><div class="cash-note-one">${esc([r.item,r.note].filter(Boolean).join('｜'))}</div></td>
+        <td><div class="cash-note-one">${esc([r.item,pettyNoteDisplay(r.note||'',r.originalAmount||rowAmount)].filter(Boolean).join('｜'))}</div></td>
         <td></td>
       </tr>`;
     }).join('')||'<tr><td colspan="6" class="empty">沒有明細</td></tr>'}
