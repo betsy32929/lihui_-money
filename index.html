@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>麗卉每月帳款｜V74 郵局快速按鈕修正版</title>
+  <title>麗卉每月帳款｜V101 資料不中斷修正版</title>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
   <style>
@@ -1450,8 +1450,12 @@ const SERVICE_ITEM_MAP={
   '長照':'爸爸長照'
 };
 const DAD_LIVING_TAB='__dad_living_tab__';
+const LAIYA_DEBT_TAB='__laiya_debt_tab__';
+const LAIYA_DEBT_TOTAL=250000;
 const DAD_LIVING_TARGET=5000;
-const DAD_LIVING_START_MONTH='2024-09';
+const DAD_LIVING_START_MONTH='2025-10';
+const DAD_LIVING_REMINDER_START_MONTH='2025-10';
+const DAD_LIVING_BANK_ITEM_KEY='麗雅給爸生活費';
 const DAD_LIVING_DEFAULT_ROWS=[
   {date:'113/9/11',laiya:'0',liling:'5000',lihui:'0',note:''},
   {date:'113/10/9',laiya:'0',liling:'5000',lihui:'0',note:''},
@@ -1468,7 +1472,12 @@ const DEFAULT_BANK_BUTTONS=[
   {type:'income',item:'大姊給款',amount:'7297',tone:'green'},
   {type:'income',item:'銀行利息收入',amount:'0',tone:'blue'},
   {type:'income',item:'大姊特殊存款',amount:'0',tone:'amber'},
-  {type:'expense',item:'志偉欠款',amount:'5000',tone:'rose'}
+  {type:'expense',item:'志偉欠款',amount:'5000',tone:'rose'},
+  {type:'expense',item:'給爸生活費',amount:'5000',tone:'rose'},
+  {type:'expense',item:'麗雅給爸生活費',amount:'5000',tone:'rose'},
+  {type:'expense',item:'管理費匯麗卉',amount:'',tone:'rose'},
+  {type:'expense',item:'麗雅還志偉款',amount:'5000',tone:'rose'},
+  {type:'expense',item:'麗雅大社半年管理費',amount:'4500',tone:'rose'}
 ];
 const DEFAULT_POST_BUTTONS=[
   {type:'income',item:'育兒',amount:'5000',tone:'green'},
@@ -2781,6 +2790,21 @@ function normalizeLegacyCardLabels(){
   });
 }
 
+
+function ensureBankQuickButtonDefaults(){
+  if(!Array.isArray(state.bankQuickButtons))state.bankQuickButtons=[];
+  const must=[
+    {type:'expense',item:'給爸生活費',amount:'5000',tone:'rose'},
+    {type:'expense',item:'麗雅給爸生活費',amount:'5000',tone:'rose'},
+    {type:'expense',item:'管理費匯麗卉',amount:'',tone:'rose'},
+    {type:'expense',item:'麗雅還志偉款',amount:'5000',tone:'rose'},
+    {type:'expense',item:'麗雅大社半年管理費',amount:'4500',tone:'rose'}
+  ];
+  must.forEach(b=>{
+    if(!state.bankQuickButtons.some(x=>String(x.item||'')===b.item))state.bankQuickButtons.push({...b});
+  });
+}
+function isSpecialItemTab(v){return v===DAD_LIVING_TAB||v===LAIYA_DEBT_TAB||String(v||'').includes('爸生活費')||String(v||'').includes('麗雅欠志偉款');}
 function ensureMonth(){
   normalizeLegacyCardLabels();
   if(!state.months[state.activeMonth]){state.months[state.activeMonth]=makeMonth();}
@@ -2788,6 +2812,7 @@ function ensureMonth(){
   if(!state.personalTemplate)state.personalTemplate=null;
   if(!state.bankQuickButtons)state.bankQuickButtons=JSON.parse(JSON.stringify(DEFAULT_BANK_BUTTONS));
   if(!state.postQuickButtons)state.postQuickButtons=JSON.parse(JSON.stringify(DEFAULT_POST_BUTTONS));
+  ensureBankQuickButtonDefaults();
   ensureFixedDefaultAmounts();
   const m=state.months[state.activeMonth];
   applyFixedDefaultAmounts(m);
@@ -2888,7 +2913,8 @@ function ensureGlobalData(){
   if(!g.dadLiving.startMonth)g.dadLiving.startMonth=DAD_LIVING_START_MONTH;
   g.dadLiving.rows.forEach(r=>{if(r.note===undefined)r.note='';['laiya','liling','lihui'].forEach(k=>{if(r[k]===undefined)r[k]=''});});
   if(String(state.activePhone||'').includes('爸生活費'))state.activePhone=DAD_LIVING_TAB;
-  if(state.activePhone!==DAD_LIVING_TAB&&(!state.activePhone||!g.mobile.numbers[state.activePhone]))state.activePhone=Object.keys(g.mobile.numbers)[0]||SERVICE_NAMES[0];
+  if(String(state.activePhone||'').includes('麗雅欠志偉款'))state.activePhone=LAIYA_DEBT_TAB;
+  if(!isSpecialItemTab(state.activePhone)&&(!state.activePhone||!g.mobile.numbers[state.activePhone]))state.activePhone=Object.keys(g.mobile.numbers)[0]||SERVICE_NAMES[0];
   return g;
 }
 function getGlobalData(){return ensureGlobalData()}
@@ -3006,6 +3032,88 @@ function currentReminderMonthId(){const d=new Date();return `${d.getFullYear()}-
 function reminderMonthsByDueDay(dueDay){const cur=currentReminderMonthId();const day=(new Date()).getDate();const list=[];if(!dueDay||day>=dueDay)list.push(cur);list.push(addMonthsToId(cur,-1));return Array.from(new Set(list));}
 function reminderMonthsNoDue(){const cur=currentReminderMonthId();return Array.from(new Set([cur,addMonthsToId(cur,-1)]));}
 function reminderMonthText(months){return (months||[]).map(rocMonthLabel).join('、')}
+function monthIdToRocShort(id){const [y,m]=String(id).split('-').map(Number);return `${y-1911}/${m}`}
+function reminderMonthShortText(months){return (months||[]).map(monthIdToRocShort).join('、')}
+function parseMonthId(id){const m=String(id||'').match(/^(\d{4})-(\d{2})$/);if(!m)return null;return {year:+m[1],month:+m[2]}}
+function monthIdFromRoc(y,m){let yy=Number(y)||0;if(yy<300)yy+=1911;const mm=Number(m)||0;if(mm<1||mm>12)return '';return `${yy}-${String(mm).padStart(2,'0')}`}
+function compareMonthId(a,b){return String(a).localeCompare(String(b))}
+function monthsBetweenIds(start,end){const s=parseMonthId(start),e=parseMonthId(end);const out=[];if(!s||!e)return out;let y=s.year,m=s.month;while(y<e.year||(y===e.year&&m<=e.month)){out.push(`${y}-${String(m).padStart(2,'0')}`);m++;if(m>12){m=1;y++;}}return out;}
+function txMonthIdFromDate(t){const p=dateParts(t&&t.date);return p?p.monthId:''}
+function txText(t){return [t&&t.item,t&&t.note].filter(Boolean).join('｜')}
+function monthsMentionedInDadLivingBankTx(t){
+  // 臺灣銀行「麗雅給爸生活費」：用交易日期決定年份，用備註拆月份。
+  // 例：日期115/5/1、備註「1-2月」＝115/1、115/2；若備註空白則用交易日期月份。
+  const txMonth=txMonthIdFromDate(t);
+  const txp=parseMonthId(txMonth);
+  const text=[t&&t.note,t&&t.item].filter(Boolean).join('｜');
+  const out=new Set();
+  let m;
+  const yearRangeRe=/(\d{2,3})\s*年?\s*(\d{1,2})\s*[-~～至到]\s*(\d{1,2})\s*月/g;
+  while((m=yearRangeRe.exec(text))){
+    let y=+m[1];if(y<300)y+=1911;let a=+m[2],b=+m[3];if(a>b){const tmp=a;a=b;b=tmp;}
+    for(let mm=a;mm<=b;mm++)if(mm>=1&&mm<=12)out.add(`${y}-${String(mm).padStart(2,'0')}`);
+  }
+  const rangeRe=/(\d{1,2})\s*[-~～至到]\s*(\d{1,2})\s*月/g;
+  while((m=rangeRe.exec(text))){
+    if(!txp)continue;let a=+m[1],b=+m[2];if(a>b){const tmp=a;a=b;b=tmp;}
+    for(let mm=a;mm<=b;mm++)if(mm>=1&&mm<=12)out.add(`${txp.year}-${String(mm).padStart(2,'0')}`);
+  }
+  const multiMonthRe=/((?:\d{1,2}\s*[、,，.．]\s*)+\d{1,2})\s*月/g;
+  while((m=multiMonthRe.exec(text))){
+    if(!txp)continue;String(m[1]).split(/[、,，.．]/).forEach(x=>{const mm=+String(x).trim();if(mm>=1&&mm<=12)out.add(`${txp.year}-${String(mm).padStart(2,'0')}`);});
+  }
+  const rocDateRe=/(\d{2,3})\/(\d{1,2})(?:\/(\d{1,2}))?/g;
+  while((m=rocDateRe.exec(text))){const id=monthIdFromRoc(m[1],m[2]);if(id)out.add(id);}
+  const rocYearMonthRe=/(\d{2,3})\s*年\s*(\d{1,2})\s*月/g;
+  while((m=rocYearMonthRe.exec(text))){const id=monthIdFromRoc(m[1],m[2]);if(id)out.add(id);}
+  const oneRe=/(?:^|[^\d])(\d{1,2})\s*月/g;
+  while((m=oneRe.exec(text))){if(txp){const mm=+m[1];if(mm>=1&&mm<=12)out.add(`${txp.year}-${String(mm).padStart(2,'0')}`);}}
+  if(!out.size&&txMonth)out.add(txMonth);
+  return Array.from(out);
+}
+function getDadLivingBankPaidMonths(){
+  const paid=new Set();
+  const txs=(getGlobalData().taiwanBank?.txs)||[];
+  txs.forEach(t=>{
+    if(!t||t.type!=='expense'||!num(t.amount))return;
+    const text=txText(t);
+    if(!text.includes(DAD_LIVING_BANK_ITEM_KEY))return;
+    monthsMentionedInDadLivingBankTx(t).forEach(id=>paid.add(id));
+  });
+  return paid;
+}
+function getDadLivingBankMissingMonths(){
+  const paid=getDadLivingBankPaidMonths();
+  const cur=currentReminderMonthId();
+  return monthsBetweenIds(DAD_LIVING_REMINDER_START_MONTH,cur).filter(id=>!paid.has(id));
+}
+function laiyaManageMonthsFromTx(t){
+  const text=txText(t);const txMonth=txMonthIdFromDate(t);const txp=parseMonthId(txMonth);const out=new Set();let m;
+  const yearRangeRe=/(\d{2,3})\s*年?\s*(\d{1,2})\s*[-~～至到]\s*(\d{1,2})\s*月/g;
+  while((m=yearRangeRe.exec(text))){let y=+m[1];if(y<300)y+=1911;let a=+m[2],b=+m[3];if(a>b){const tmp=a;a=b;b=tmp;}for(let mm=a;mm<=b;mm++)if(mm>=1&&mm<=12)out.add(`${y}-${String(mm).padStart(2,'0')}`);}
+  const rangeRe=/(\d{1,2})\s*[-~～至到]\s*(\d{1,2})\s*月/g;
+  while((m=rangeRe.exec(text))){if(!txp)continue;let a=+m[1],b=+m[2];if(a>b){const tmp=a;a=b;b=tmp;}for(let mm=a;mm<=b;mm++)if(mm>=1&&mm<=12)out.add(`${txp.year}-${String(mm).padStart(2,'0')}`);}
+  const oneRe=/(?:^|[^\d])(\d{1,2})\s*月/g;
+  while((m=oneRe.exec(text))){if(txp){const mm=+m[1];if(mm>=1&&mm<=12)out.add(`${txp.year}-${String(mm).padStart(2,'0')}`);}}
+  if(!out.size&&txMonth)out.add(txMonth);
+  return Array.from(out);
+}
+function getLaiyaManagementPaidMonths(){
+  const paid=new Set();
+  ((getGlobalData().taiwanBank?.txs)||[]).forEach(t=>{
+    if(!t||t.type!=='expense'||!num(t.amount))return;
+    const text=txText(t);
+    if(!(text.includes('麗雅')&&text.includes('大社')&&text.includes('管理費')))return;
+    laiyaManageMonthsFromTx(t).forEach(id=>paid.add(id));
+  });
+  return paid;
+}
+function getLaiyaManagementMissingMonths(){
+  const paid=getLaiyaManagementPaidMonths();const cur=currentReminderMonthId();
+  let start='2025-01';
+  if(paid.size){const latest=Array.from(paid).sort().pop();start=addMonthsToId(latest,1);}
+  return monthsBetweenIds(start,cur).filter(id=>!paid.has(id));
+}
 function hasAnyText(v){return String(v??'').trim()!==''}
 function personalMonthHasInput(monthId){const m=(state.months||{})[monthId];if(!m)return false;if(m.notice&&m.notice.done)return true;return (((m.personal||{}).sections||[]).some(sec=>(sec.items||[]).some(it=>it.isCard?!!(it.noBill||hasAnyText(it.date)||hasAnyText(it.note)||(it.subItems||[]).length):!!(hasAnyText(it.amount)||hasAnyText(it.date)||hasAnyText(it.note)))));}
 function textHasAny(text,keys){const t=String(text||'').toLowerCase();return (keys||[]).some(k=>t.includes(String(k||'').toLowerCase()));}
@@ -3013,9 +3121,28 @@ function ledgerTxText(t){return [t.item,t.note].filter(Boolean).join('｜')}
 function hasLedgerMonth(kind,monthId,type,keys){const txs=(getGlobalData()[kind]?.txs)||[];return txs.some(t=>t&&t.type===type&&num(t.amount)>0&&dateParts(t.date)?.monthId===monthId&&textHasAny(ledgerTxText(t),keys));}
 function mobileRecordMonthExists(name,monthId){const nums=(getGlobalData().mobile||{}).numbers||{};const want=normalizeServiceName(name);const wantDigits=String(want).replace(/\D/g,'');const key=Object.keys(nums).find(k=>k===want||normalizeServiceName(k)===want||(wantDigits&&String(k).replace(/\D/g,'')===wantDigits));const records=key?(nums[key].records||[]):[];return records.some(r=>dateParts(r.dueDate)?.monthId===monthId);}
 const HOME_MOBILE_RULES=[{name:'長照',due:10,key:'長照'},{name:'0910-810-529',due:10,key:'0910-810-529'},{name:'0981-834-553',due:25,key:'0981-834-553'},{name:'0982-508-091',due:10,key:'0982-508-091'},{name:'中華電信06-3027690',due:10,key:'中華電信06-3027690'},{name:'中華電信07-3520179',due:15,key:'中華電信07-3520179'}];
-const HOME_BANK_RULES=[{name:'大姊給款',type:'income',due:8,keys:['大姊給款']},{name:'給爸生活費',type:'expense',due:null,keys:['給爸生活費','爸生活費','爸爸生活費']}];
+const HOME_BANK_RULES=[{name:'大姊給款',type:'income',due:8,keys:['大姊給款']},{name:'給爸生活費',type:'expense',due:null,keys:[DAD_LIVING_BANK_ITEM_KEY]}];
 const HOME_POST_RULES=[{name:'托育',type:'income',due:null,keys:['托育']},{name:'育兒',type:'income',due:null,keys:['育兒']},{name:'轉到國泰',type:'expense',due:null,keys:['轉到國泰','轉國泰','國泰COCO','轉國泰COCO']}];
-function buildHomeReminderData(){const personalMonths=reminderMonthsByDueDay(15);const personalMissing=personalMonths.filter(id=>!personalMonthHasInput(id));const mobileRows=HOME_MOBILE_RULES.map(r=>{const months=reminderMonthsByDueDay(r.due);return {...r,months,missing:months.filter(id=>!mobileRecordMonthExists(r.key,id))};});const bankRows=HOME_BANK_RULES.map(r=>{const months=r.due?reminderMonthsByDueDay(r.due):reminderMonthsNoDue();return {...r,months,missing:months.filter(id=>!hasLedgerMonth('taiwanBank',id,r.type,r.keys))};});const postRows=HOME_POST_RULES.map(r=>{const months=reminderMonthsNoDue();return {...r,months,missing:months.filter(id=>!hasLedgerMonth('postOffice',id,r.type,r.keys))};});return {personalMissing,mobileRows,bankRows,postRows};}
+function buildHomeReminderData(){
+  const personalMonths=reminderMonthsByDueDay(15);
+  const personalMissing=personalMonths.filter(id=>!personalMonthHasInput(id));
+  const mobileRows=HOME_MOBILE_RULES.map(r=>{const months=reminderMonthsByDueDay(r.due);return {...r,months,missing:months.filter(id=>!mobileRecordMonthExists(r.key,id))};});
+  const dadData=getDadLivingData();
+  const dadItemMissing=getDadLivingMissingMonths(dadData.rows||[],dadData.startMonth||DAD_LIVING_REMINDER_START_MONTH);
+  mobileRows.push({name:'爸生活費',due:null,key:DAD_LIVING_TAB,months:dadItemMissing,missing:dadItemMissing,ruleText:'項目紀錄尚未紀錄'});
+  const bankRows=HOME_BANK_RULES.map(r=>{
+    if(r.name==='給爸生活費'){
+      const missing=getDadLivingBankMissingMonths();
+      return {...r,months:missing,missing,ruleText:'臺灣銀行尚未支出「麗雅給爸生活費」'};
+    }
+    const months=r.due?reminderMonthsByDueDay(r.due):reminderMonthsNoDue();
+    return {...r,months,missing:months.filter(id=>!hasLedgerMonth('taiwanBank',id,r.type,r.keys))};
+  });
+  const mgMissing=getLaiyaManagementMissingMonths();
+  bankRows.push({name:'麗雅大社管理費',type:'expense',due:null,keys:['麗雅大社半年管理費'],months:mgMissing,missing:mgMissing,ruleText:'臺灣銀行尚未匯款給麗卉帳戶'});
+  const postRows=HOME_POST_RULES.map(r=>{const months=reminderMonthsNoDue();return {...r,months,missing:months.filter(id=>!hasLedgerMonth('postOffice',id,r.type,r.keys))};});
+  return {personalMissing,mobileRows,bankRows,postRows};
+}
 function calcHomeReminderTotal(){try{const d=buildHomeReminderData();return d.personalMissing.length+d.mobileRows.reduce((s,r)=>s+r.missing.length,0)+d.bankRows.reduce((s,r)=>s+r.missing.length,0)+d.postRows.reduce((s,r)=>s+r.missing.length,0);}catch(e){return 0}}
 function homeStatusHtml(missing){return (missing&&missing.length)?`<span class="home-reminder-status missing">缺 ${esc(reminderMonthText(missing))}</span>`:`<span class="home-reminder-status ok">已完成</span>`;}
 function dueText(due){return due?`每月${due}日前`:'每月要有輸入'}
@@ -3024,6 +3151,9 @@ function renderHomeSection(title,rows,missCount){return `<div class="home-sectio
 function todayRocText(){const d=new Date();return `${d.getFullYear()-1911}/${d.getMonth()+1}/${d.getDate()} 星期${'日一二三四五六'[d.getDay()]}`;}
 function homeStatCard(cls,title,count,sub){return `<div class="home-stat-card ${cls||''}"><div class="home-stat-name">${esc(title)}</div><div class="home-stat-line"><div class="home-stat-count ${count?'':'ok'}">${count||'OK'}</div><div class="home-stat-text">${esc(sub)}</div></div></div>`;}
 function homeMissingCard(group,name,months,rule,action){return `<div class="home-missing-card"><div class="home-missing-top"><span class="home-missing-group">${esc(group)}</span><button class="home-go warn" onclick='${action}'>前往</button></div><div class="home-missing-title">${esc(name)}</div><div class="home-missing-month">缺：${esc(reminderMonthText(months))}</div><div class="home-missing-rule">${esc(rule)}</div></div>`;}
+function homeMonthListText(months){
+  return (months||[]).map(v=>/^\d{4}-\d{1,2}$/.test(String(v))?monthIdToRocShort(v):String(v)).join('、');
+}
 function renderHome(){
   const data=buildHomeReminderData();
   const total=calcHomeReminderTotal();
@@ -3033,15 +3163,16 @@ function renderHome(){
   const postMiss=data.postRows.reduce((s,r)=>s+r.missing.length,0);
   const checkMonths=reminderMonthsNoDue().map(rocMonthLabel).join('、');
   function row(name,type,months,rule,action){
-    return `<div class="home-clean-row"><div class="home-clean-item">${esc(name)}${type?`<span class="home-clean-type">${esc(type)}</span>`:''}</div><div class="home-clean-months">缺 ${esc(reminderMonthText(months))}</div><div class="home-clean-rule">${esc(rule)}</div><div><button class="home-clean-go" onclick='${action}'>前往</button></div></div>`;
+    const mtxt=homeMonthListText(months);
+    return `<div class="home-clean-row"><div class="home-clean-item">${esc(name)}${type?`<span class="home-clean-type">${esc(type)}</span>`:''}</div><div class="home-clean-months">尚未匯款月份：${esc(mtxt)}</div><div class="home-clean-rule">${esc(rule)}</div><div><button class="home-clean-go" onclick='${action}'>前往</button></div></div>`;
   }
   function section(title,cls,count,rows){
     const secClass=cls||'personal';
     return `<div class="home-clean-section ${secClass}"><div class="home-clean-section-head"><div class="home-clean-section-title"><span class="home-clean-dot ${secClass}"></span><span class="home-clean-title-tag ${secClass}">${esc(title)}</span></div><span class="home-clean-badge ${count?'warn':''}">${count?`缺 ${count} 筆`:'完成'}</span></div>${rows.length?`<div class="home-clean-table-head"><div>項目</div><div>缺少月份</div><div>規則</div><div></div></div>${rows.join('')}`:`<div class="home-clean-okline">目前沒有缺資料。</div>`}</div>`;
   }
   const personalRows=data.personalMissing.length?[row('每月帳款','',data.personalMissing,'每月15日前輸入完成','showTab("personal")')]:[];
-  const mobileRows=data.mobileRows.filter(r=>r.missing.length).map(r=>row(r.name,'項目紀錄',r.missing,dueText(r.due),`openMobileRecordTab(${jsStr(r.key)})`));
-  const bankRows=data.bankRows.filter(r=>r.missing.length).map(r=>row(r.name,r.type==='income'?'收入':'支出',r.missing,dueText(r.due),'showTab("bank")'));
+  const mobileRows=data.mobileRows.filter(r=>r.missing.length).map(r=>row(r.name,'項目紀錄',r.missing,r.ruleText||dueText(r.due),`openMobileRecordTab(${jsStr(r.key)})`));
+  const bankRows=data.bankRows.filter(r=>r.missing.length).map(r=>row(r.name,r.type==='income'?'收入':'支出',r.missing,r.ruleText||dueText(r.due),'showTab("bank")'));
   const postRows=data.postRows.filter(r=>r.missing.length).map(r=>row(r.name,r.type==='income'?'收入':'支出',r.missing,dueText(r.due),'showTab("post")'));
   document.getElementById('main').innerHTML=`<div class="panel home-reminder-panel">
     <div class="home-clean-top">
@@ -3069,7 +3200,7 @@ function renderSection(sec,secIdx){
     : '';
   return `<div class="section"><div class="section-head"><div><h3>${esc(sec.title)}</h3></div><div class="section-tools">${cardTools}<button class="tinybtn" onclick="addPersonalItem(${secIdx})">＋新增項目</button></div></div>${extra}${sec.items.map((it,idx)=>it.isCard?renderCardRow(it,secIdx,idx):renderFixedRow(it,secIdx,idx)).join('')}</div>`
 }
-function renderFixedRow(it,secIdx,idx){const split=!isDadLivingItemLabel(it.label)&&(it.label.includes('大社')||it.label.includes('爸爸')||it.label.includes('翠屏')||it.label.includes('長照'));const fixedAmt=getFixedDefaultAmount(it.label);return `<div class="fixed-row normalrow"><div><div class="tiny">項目${fixedAmt?`｜固定預設${fmt(fixedAmt,true)}`:''}</div><input class="labelcell" value="${esc(it.label)}" oninput="setItem(${secIdx},${idx},'label',this.value)"></div><div><div class="tiny">金額</div><input inputmode="numeric" class="amountinp" value="${esc(it.amount)}" oninput="this.value=moneyOnly(this.value);setItem(${secIdx},${idx},'amount',this.value)" placeholder="0"></div><div><div class="tiny">${esc(it.dateType)}</div><input value="${esc(it.date)}" onchange="this.value=normalizeDateInput(this);setItem(${secIdx},${idx},'date',this.value)" placeholder="115/5/8"></div><div><div class="tiny">備註</div><input value="${esc(it.note)}" oninput="setItem(${secIdx},${idx},'note',this.value)" placeholder="備註事項"></div><div>${split?`<div class="tiny">零用金</div><select onchange="setItem(${secIdx},${idx},'splitMode',this.value)"><option value="none" ${it.splitMode==='none'?'selected':''}>不扣</option><option value="2" ${it.splitMode==='2'?'selected':''}>/2</option><option value="3" ${it.splitMode==='3'?'selected':''}>/3</option><option value="dadLiving" ${it.splitMode==='dadLiving'?'selected':''}>爸生活費規則</option></select>`:'<div class="tiny">&nbsp;</div><div class="compact-empty"></div>'}</div><div><div class="tiny">&nbsp;</div><div class="row-actions"><button class="iconbtn keep" onclick="clearPersonalItemData(${secIdx},${idx})">清</button><button class="iconbtn del" onclick="deletePersonalItem(${secIdx},${idx})">刪</button></div></div></div>`}
+function renderFixedRow(it,secIdx,idx){const split=!isDadLivingItemLabel(it.label)&&!String(it.label||'').includes('高雄翠屏路大樓管理費')&&(it.label.includes('大社')||it.label.includes('爸爸')||it.label.includes('翠屏')||it.label.includes('長照'));const fixedAmt=getFixedDefaultAmount(it.label);return `<div class="fixed-row normalrow"><div><div class="tiny">項目${fixedAmt?`｜固定預設${fmt(fixedAmt,true)}`:''}</div><input class="labelcell" value="${esc(it.label)}" oninput="setItem(${secIdx},${idx},'label',this.value)"></div><div><div class="tiny">金額</div><input inputmode="numeric" class="amountinp" value="${esc(it.amount)}" oninput="this.value=moneyOnly(this.value);setItem(${secIdx},${idx},'amount',this.value)" placeholder="0"></div><div><div class="tiny">${esc(it.dateType)}</div><input value="${esc(it.date)}" onchange="this.value=normalizeDateInput(this);setItem(${secIdx},${idx},'date',this.value)" placeholder="115/5/8"></div><div><div class="tiny">備註</div><input value="${esc(it.note)}" oninput="setItem(${secIdx},${idx},'note',this.value)" placeholder="備註事項"></div><div>${split?`<div class="tiny">零用金</div><select onchange="setItem(${secIdx},${idx},'splitMode',this.value)"><option value="none" ${it.splitMode==='none'?'selected':''}>不扣</option><option value="2" ${it.splitMode==='2'?'selected':''}>/2</option><option value="3" ${it.splitMode==='3'?'selected':''}>/3</option><option value="dadLiving" ${it.splitMode==='dadLiving'?'selected':''}>爸生活費規則</option></select>`:'<div class="tiny">&nbsp;</div><div class="compact-empty"></div>'}</div><div><div class="tiny">&nbsp;</div><div class="row-actions"><button class="iconbtn keep" onclick="clearPersonalItemData(${secIdx},${idx})">清</button><button class="iconbtn del" onclick="deletePersonalItem(${secIdx},${idx})">刪</button></div></div></div>`}
 function renderCardRow(it,secIdx,idx){const sum=it.subItems.reduce((s,d)=>s+numSigned(d.amount),0);const hidden=it.noBill||it.detailsHidden;return `<div class="fixed-row cardrow"><div><div class="tiny">項目</div><input class="labelcell" value="${esc(it.label)}" oninput="setItem(${secIdx},${idx},'label',this.value)"></div><div><div class="tiny">小計</div><input class="amountinp ${sum<0?'signedNeg':''}" value="${sum?fmtSigned(sum,true):''}" readonly placeholder="-"></div><div><div class="tiny" title="${esc(it.dueInfo)}">${esc(it.dateType)}</div><input value="${esc(it.date)}" onchange="this.value=normalizeDateInput(this);setItem(${secIdx},${idx},'date',this.value)" placeholder="115/5/18" title="${esc(it.dueInfo)}"></div><div><div class="tiny">帳單</div><label class="checkline"><input type="checkbox" ${it.noBill?'checked':''} onchange="setItem(${secIdx},${idx},'noBill',this.checked);render()">無帳單</label></div><div><div class="tiny">備註</div><input value="${esc(it.note)}" oninput="setItem(${secIdx},${idx},'note',this.value)" placeholder="飲食1250+交通50"></div><div><div class="tiny">操作</div><div class="row-actions"><button class="iconbtn" onclick="addManualCardDetail(${secIdx},${idx})">＋明細</button>${it.noBill?'':`<button class="iconbtn edit" onclick="toggleCardDetails(${secIdx},${idx})">${hidden?'明細展開':'收起明細'}</button>`}<button class="iconbtn keep" onclick="clearPersonalItemData(${secIdx},${idx})">清</button><button class="iconbtn del" onclick="deletePersonalItem(${secIdx},${idx})">刪</button></div></div>${hidden?'':renderCardDetails(it,secIdx,idx)}</div>`}
 function renderCardDetails(it,secIdx,idx){if(!it.subItems.length)return `<div class="details"><div class="empty">尚無信用卡明細</div></div>`;return `<div class="details"><div class="detail-head"><div>消費日</div><div>入帳日</div><div>說明</div><div>分類</div><div>金額</div><div>備註</div><div></div></div>${it.subItems.map((d,di)=>`<div class="detail-row"><input value="${esc(d.date1)}" onchange="this.value=normalizeDateInput(this);setCardDetail(${secIdx},${idx},${di},'date1',this.value)"><input value="${esc(d.date2)}" onchange="this.value=normalizeDateInput(this);setCardDetail(${secIdx},${idx},${di},'date2',this.value)"><input value="${esc(d.desc)}" oninput="setCardDetail(${secIdx},${idx},${di},'desc',this.value)"><input value="${esc(d.category)}" oninput="setCardDetail(${secIdx},${idx},${di},'category',this.value)"><input inputmode="numeric" class="num ${numSigned(d.amount)<0?'signedNeg':''}" value="${esc(d.amount)}" oninput="this.value=signedMoney(this.value);setCardDetail(${secIdx},${idx},${di},'amount',this.value)"><input value="${esc(d.note)}" oninput="setCardDetail(${secIdx},${idx},${di},'note',this.value)"><button class="iconbtn del" onclick="delCardDetail(${secIdx},${idx},${di})">刪</button></div>`).join('')}</div>`}
 function savePersonalTemplate(){
@@ -3595,6 +3726,7 @@ function calcPetty(){
     const homeSec=month?.personal?.sections?.find(sec=>sec.title==='大社支出');
     (homeSec?.items||[]).forEach(it=>{
       if(isDadLivingItemLabel(it.label))return; // 爸爸生活費不扣大姊/二姊零用金，改由台灣銀行帳戶手動輸入
+      if(String(it.label||'').includes('高雄翠屏路大樓管理費'))return; // 高雄翠屏路大樓管理費不列入大姊零用金扣款
       const a=num(it.amount);if(!a)return;const dt=it.date||'';
       const dp=dateParts(dt); if(!dp)return;
       const key=[it.label,dt,a,it.splitMode].join('|');
@@ -3741,20 +3873,34 @@ function openMobileRecordTab(name){
   render();
   return false;
 }
+function isLaiyaDebtActive(){
+  const v=String(state.activePhone||'');
+  return v===LAIYA_DEBT_TAB || v.includes('麗雅欠志偉款') || v.includes('麗雅還志偉款');
+}
+function openLaiyaDebtTab(){
+  state.activeTab='mobile';
+  state.activePhone=LAIYA_DEBT_TAB;
+  save();
+  render();
+  return false;
+}
 function renderMobile(){
   const mobile=getGlobalData().mobile;
   const nums=mobile.numbers;SERVICE_NAMES.forEach(n=>{if(!mobile.deletedNames?.includes(n)&&!nums[n])nums[n]={carrier:'',records:[]}});
   const phones=Object.keys(nums);
   const isDadLivingTab=isDadLivingActive();
+  const isLaiyaTab=isLaiyaDebtActive();
   if(isDadLivingTab)state.activePhone=DAD_LIVING_TAB;
-  if(!isDadLivingTab&&!nums[state.activePhone])state.activePhone=phones[0]||'';
-  const activePhone=(!isDadLivingTab&&nums[state.activePhone])?state.activePhone:(phones[0]||'');
+  else if(isLaiyaTab)state.activePhone=LAIYA_DEBT_TAB;
+  if(!isDadLivingTab&&!isLaiyaTab&&!nums[state.activePhone])state.activePhone=phones[0]||'';
+  const activePhone=(!isDadLivingTab&&!isLaiyaTab&&nums[state.activePhone])?state.activePhone:(phones[0]||'');
   const data=nums[activePhone]||{records:[]};
   const dadTarget=getDadLivingTarget();
   const dadTab=`<span class="phone-chip dad-chip"><button type="button" class="phonebtn ${isDadLivingTab?'active':''}" onclick="return openDadLivingTab()">爸生活費$${esc(dadTarget)}</button></span>`;
-  const phoneTabHtml=phones.map(p=>`<span class="phone-chip"><button type="button" class="phonebtn ${!isDadLivingTab&&p===activePhone?'active':''}" onclick='return openMobileRecordTab(${jsStr(p)})'>${esc(p)}</button><button type="button" class="mini" onclick='editPhoneNumber(${jsStr(p)})' title="編輯項目">✎</button><button type="button" class="mini del" onclick='deletePhoneNumber(${jsStr(p)})' title="刪除項目">×</button></span>`).join('');
-  const body=isDadLivingTab?renderDadLivingPanel():`${renderPhoneForm()}${renderPhoneTable(activePhone,data)}`;
-  document.getElementById('main').innerHTML=`<div class="panel"><div class="panel-title"><div><h2>項目紀錄</h2></div><button type="button" class="softbtn blue" onclick="addPhoneNumber()">新增項目</button></div><div class="phone-tabs">${dadTab}${phoneTabHtml}</div>${body}</div>`
+  const laiyaTab=`<span class="phone-chip dad-chip"><button type="button" class="phonebtn ${isLaiyaTab?'active':''}" onclick="return openLaiyaDebtTab()">麗雅還志偉款</button></span>`;
+  const phoneTabHtml=phones.map(p=>`<span class="phone-chip"><button type="button" class="phonebtn ${(!isDadLivingTab&&!isLaiyaTab&&p===activePhone)?'active':''}" onclick='return openMobileRecordTab(${jsStr(p)})'>${esc(p)}</button><button type="button" class="mini" onclick='editPhoneNumber(${jsStr(p)})' title="編輯項目">✎</button><button type="button" class="mini del" onclick='deletePhoneNumber(${jsStr(p)})' title="刪除項目">×</button></span>`).join('');
+  const body=isDadLivingTab?renderDadLivingPanel():(isLaiyaTab?renderLaiyaDebtPanel():`${renderPhoneForm()}${renderPhoneTable(activePhone,data)}`);
+  document.getElementById('main').innerHTML=`<div class="panel"><div class="panel-title"><div><h2>項目紀錄</h2></div><button type="button" class="softbtn blue" onclick="addPhoneNumber()">新增項目</button></div><div class="phone-tabs">${dadTab}${laiyaTab}${phoneTabHtml}</div>${body}</div>`
 }
 function renderPhoneForm(){
   return `<div class="phone-form"><div><div class="tiny">日期</div><input id="m_due" placeholder="5/3" onchange="this.value=normalizeItemRecordDateInput(this)"></div><div><div class="tiny">項目</div><input id="m_bill" placeholder="帳單月份 / 長照月份 / 項目"></div><div><div class="tiny">金額</div><input id="m_amount" inputmode="numeric" class="amountinp" placeholder="0" oninput="this.value=moneyOnly(this.value)"></div><div><div class="tiny">說明</div><input id="m_desc" placeholder="列帳期間、備註或其他說明"></div><button class="softbtn green" onclick="addMobileRecord()">新增</button></div>`
@@ -3787,7 +3933,24 @@ function copyMobileRowForExcel(phone,i,btn){
   render();
 }
 function setMobile(phone,i,field,val){const r=getGlobalData().mobile.numbers[phone].records[i];if(field==='amount')r[field]=moneyOnly(val);else if(field==='dueDate'){const v=normalizeDate(val);if(!v)return;r[field]=v}else if(field==='desc'){r.desc=val;r.period='';r.note=''}else r[field]=val;syncServiceToPersonal(phone);save()}
-function getDadLivingData(){const g=getGlobalData();if(!g.dadLiving)g.dadLiving={target:DAD_LIVING_TARGET,startMonth:DAD_LIVING_START_MONTH,rows:cloneObj(DAD_LIVING_DEFAULT_ROWS)};if(!Array.isArray(g.dadLiving.rows))g.dadLiving.rows=[];if(g.dadLiving.target===undefined)g.dadLiving.target=DAD_LIVING_TARGET;return g.dadLiving}
+
+function getLaiyaDebtRows(){
+  const rows=[];let balance=LAIYA_DEBT_TOTAL;
+  const txs=((getGlobalData().taiwanBank||{}).txs||[])
+    .map((t,i)=>({t,i}))
+    .filter(x=>/麗雅還志偉款/.test(txText(x.t))&&num(x.t.amount)>0)
+    .sort((a,b)=>{const av=dateValue(a.t.date),bv=dateValue(b.t.date);if(av!==bv)return av-bv;return a.i-b.i;});
+  txs.forEach(({t,i})=>{const amount=num(t.amount);balance-=amount;rows.push({t,index:i,amount,balance});});
+  return rows;
+}
+function renderLaiyaDebtPanel(){
+  const rows=getLaiyaDebtRows();
+  const paid=rows.reduce((s,r)=>s+r.amount,0);
+  const remain=LAIYA_DEBT_TOTAL-paid;
+  const display=rows.slice().reverse();
+  return `<div class="dad-living-panel"><div class="dad-living-head"><h3 class="dad-living-title">麗雅還志偉款 / 欠志偉款 $${esc(LAIYA_DEBT_TOTAL.toLocaleString('en-US'))}</h3><div class="dad-living-tools"><button type="button" class="copy" onclick="showTab('bank')">前往台灣銀行</button></div></div><div class="dad-living-body"><div class="dad-missing-box"><b>目前已還：</b>${esc(fmt(paid,true))}　<b>尚欠餘額：</b>${esc(fmt(remain,true))}<br>來源：台灣銀行帳款項目/備註含「麗雅還志偉款」的明細。</div><table class="dad-living-table"><thead><tr><th>日期</th><th>金額</th><th>餘額</th><th>備註</th></tr></thead><tbody>${display.map(r=>`<tr><td>${esc(r.t.date||'')}</td><td class="num">${esc(fmt(r.amount,true))}</td><td class="num ${r.balance<0?'negative':''}">${esc(fmt(r.balance,true))}</td><td>${esc([r.t.item||'',r.t.note||''].filter(Boolean).join('｜'))}</td></tr>`).join('')||'<tr><td colspan="4" class="empty">台灣銀行尚無「麗雅還志偉款」紀錄</td></tr>'}</tbody></table></div></div>`;
+}
+function getDadLivingData(){const g=getGlobalData();if(!g.dadLiving)g.dadLiving={target:DAD_LIVING_TARGET,startMonth:DAD_LIVING_REMINDER_START_MONTH,rows:[]};if(!Array.isArray(g.dadLiving.rows))g.dadLiving.rows=[];if(g.dadLiving.target===undefined)g.dadLiving.target=DAD_LIVING_TARGET;if(!g.dadLiving.startMonth||compareMonthId(g.dadLiving.startMonth,DAD_LIVING_REMINDER_START_MONTH)<0)g.dadLiving.startMonth=DAD_LIVING_REMINDER_START_MONTH;return g.dadLiving}
 function getDadLivingTarget(){return moneyOnly(getDadLivingData().target)||String(DAD_LIVING_TARGET)}
 function setDadLivingTarget(val){const data=getDadLivingData();data.target=moneyOnly(val)||String(DAD_LIVING_TARGET);save();render()}
 function renderDadLivingPanel(){
@@ -3822,7 +3985,7 @@ function getDadLivingMissingMonths(rows,startMonth){
   }
   return out;
 }
-function parseMonthId(id){const m=String(id||'').match(/^(\d{4})-(\d{1,2})$/);if(!m)return null;return {y:+m[1],m:+m[2]}}
+function parseMonthId(id){const m=String(id||'').match(/^(\d{4})-(\d{1,2})$/);if(!m)return null;const year=+m[1], month=+m[2];return {year,month,y:year,m:month}}
 function monthIdFromDate(d){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`}
 function copyDadLivingTableForExcel(btn){
   const rows=getDadLivingData().rows.map(r=>{
