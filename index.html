@@ -2791,8 +2791,32 @@ function normalizeLegacyCardLabels(){
 }
 
 
+function bankQuickKey(v){
+  return String((typeof v==='string'?v:(v&&v.item))||'').trim();
+}
+function ensureBankQuickDeletedStore(){
+  if(!Array.isArray(state.bankQuickDeleted))state.bankQuickDeleted=[];
+  state.bankQuickDeleted=[...new Set(state.bankQuickDeleted.map(bankQuickKey).filter(Boolean))];
+}
+function isBankQuickDeleted(item){
+  ensureBankQuickDeletedStore();
+  return state.bankQuickDeleted.includes(bankQuickKey(item));
+}
+function markBankQuickDeleted(item){
+  const key=bankQuickKey(item);
+  if(!key)return;
+  ensureBankQuickDeletedStore();
+  if(!state.bankQuickDeleted.includes(key))state.bankQuickDeleted.push(key);
+}
+function unmarkBankQuickDeleted(item){
+  const key=bankQuickKey(item);
+  if(!key)return;
+  ensureBankQuickDeletedStore();
+  state.bankQuickDeleted=state.bankQuickDeleted.filter(x=>x!==key);
+}
 function ensureBankQuickButtonDefaults(){
   if(!Array.isArray(state.bankQuickButtons))state.bankQuickButtons=[];
+  ensureBankQuickDeletedStore();
   const must=[
     {type:'expense',item:'給爸生活費',amount:'5000',tone:'rose'},
     {type:'expense',item:'麗雅給爸生活費',amount:'5000',tone:'rose'},
@@ -2801,7 +2825,8 @@ function ensureBankQuickButtonDefaults(){
     {type:'expense',item:'麗雅大社半年管理費',amount:'4500',tone:'rose'}
   ];
   must.forEach(b=>{
-    if(!state.bankQuickButtons.some(x=>String(x.item||'')===b.item))state.bankQuickButtons.push({...b});
+    if(isBankQuickDeleted(b.item))return;
+    if(!state.bankQuickButtons.some(x=>bankQuickKey(x)===b.item))state.bankQuickButtons.push({...b});
   });
 }
 function isSpecialItemTab(v){return v===DAD_LIVING_TAB||v===LAIYA_DEBT_TAB||String(v||'').includes('爸生活費')||String(v||'').includes('麗雅欠志偉款');}
@@ -3344,9 +3369,9 @@ function quickBank(type,item,amount){
   else if(!amountEl.value)amountEl.focus();
 }
 function quickBankButton(i){const b=state.bankQuickButtons[i];if(!b)return;quickBank(b.type,b.item,b.amount)}
-function addQuickBankButton(){const item=prompt('快速按鈕名稱/項目：');if(!item)return;const amount=moneyOnly(prompt('金額：','0')||'0');const type=confirm('這個按鈕是收入嗎？\n確定＝收入，取消＝支出')?'income':'expense';state.bankQuickButtons.push({type,item,amount,tone:type==='income'?'green':'rose'});save();render()}
-function editQuickBankButton(i){const b=state.bankQuickButtons[i];if(!b)return;const item=prompt('修改項目名稱：',b.item);if(!item)return;const amount=moneyOnly(prompt('修改金額：',b.amount)||b.amount);const type=confirm('這個按鈕是收入嗎？\n確定＝收入，取消＝支出')?'income':'expense';b.item=item;b.amount=amount;b.type=type;b.tone=type==='income'?'green':'rose';save();render()}
-function deleteQuickBankButton(i){const b=state.bankQuickButtons[i];if(!b)return;if(!confirmAction('確定刪除快速按鈕「'+b.item+'」？'))return;state.bankQuickButtons.splice(i,1);save();render()}
+function addQuickBankButton(){const item=prompt('快速按鈕名稱/項目：');if(!item)return;const amount=moneyOnly(prompt('金額：','0')||'0');const type=confirm('這個按鈕是收入嗎？\n確定＝收入，取消＝支出')?'income':'expense';unmarkBankQuickDeleted(item);state.bankQuickButtons.push({type,item,amount,tone:type==='income'?'green':'rose'});save();render()}
+function editQuickBankButton(i){const b=state.bankQuickButtons[i];if(!b)return;const oldItem=b.item;const item=prompt('修改項目名稱：',b.item);if(!item)return;const amount=moneyOnly(prompt('修改金額：',b.amount)||b.amount);const type=confirm('這個按鈕是收入嗎？\n確定＝收入，取消＝支出')?'income':'expense';if(bankQuickKey(oldItem)!==bankQuickKey(item))markBankQuickDeleted(oldItem);unmarkBankQuickDeleted(item);b.item=item;b.amount=amount;b.type=type;b.tone=type==='income'?'green':'rose';save();render()}
+function deleteQuickBankButton(i){const b=state.bankQuickButtons[i];if(!b)return;if(!confirmAction('確定刪除快速按鈕「'+b.item+'」？'))return;markBankQuickDeleted(b.item);state.bankQuickButtons.splice(i,1);save();render()}
 function startQuickBankDrag(e,i){bankQuickDragIndex=i;try{e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',String(i))}catch(err){}const chip=e.currentTarget.closest('.quick-chip');if(chip)setTimeout(()=>chip.classList.add('dragging'),0)}
 function allowQuickBankDrop(e){e.preventDefault();try{e.dataTransfer.dropEffect='move'}catch(err){}}
 function endQuickBankDrag(){document.querySelectorAll('.quick-chip.dragging').forEach(x=>x.classList.remove('dragging'));bankQuickDragIndex=null}
