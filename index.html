@@ -444,6 +444,123 @@
       box-shadow:none!important;
     }
 
+
+
+    /* V107：首頁提醒新增公佈欄 */
+    .home-bulletin{
+      border:1px solid rgba(245,158,11,.34);
+      border-radius:24px;
+      background:
+        radial-gradient(circle at 8% 0%,rgba(254,215,170,.62) 0,rgba(254,215,170,0) 32%),
+        radial-gradient(circle at 96% 12%,rgba(186,230,253,.58) 0,rgba(186,230,253,0) 30%),
+        linear-gradient(135deg,#fffdf7 0%,#ffffff 52%,#f8fbff 100%);
+      box-shadow:0 10px 26px rgba(42,65,105,.09);
+      padding:15px;
+      margin:0 0 13px;
+      overflow:hidden;
+      position:relative;
+    }
+    .home-bulletin:after{
+      content:"";
+      position:absolute;
+      right:-48px;
+      top:-48px;
+      width:132px;
+      height:132px;
+      border-radius:50%;
+      background:rgba(250,204,21,.14);
+      pointer-events:none;
+    }
+    .home-bulletin-head{
+      position:relative;
+      z-index:1;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      margin-bottom:12px;
+    }
+    .home-bulletin-title{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      min-width:0;
+    }
+    .home-bulletin-icon{
+      width:39px;
+      height:39px;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      border-radius:16px;
+      background:linear-gradient(135deg,#fef3c7,#fde68a);
+      box-shadow:0 6px 14px rgba(245,158,11,.18), inset 0 0 0 1px rgba(255,255,255,.72);
+      font-size:20px;
+      flex:0 0 auto;
+    }
+    .home-bulletin-title h3{margin:0;font-size:19px;font-weight:950;color:#92400e;letter-spacing:.02em;}
+    .home-bulletin-title div:last-child{font-size:12px;color:#64748b;font-weight:850;margin-top:3px;}
+    .home-bulletin-chip{
+      display:inline-flex;
+      align-items:center;
+      gap:5px;
+      border-radius:999px;
+      padding:6px 11px;
+      background:#fff7ed;
+      color:#9a3412;
+      border:1px solid #fed7aa;
+      font-size:12px;
+      font-weight:950;
+      white-space:nowrap;
+      box-shadow:0 2px 8px rgba(245,158,11,.08);
+    }
+    .home-bulletin-grid{
+      position:relative;
+      z-index:1;
+      display:grid;
+      grid-template-columns:repeat(5,minmax(0,1fr));
+      gap:9px;
+    }
+    .home-bulletin-card{
+      min-height:128px;
+      border:1px solid #e2e8f0;
+      border-radius:18px;
+      background:rgba(255,255,255,.86);
+      box-shadow:0 5px 14px rgba(42,65,105,.06);
+      padding:11px 11px 10px;
+      display:flex;
+      flex-direction:column;
+      gap:7px;
+    }
+    .home-bulletin-card:nth-child(1){border-color:#c7d2fe;background:linear-gradient(180deg,#eef2ff 0%,#ffffff 95%);}
+    .home-bulletin-card:nth-child(2){border-color:#bae6fd;background:linear-gradient(180deg,#f0f9ff 0%,#ffffff 95%);}
+    .home-bulletin-card:nth-child(3){border-color:#fde68a;background:linear-gradient(180deg,#fffbeb 0%,#ffffff 95%);}
+    .home-bulletin-card:nth-child(4){border-color:#bbf7d0;background:linear-gradient(180deg,#f0fdf4 0%,#ffffff 95%);}
+    .home-bulletin-card:nth-child(5){border-color:#fbcfe8;background:linear-gradient(180deg,#fdf2f8 0%,#ffffff 95%);}
+    .home-bulletin-card-top{display:flex;align-items:center;gap:8px;}
+    .home-bulletin-num{
+      width:25px;
+      height:25px;
+      border-radius:10px;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      color:#fff;
+      font-size:12px;
+      font-weight:950;
+      box-shadow:0 4px 9px rgba(15,23,42,.12);
+      flex:0 0 auto;
+    }
+    .home-bulletin-card:nth-child(1) .home-bulletin-num{background:#6366f1;}
+    .home-bulletin-card:nth-child(2) .home-bulletin-num{background:#0ea5e9;}
+    .home-bulletin-card:nth-child(3) .home-bulletin-num{background:#f59e0b;}
+    .home-bulletin-card:nth-child(4) .home-bulletin-num{background:#22c55e;}
+    .home-bulletin-card:nth-child(5) .home-bulletin-num{background:#ec4899;}
+    .home-bulletin-card b{font-size:15px;color:#1f2937;font-weight:950;line-height:1.25;}
+    .home-bulletin-card ul{margin:0;padding-left:18px;color:#475569;font-size:12px;font-weight:900;line-height:1.62;}
+    .home-bulletin-card li::marker{color:#94a3b8;}
+    @media(max-width:1280px){.home-bulletin-grid{grid-template-columns:repeat(3,minmax(0,1fr));}}
+
     /* V83：郵局/台灣銀行/零用金 表格改為 日期｜收入｜支出｜餘額｜備註 */
     .cashflow-table th,.cashflow-table td{vertical-align:middle!important;}
     .cashflow-table th:nth-child(1),.cashflow-table td:nth-child(1){width:112px;}
@@ -3179,6 +3296,26 @@ function homeMissingCard(group,name,months,rule,action){return `<div class="home
 function homeMonthListText(months){
   return (months||[]).map(v=>/^\d{4}-\d{1,2}$/.test(String(v))?monthIdToRocShort(v):String(v)).join('、');
 }
+
+function renderHomeBulletinBoard(){
+  const cards=[
+    {t:'每月帳款',items:['每月輸入','繳款信用卡費用']},
+    {t:'郵局帳款',items:['每月跟志偉索取截圖','輸入郵局帳款']},
+    {t:'臺灣銀行',items:['收入大姊存入','半年一次大社管理費','支出麗雅生活費給爸','彈性支出零用金存入麗卉帳戶','支出欠款志偉']},
+    {t:'零用金',items:['注意每月姐妹餘額']},
+    {t:'項目紀錄',items:['每月輸入']}
+  ];
+  return `<div class="home-bulletin">
+    <div class="home-bulletin-head">
+      <div class="home-bulletin-title"><span class="home-bulletin-icon">📌</span><div><h3>公佈欄</h3><div>每月固定檢查事項</div></div></div>
+      <span class="home-bulletin-chip">首頁提醒專用</span>
+    </div>
+    <div class="home-bulletin-grid">
+      ${cards.map((c,i)=>`<div class="home-bulletin-card"><div class="home-bulletin-card-top"><span class="home-bulletin-num">${i+1}</span><b>${esc(c.t)}</b></div><ul>${c.items.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`).join('')}
+    </div>
+  </div>`;
+}
+
 function renderHome(){
   const data=buildHomeReminderData();
   const total=calcHomeReminderTotal();
@@ -3208,6 +3345,7 @@ function renderHome(){
       <div class="home-clean-total ${total?'':'ok'}"><span>目前待補</span><b>${total?total:'OK'}</b></div>
     </div>
     <div class="home-clean-info"><span>今天：${esc(todayText)}</span><span>檢查月份：${esc(checkMonths)}</span><span>缺資料才顯示</span></div>
+    ${renderHomeBulletinBoard()}
     ${total?`<div class="home-clean-stack">
       ${section('麗卉每月帳款','',data.personalMissing.length,personalRows)}
       ${section('項目紀錄','mobile',mobileMiss,mobileRows)}
