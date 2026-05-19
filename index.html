@@ -3189,7 +3189,7 @@ function renderHome(){
   const checkMonths=reminderMonthsNoDue().map(rocMonthLabel).join('、');
   function row(name,type,months,rule,action){
     const mtxt=homeMonthListText(months);
-    return `<div class="home-clean-row"><div class="home-clean-item">${esc(name)}${type?`<span class="home-clean-type">${esc(type)}</span>`:''}</div><div class="home-clean-months">尚未匯款月份：${esc(mtxt)}</div><div class="home-clean-rule">${esc(rule)}</div><div><button class="home-clean-go" onclick='${action}'>前往</button></div></div>`;
+    return `<div class="home-clean-row"><div class="home-clean-item">${esc(name)}${type?`<span class="home-clean-type">${esc(type)}</span>`:''}</div><div class="home-clean-months">${esc(mtxt)}</div><div class="home-clean-rule">${esc(rule)}</div><div><button class="home-clean-go" onclick='${action}'>前往</button></div></div>`;
   }
   function section(title,cls,count,rows){
     const secClass=cls||'personal';
@@ -3982,7 +3982,7 @@ function renderDadLivingPanel(){
   const data=getDadLivingData();
   const rows=data.rows||[];
   const missing=getDadLivingMissingMonths(rows,data.startMonth||DAD_LIVING_START_MONTH);
-  const missingHtml=missing.length?`<div class="dad-missing">尚未匯款月份：${missing.map(esc).join('、')}</div>`:`<div class="dad-missing ok">目前沒有尚未匯款月份</div>`;
+  const missingHtml=missing.length?`<div class="dad-missing">${missing.map(esc).join('、')}</div>`:`<div class="dad-missing ok">目前沒有尚未匯款月份</div>`;
   const sorted=rows.map((r,i)=>({...r,realIndex:i})).sort((a,b)=>dateValue(b.date)-dateValue(a.date));
   return `<div class="dad-living-panel"><div class="dad-living-head"><h3 class="dad-living-title">爸生活費 $<input class="dad-target-input" inputmode="numeric" value="${esc(getDadLivingTarget())}" oninput="this.value=moneyOnly(this.value)" onchange="setDadLivingTarget(this.value)">（匯款麗卉富邦）</h3><div class="dad-living-tools"><button type="button" class="add" onclick="addDadLivingRow()">＋新增一列</button><button type="button" class="copy" onclick="copyDadLivingTableForExcel(this)">複製EXCEL格式</button></div></div><div class="dad-living-body">${missingHtml}<table class="dad-living-table"><thead><tr><th>匯款日期</th><th>麗雅</th><th>麗玲</th><th>麗卉</th><th>備註</th><th>合計判斷</th><th></th></tr></thead><tbody>${sorted.map(r=>renderDadLivingRow(r)).join('')||'<tr><td colspan="7" class="empty">目前沒有紀錄</td></tr>'}</tbody></table><div class="dad-note-box"><b>備註說明：</b><br>如果麗玲匯款5000就麗玲的$都給爸生活費<br>如果麗玲匯款3000就麗雅1000、麗卉1000<br>如果麗玲匯款2000就麗雅1500、麗卉1500<br>如果麗玲匯款0就麗雅2500、麗卉2500</div></div></div>`
 }
