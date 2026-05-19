@@ -3992,10 +3992,19 @@ function renderDadLivingRow(r){
   const diff=total-target;
   const ok=diff===0;
   const status=ok?`合計${fmt(total,true)}<br>差額$0`:`合計${fmt(total,true)}<br>差額${diff>0?'+':''}${fmt(diff,true)}`;
-  return `<tr><td><input value="${esc(r.date)}" placeholder="113/9/11" onchange="this.value=normalizeDateInput(this);if(!this.dataset.dateInvalid)setDadLiving(${r.realIndex},'date',this.value)"></td><td><input class="amountinp" inputmode="numeric" value="${esc(r.laiya)}" oninput="this.value=signedMoney(this.value);setDadLiving(${r.realIndex},'laiya',this.value)"></td><td><input class="amountinp" inputmode="numeric" value="${esc(r.liling)}" oninput="this.value=signedMoney(this.value);setDadLiving(${r.realIndex},'liling',this.value)"></td><td><input class="amountinp" inputmode="numeric" value="${esc(r.lihui)}" oninput="this.value=signedMoney(this.value);setDadLiving(${r.realIndex},'lihui',this.value)"></td><td><input value="${esc(r.note||'')}" oninput="setDadLiving(${r.realIndex},'note',this.value)"></td><td class="status ${ok?'ok':'warn'}">${status}</td><td><div class="row-copy-actions"><button type="button" class="iconbtn copy" onclick="copyDadLivingRow(${r.realIndex},this)" title="複製新增下一列">複</button><button class="iconbtn del" onclick="delDadLivingRow(${r.realIndex})">刪</button></div></td></tr>`
+  return `<tr><td><input value="${esc(r.date)}" placeholder="113/9/11" onchange="this.value=normalizeDateInput(this);if(!this.dataset.dateInvalid)setDadLiving(${r.realIndex},'date',this.value,true)"></td><td><input class="amountinp" inputmode="numeric" value="${esc(r.laiya)}" oninput="this.value=signedMoney(this.value);setDadLiving(${r.realIndex},'laiya',this.value)" onblur="render()"></td><td><input class="amountinp" inputmode="numeric" value="${esc(r.liling)}" oninput="this.value=signedMoney(this.value);setDadLiving(${r.realIndex},'liling',this.value)" onblur="render()"></td><td><input class="amountinp" inputmode="numeric" value="${esc(r.lihui)}" oninput="this.value=signedMoney(this.value);setDadLiving(${r.realIndex},'lihui',this.value)" onblur="render()"></td><td><input value="${esc(r.note||'')}" oninput="setDadLiving(${r.realIndex},'note',this.value)" onblur="render()"></td><td class="status ${ok?'ok':'warn'}">${status}</td><td><div class="row-copy-actions"><button type="button" class="iconbtn copy" onclick="copyDadLivingRow(${r.realIndex},this)" title="複製新增下一列">複</button><button class="iconbtn del" onclick="delDadLivingRow(${r.realIndex})">刪</button></div></td></tr>`
 }
 function addDadLivingRow(){getDadLivingData().rows.unshift({date:'',laiya:'',liling:'',lihui:'',note:''});save();render()}
-function setDadLiving(i,field,val){const r=getDadLivingData().rows[i];if(!r)return;if(['laiya','liling','lihui'].includes(field))r[field]=signedMoney(val);else r[field]=val;save();render()}
+function setDadLiving(i,field,val,rerender=false){
+  const r=getDadLivingData().rows[i];
+  if(!r)return;
+  if(['laiya','liling','lihui'].includes(field))r[field]=signedMoney(val);
+  else r[field]=val;
+  save();
+  // V106：爸生活費欄位輸入時不整區重畫，避免每打一個字就失焦、只能一字一字輸入。
+  // 需要排序或更新合計判斷時，再由 onchange/onblur 觸發重整。
+  if(rerender)render();
+}
 function delDadLivingRow(i){if(!confirmAction('確定刪除此筆爸生活費紀錄？'))return;getDadLivingData().rows.splice(i,1);save();render()}
 function copyDadLivingRow(i,btn){const rows=getDadLivingData().rows;const r=rows[i];if(!r)return;if(!confirmAction('確定複製新增這筆爸生活費紀錄到下一列？'))return;rows.splice(i+1,0,{...r});save();if(btn){const old=btn.textContent;btn.textContent='已增';btn.classList.add('done');setTimeout(()=>{btn.textContent=old||'複';btn.classList.remove('done');},800)}showCopyToast('已複製新增爸生活費下一列');render()}
 function getDadLivingMissingMonths(rows,startMonth){
