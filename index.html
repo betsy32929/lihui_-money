@@ -1740,6 +1740,13 @@
       box-shadow:0 4px 11px rgba(124,58,237,.13)!important;
     }
     .top-second-actions .act-itemmanager:before{background:#8b5cf6!important;width:5px!important;}
+    .top-second-actions .act-bulletin{
+      background:linear-gradient(180deg,#fff1f2 0%,#fecdd3 100%)!important;
+      color:#be123c!important;
+      border:1px solid #fda4af!important;
+      box-shadow:0 4px 11px rgba(244,63,94,.12)!important;
+    }
+    .top-second-actions .act-bulletin:before{background:#f43f5e!important;width:5px!important;}
     .top-second-actions .act-fixedsetting{
       background:linear-gradient(180deg,#eff6ff 0%,#bfdbfe 100%)!important;
       color:#1d4ed8!important;
@@ -1861,7 +1868,79 @@
     .monthly-item-row:nth-child(even){background:#fbfdff;}
     .monthly-item-row .danger{background:#fff1f2;border-color:#fca5a5;color:#be123c;}
     .monthly-item-count{display:none!important;}
-    @media(max-width:1180px){.monthly-item-form,.monthly-item-table-head,.monthly-item-row{grid-template-columns:1fr 1fr 1fr}.monthly-item-row button{width:100%;}}
+
+    /* V148：公佈欄管理 */
+    .bulletin-manager-panel{
+      margin-top:12px;
+      border:1px solid rgba(253,164,175,.75);
+      border-radius:22px;
+      background:linear-gradient(135deg,#fff7f8 0%,#ffffff 58%,#f8fbff 100%);
+      box-shadow:0 8px 22px rgba(42,65,105,.08);
+      padding:13px;
+    }
+    .bulletin-manager-head{
+      display:flex;
+      justify-content:space-between;
+      gap:12px;
+      align-items:flex-start;
+      flex-wrap:wrap;
+      margin-bottom:10px;
+    }
+    .bulletin-manager-head h2{margin:0;font-size:18px;font-weight:950;color:#be123c;}
+    .bulletin-manager-note{font-size:12px;color:#64748b;font-weight:850;line-height:1.55;margin-top:3px;}
+    .bulletin-manager-tools{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+    .bulletin-manager-tools button,
+    .bulletin-add-card button,
+    .bulletin-card-edit button,
+    .bulletin-item-row button{
+      border:1px solid #cbd5e1;
+      border-radius:999px;
+      padding:7px 10px;
+      background:#fff;
+      color:#334155;
+      font-weight:950;
+      font-size:12px;
+    }
+    .bulletin-add-card{
+      display:grid;
+      grid-template-columns:minmax(220px,1fr) 92px;
+      gap:8px;
+      align-items:end;
+      border:1px solid #fecdd3;
+      border-radius:18px;
+      background:#fff1f2;
+      padding:10px;
+      margin-bottom:10px;
+    }
+    .bulletin-add-card input,
+    .bulletin-card-edit input,
+    .bulletin-item-row input{
+      width:100%;
+      height:34px;
+      border:1px solid #d8e0ec;
+      border-radius:11px;
+      padding:6px 8px;
+      background:#fff;
+      color:#334155;
+      font-size:12px;
+      font-weight:850;
+    }
+    .bulletin-card-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;}
+    .bulletin-card-edit{
+      border:1px solid #e2e8f0;
+      border-radius:18px;
+      background:#fff;
+      padding:10px;
+      box-shadow:0 3px 10px rgba(42,65,105,.05);
+      min-width:0;
+    }
+    .bulletin-card-top{display:grid;grid-template-columns:34px minmax(120px,1fr) 58px;gap:7px;align-items:center;margin-bottom:8px;}
+    .bulletin-card-num{height:34px;display:flex;align-items:center;justify-content:center;border-radius:12px;background:#ffe4e6;color:#be123c;font-weight:950;font-size:12px;}
+    .bulletin-items{display:flex;flex-direction:column;gap:6px;}
+    .bulletin-item-row{display:grid;grid-template-columns:minmax(140px,1fr) 48px;gap:6px;align-items:center;}
+    .bulletin-add-item{margin-top:8px;background:#fff7ed!important;border-color:#fed7aa!important;color:#9a3412!important;}
+    .bulletin-delete{background:#fff1f2!important;border-color:#fca5a5!important;color:#be123c!important;}
+    @media(max-width:1180px){.monthly-item-form,.monthly-item-table-head,.monthly-item-row{grid-template-columns:1fr 1fr 1fr}.monthly-item-row button{width:100%;}.bulletin-card-list{grid-template-columns:1fr}.bulletin-add-card{grid-template-columns:1fr}.bulletin-card-top{grid-template-columns:30px 1fr 54px}}
 </style>
 </head>
 <body>
@@ -1892,6 +1971,7 @@
         <div class="top-second-actions">
           <button class="act-btn act-cardparse" onclick="openCardPasteWindow()">另開視窗｜刷卡紀錄</button>
           <button class="act-btn act-itemmanager" onclick="toggleMonthlyItemManagerPanel()">每月帳款項目管理</button>
+          <button class="act-btn act-bulletin" onclick="toggleHomeBulletinManagerPanel()">公佈欄管理</button>
           <button class="act-btn act-fixedsetting" onclick="toggleFixedAmountPanel()">固定金額設定</button>
           <button class="act-btn act-linebreak" onclick="togglePrintBreakPanel()">項目換行設定</button>
           <span class="save" id="saveText">已自動存檔</span>
@@ -1939,6 +2019,20 @@
       </div>
     </div>
     <div id="monthlyItemManagerList"></div>
+  </div>
+
+  <div id="homeBulletinManagerPanel" class="bulletin-manager-panel hidden">
+    <div class="bulletin-manager-head">
+      <div>
+        <h2>公佈欄管理</h2>
+        <div class="bulletin-manager-note">可新增、編輯、刪除首頁公佈欄的大項目與內容。</div>
+      </div>
+      <div class="bulletin-manager-tools">
+        <button type="button" onclick="renderHomeBulletinManagerPanel()">重新整理</button>
+        <button type="button" class="bulletin-delete" onclick="resetHomeBulletinCards()">恢復預設</button>
+      </div>
+    </div>
+    <div id="homeBulletinManagerList"></div>
   </div>
 
   <div class="tabs">
@@ -4146,23 +4240,117 @@ function homeMonthListText(months){
   return (months||[]).map(v=>/^\d{4}-\d{1,2}$/.test(String(v))?monthIdToRocShort(v):String(v)).join('、');
 }
 
-function renderHomeBulletinBoard(){
-  const cards=[
+function defaultHomeBulletinCards(){
+  return [
     {t:'每月帳款',items:['每月輸入','繳款信用卡費用']},
     {t:'郵局帳款',items:['每月跟志偉索取截圖','輸入郵局帳款']},
     {t:'臺灣銀行',items:['收入大姊存入','半年一次大社管理費','支出麗雅生活費給爸','彈性支出零用金存入麗卉帳戶','支出欠款志偉']},
     {t:'零用金',items:['注意每月姐妹餘額']},
     {t:'項目紀錄',items:['每月輸入']}
   ];
+}
+function ensureHomeBulletinCards(){
+  if(!state) return defaultHomeBulletinCards();
+  if(!Array.isArray(state.homeBulletinCards)||!state.homeBulletinCards.length){
+    state.homeBulletinCards=defaultHomeBulletinCards();
+  }
+  state.homeBulletinCards=state.homeBulletinCards.map(c=>({
+    t:String((c&&c.t)||'').trim()||'未命名項目',
+    items:Array.isArray(c&&c.items)?c.items.map(x=>String(x||'').trim()).filter(Boolean):[]
+  }));
+  return state.homeBulletinCards;
+}
+function renderHomeBulletinBoard(){
+  const cards=ensureHomeBulletinCards();
   return `<div class="home-bulletin">
     <div class="home-bulletin-head">
       <div class="home-bulletin-title"><span class="home-bulletin-icon">📌</span><div><h3>公佈欄</h3><div>每月固定檢查事項</div></div></div>
       <span class="home-bulletin-chip">首頁提醒專用</span>
     </div>
     <div class="home-bulletin-grid">
-      ${cards.map((c,i)=>`<div class="home-bulletin-card"><div class="home-bulletin-card-top"><span class="home-bulletin-num">${i+1}</span><b>${esc(c.t)}</b></div><ul>${c.items.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`).join('')}
+      ${cards.map((c,i)=>`<div class="home-bulletin-card"><div class="home-bulletin-card-top"><span class="home-bulletin-num">${i+1}</span><b>${esc(c.t)}</b></div><ul>${(c.items||[]).map(x=>`<li>${esc(x)}</li>`).join('')||'<li>尚未輸入內容</li>'}</ul></div>`).join('')}
     </div>
   </div>`;
+}
+function renderHomeBulletinManagerPanel(){
+  const box=document.getElementById('homeBulletinManagerList');
+  if(!box)return;
+  const cards=ensureHomeBulletinCards();
+  const addBox=`<div class="bulletin-add-card">
+    <div><div class="tiny">新增大項目</div><input id="bulletinNewTitle" placeholder="例如：每月帳款"></div>
+    <button type="button" onclick="addHomeBulletinCard()">＋新增</button>
+  </div>`;
+  const list=cards.length?`<div class="bulletin-card-list">${cards.map((c,i)=>`<div class="bulletin-card-edit">
+    <div class="bulletin-card-top">
+      <div class="bulletin-card-num">${i+1}</div>
+      <input value="${esc(c.t)}" onchange="renameHomeBulletinCard(${i},this.value)" placeholder="大項目名稱">
+      <button type="button" class="bulletin-delete" onclick="deleteHomeBulletinCard(${i})">刪除</button>
+    </div>
+    <div class="bulletin-items">
+      ${(c.items||[]).map((x,j)=>`<div class="bulletin-item-row"><input data-bulletin-input="${i}-${j}" value="${esc(x)}" onchange="updateHomeBulletinItem(${i},${j},this.value)" placeholder="內容"><button type="button" class="bulletin-delete" onclick="deleteHomeBulletinItem(${i},${j})">刪</button></div>`).join('')||'<div class="empty">目前沒有內容</div>'}
+    </div>
+    <button type="button" class="bulletin-add-item" onclick="addHomeBulletinItem(${i})">＋新增內容</button>
+  </div>`).join('')}</div>`:'<div class="empty">目前公佈欄沒有項目。</div>';
+  box.innerHTML=addBox+list;
+}
+function addHomeBulletinCard(){
+  const title=String(document.getElementById('bulletinNewTitle')?.value||'').trim();
+  if(!title)return alert('請輸入大項目名稱');
+  ensureHomeBulletinCards().push({t:title,items:[]});
+  save();renderHomeBulletinManagerPanel();if(state.activeTab==='home')renderHome();
+}
+function renameHomeBulletinCard(i,val){
+  const cards=ensureHomeBulletinCards();
+  if(!cards[i])return;
+  const title=String(val||'').trim();
+  if(!title){renderHomeBulletinManagerPanel();return alert('大項目名稱不能空白');}
+  cards[i].t=title;
+  save();if(state.activeTab==='home')renderHome();
+}
+function deleteHomeBulletinCard(i){
+  const cards=ensureHomeBulletinCards();
+  if(!cards[i])return;
+  if(!confirm('確定刪除「'+cards[i].t+'」？'))return;
+  cards.splice(i,1);
+  save();renderHomeBulletinManagerPanel();if(state.activeTab==='home')renderHome();
+}
+function addHomeBulletinItem(i){
+  const cards=ensureHomeBulletinCards();
+  if(!cards[i])return;
+  if(!Array.isArray(cards[i].items))cards[i].items=[];
+  cards[i].items.push('新增內容');
+  const newIndex=cards[i].items.length-1;
+  save();
+  renderHomeBulletinManagerPanel();
+  setTimeout(()=>{
+    const inp=document.querySelector(`[data-bulletin-input="${i}-${newIndex}"]`);
+    if(inp){inp.focus();inp.select();}
+  },0);
+  if(state.activeTab==='home')renderHome();
+}
+function updateHomeBulletinItem(i,j,val){
+  const cards=ensureHomeBulletinCards();
+  if(!cards[i]||!Array.isArray(cards[i].items))return;
+  const text=String(val||'').trim();
+  if(!text){cards[i].items.splice(j,1);}else{cards[i].items[j]=text;}
+  save();renderHomeBulletinManagerPanel();if(state.activeTab==='home')renderHome();
+}
+function deleteHomeBulletinItem(i,j){
+  const cards=ensureHomeBulletinCards();
+  if(!cards[i]||!Array.isArray(cards[i].items))return;
+  cards[i].items.splice(j,1);
+  save();renderHomeBulletinManagerPanel();if(state.activeTab==='home')renderHome();
+}
+function resetHomeBulletinCards(){
+  if(!confirm('恢復公佈欄預設內容？目前自訂內容會被覆蓋。'))return;
+  state.homeBulletinCards=defaultHomeBulletinCards();
+  save();renderHomeBulletinManagerPanel();if(state.activeTab==='home')renderHome();
+}
+function toggleHomeBulletinManagerPanel(){
+  const p=document.getElementById('homeBulletinManagerPanel');
+  if(!p)return;
+  p.classList.toggle('hidden');
+  if(!p.classList.contains('hidden'))renderHomeBulletinManagerPanel();
 }
 
 function renderHome(){
