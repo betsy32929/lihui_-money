@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>麗卉每月帳款｜V101 資料不中斷修正版</title>
+  <title>麗卉每月帳款｜V114 總欄分類標題固定版</title>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
   <style>
@@ -1424,6 +1424,139 @@
     .dad-living-table th:last-child,.dad-living-table td:last-child{width:82px;}
 
 
+    /* V108：月份切換按鈕直接顯示年月，避免上/下月方向誤會 */
+    .month-nav.prev,.month-nav.next{min-width:118px!important;}
+    .month-nav.current{min-width:132px!important;}
+
+
+    /* V110：移除上個月/下個月文字，保留箭頭與月份；月份下拉置中 */
+    .month-row{flex-wrap:nowrap!important;}
+    .month-label{display:none!important;}
+    .month-control{flex-wrap:nowrap!important;gap:9px!important;}
+    .month-select{
+      min-width:154px!important;
+      height:38px!important;
+      text-align:center;
+      text-align-last:center;
+      border:1px solid #d8e0ec!important;
+      box-shadow:0 2px 8px rgba(42,65,105,.06)!important;
+    }
+    #currentMonthBtn{display:none!important;}
+
+
+    /* V112：總欄表｜分頁順序與項目日期區塊 */
+    .tabs{grid-template-columns:repeat(7,1fr)!important;}
+    .summary-panel{background:#fffdfb!important;}
+    .summary-top{
+      display:flex;
+      justify-content:space-between;
+      gap:12px;
+      align-items:flex-start;
+      flex-wrap:wrap;
+      margin-bottom:12px;
+    }
+    .summary-title h2{margin:0;font-size:21px;font-weight:950;color:#334155;}
+    .summary-title .hint{display:block!important;margin-top:5px;}
+    .summary-tools{display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:flex-end;}
+    .summary-wrap{
+      border:1px solid #d8e2ef;
+      border-radius:20px;
+      overflow:auto;
+      background:#fff;
+      box-shadow:0 6px 16px rgba(42,65,105,.06);
+      max-height:calc(100vh - 230px);
+    }
+    .summary-table{
+      width:max-content;
+      min-width:100%;
+      border-collapse:separate;
+      border-spacing:0;
+      font-size:13px;
+      background:#fff;
+    }
+    .summary-table th,.summary-table td{
+      border-right:1px solid #e8eef6;
+      border-bottom:1px solid #e8eef6;
+      padding:7px 9px;
+      min-width:128px;
+      height:34px;
+      vertical-align:middle;
+      white-space:nowrap;
+      text-align:center;
+    }
+    .summary-table thead th{
+      position:sticky;
+      top:0;
+      z-index:4;
+      background:linear-gradient(180deg,#f8fafc,#eef6ff);
+      color:#334155;
+      font-weight:950;
+    }
+    .summary-table .summary-first{
+      position:sticky;
+      left:0;
+      z-index:3;
+      min-width:150px;
+      text-align:left;
+      background:#fff;
+      color:#334155;
+      font-weight:950;
+      box-shadow:3px 0 8px rgba(42,65,105,.05);
+    }
+    .summary-table thead .summary-first{z-index:5;background:linear-gradient(180deg,#f8fafc,#eef6ff);}
+    .summary-table .summary-group th,
+    .summary-table .summary-group td{
+      background:linear-gradient(90deg,#f4f1ff,#edf9fb 72%,#fff7ed);
+      color:#5b21b6;
+      font-size:15px;
+      letter-spacing:.03em;
+      border-top:2px solid #d9d2ff;
+      font-weight:950;
+    }
+    .summary-table .summary-group .summary-first{
+      position:sticky;
+      left:0;
+      z-index:6;
+      text-align:left;
+      min-width:150px;
+      background:linear-gradient(90deg,#f4f1ff 0%,#edf9fb 100%);
+      box-shadow:4px 0 10px rgba(42,65,105,.10);
+    }
+    .summary-table .summary-group td{
+      min-width:128px;
+    }
+    .summary-table .summary-amount td{font-weight:950;color:#2563eb;}
+    .summary-table .summary-date th,
+    .summary-table .summary-date td{
+      color:#64748b;
+      font-size:12px;
+      height:30px;
+    }
+    .summary-table .summary-date .summary-first{color:#94a3b8;font-weight:900;}
+    .summary-table .summary-pair-a th,
+    .summary-table .summary-pair-a td{background:#fffaf0;}
+    .summary-table .summary-pair-b th,
+    .summary-table .summary-pair-b td{background:#f8fbff;}
+    .summary-table .summary-date.summary-pair-a th,
+    .summary-table .summary-date.summary-pair-a td{background:#fffaf0;}
+    .summary-table .summary-date.summary-pair-b th,
+    .summary-table .summary-date.summary-pair-b td{background:#f8fbff;}
+    .summary-table .summary-gap td{
+      height:8px;
+      padding:0;
+      border-right:0;
+      background:#ffffff;
+    }
+    .summary-empty{color:#cbd5e1!important;font-weight:900!important;}
+    .summary-note{
+      margin-top:10px;
+      color:#64748b;
+      font-size:12px;
+      font-weight:850;
+      line-height:1.55;
+    }
+    @media(max-width:1180px){.tabs{grid-template-columns:repeat(4,1fr)!important}}
+
   </style>
 </head>
 <body>
@@ -1448,12 +1581,10 @@
       </div>
     </div>
     <div class="month-row">
-      <span class="month-label">目前月份：<b id="monthText"></b></span>
       <div class="month-control">
-        <button class="pillbtn month-nav prev" onclick="shiftMonth(-1)">← 上個月</button>
-        <button class="pillbtn month-nav current" onclick="goCurrentMonth()">本月</button>
-        <button class="pillbtn month-nav next" onclick="shiftMonth(1)">下個月 →</button>
+        <button id="prevMonthBtn" class="pillbtn month-nav prev" onclick="shiftMonth(-1)">← 115年4月</button>
         <select id="monthSelect" class="month-select" onchange="selectMonth(this.value)"></select>
+        <button id="nextMonthBtn" class="pillbtn month-nav next" onclick="shiftMonth(1)">115年6月 →</button>
       </div>
       <span class="save" id="saveText">已自動存檔</span>
     </div>
@@ -1488,11 +1619,12 @@
   </div>
 
   <div class="tabs">
+    <button class="tabcard" data-tab="summary" onclick="showTab('summary')"><h2>總欄</h2><p>自動抓各月份金額與日期</p><div class="moneyline" id="tabSummary"></div></button>
     <button class="tabcard" data-tab="home" onclick="showTab('home')"><h2>首頁提醒</h2><p>每月輸入檢查與缺漏提醒</p><div class="moneyline" id="tabHome"></div></button>
-    <button class="tabcard" data-tab="personal" onclick="showTab('personal')"><h2>麗卉每月帳款</h2><p>薪資、大橋、大社、信用卡</p><div class="moneyline" id="tabPersonal"></div></button>
-    <button class="tabcard" data-tab="post" onclick="showTab('post')"><h2>郵局帳款</h2><p>小孩政府補助收入與轉出支出</p><div class="moneyline" id="tabPost"></div></button>
-    <button class="tabcard" data-tab="bank" onclick="showTab('bank')"><h2>台灣銀行帳款</h2><p>大姊給款、特殊存款、零用金扣款</p><div class="moneyline" id="tabBank"></div></button>
-    <button class="tabcard" data-tab="petty" onclick="showTab('petty')"><h2>姊妹零用金</h2><p>大姊 / 二姊零用金明細</p><div class="moneyline" id="tabPetty"></div></button>
+    <button class="tabcard" data-tab="personal" onclick="showTab('personal')"><h2>每月帳務</h2><p>薪資、大橋、大社、信用卡</p><div class="moneyline" id="tabPersonal"></div></button>
+    <button class="tabcard" data-tab="post" onclick="showTab('post')"><h2>郵局</h2><p>小孩政府補助收入與轉出支出</p><div class="moneyline" id="tabPost"></div></button>
+    <button class="tabcard" data-tab="bank" onclick="showTab('bank')"><h2>台灣銀行</h2><p>大姊給款、特殊存款、零用金扣款</p><div class="moneyline" id="tabBank"></div></button>
+    <button class="tabcard" data-tab="petty" onclick="showTab('petty')"><h2>零用金</h2><p>大姊 / 二姊零用金明細</p><div class="moneyline" id="tabPetty"></div></button>
     <button class="tabcard" data-tab="mobile" onclick="showTab('mobile')"><h2>項目紀錄</h2><p>手機 / 中華電信 / 長照，繳款期限近到舊</p></button>
   </div>
 
@@ -3080,7 +3212,15 @@ function renderMonthSelect(){
   const sel=document.getElementById('monthSelect');if(!sel)return;
   const ids=new Set(Object.keys(state.months||{}));ids.add(state.activeMonth);
   const arr=Array.from(ids).sort().reverse();
-  sel.innerHTML=arr.map(id=>`<option value="${id}" ${id===state.activeMonth?'selected':''}>${monthShortLabel(id)}</option>`).join('');
+  sel.innerHTML=arr.map(id=>`<option value="${id}" ${id===state.activeMonth?'selected':''}>${rocMonthLabel(id)}</option>`).join('');
+}
+function updateMonthNavLabels(){
+  const prevBtn=document.getElementById('prevMonthBtn');
+  const currentBtn=document.getElementById('currentMonthBtn');
+  const nextBtn=document.getElementById('nextMonthBtn');
+  if(prevBtn)prevBtn.textContent=`← ${rocMonthLabel(addMonthsToId(state.activeMonth,-1))}`;
+  if(currentBtn)currentBtn.textContent=`本月｜${rocMonthLabel(defaultMonth)}`;
+  if(nextBtn)nextBtn.textContent=`${rocMonthLabel(addMonthsToId(state.activeMonth,1))} →`;
 }
 function addMonth(){
   const suggest=monthShortLabel(addMonthsToId(state.activeMonth,1));
@@ -3150,7 +3290,7 @@ function copyCurrentMonth(){
   state.activeMonth=toId;ensureMonth();save();render();
 }
 function deleteCurrentMonth(){if(!confirm('確定刪除目前月份？'))return;delete state.months[state.activeMonth];state.activeMonth=Object.keys(state.months).sort().pop()||defaultMonth;ensureMonth();save();render()}
-function render(){if(state.activeTab==='notice'||!state.activeTab)state.activeTab='home';document.getElementById('monthText').textContent=rocMonthLabel(state.activeMonth);renderMonthSelect();document.querySelectorAll('.tabcard').forEach(b=>b.classList.toggle('active',b.dataset.tab===state.activeTab));renderTabsOnly();if(state.activeTab==='home')renderHome();else if(state.activeTab==='post')renderLedger('postOffice');else if(state.activeTab==='bank')renderBank();else if(state.activeTab==='petty')renderPettyPage();else if(state.activeTab==='mobile')renderMobile();else renderPersonal();}
+function render(){if(state.activeTab==='notice'||!state.activeTab)state.activeTab='home';const mt=document.getElementById('monthText');if(mt)mt.textContent=rocMonthLabel(state.activeMonth);renderMonthSelect();updateMonthNavLabels();document.querySelectorAll('.tabcard').forEach(b=>b.classList.toggle('active',b.dataset.tab===state.activeTab));renderTabsOnly();if(state.activeTab==='home')renderHome();else if(state.activeTab==='summary')renderSummaryTable();else if(state.activeTab==='post')renderLedger('postOffice');else if(state.activeTab==='bank')renderBank();else if(state.activeTab==='petty')renderPettyPage();else if(state.activeTab==='mobile')renderMobile();else renderPersonal();}
 function renderTabsOnly(){
   if(!state||!state.months)return;
   const m=getMonth();
@@ -3354,6 +3494,198 @@ function renderHome(){
     </div>`:`<div class="home-clean-empty">目前沒有缺資料提醒。<br>可以直接進各帳款區查看明細。</div>`}
   </div>`;
 }
+
+function summaryMonthIds(){
+  const ids=Object.keys(state.months||{});
+  if(!ids.includes(state.activeMonth))ids.push(state.activeMonth);
+  // 總欄表月份：最近月份在左，越舊越右。
+  return [...new Set(ids)].sort().reverse();
+}
+function summaryBlankCell(){return {amount:'',date:''}}
+function summaryFmtAmount(v,opts={}){
+  if(v===null||v===undefined||v==='')return '';
+  if(typeof v==='string'&&v&&!/^[-,\d]+$/.test(v))return v;
+  const n=Number(String(v).replace(/,/g,''));
+  if(!Number.isFinite(n)||n===0)return '';
+  return opts.signed?fmtSigned(n,true):fmt(n,true);
+}
+function summaryUniqueDates(list){
+  return [...new Set((list||[]).map(x=>String(x||'').trim()).filter(Boolean))].sort((a,b)=>dateValue(a)-dateValue(b)).join('、');
+}
+function summaryFindPersonalItem(monthId,sectionTitle,matcher){
+  const m=state.months?.[monthId];
+  const sections=m?.personal?.sections||[];
+  const sec=sections.find(s=>String(s.title||'')===sectionTitle);
+  const items=sec?.items||[];
+  return items.find(it=>matcher(String(it.label||''),it))||null;
+}
+function summaryPersonalCell(monthId,sectionTitle,matcher){
+  const it=summaryFindPersonalItem(monthId,sectionTitle,matcher);
+  if(!it)return summaryBlankCell();
+  if(it.isCard){
+    if(it.noBill)return {amount:'無帳單',date:it.date||''};
+    const sum=(it.subItems||[]).reduce((s,d)=>s+numSigned(d.amount),0);
+    return {amount:summaryFmtAmount(sum,{signed:true}),date:it.date||''};
+  }
+  return {amount:summaryFmtAmount(num(it.amount)),date:it.date||''};
+}
+function summaryLedgerCell(kind,monthId,matcher,type){
+  const txs=(getGlobalData()?.[kind]?.txs||[]).filter(t=>{
+    const p=dateParts(t.date);
+    if(!p||p.monthId!==monthId)return false;
+    if(type&&t.type!==type)return false;
+    return matcher(t);
+  });
+  if(!txs.length)return summaryBlankCell();
+  const total=txs.reduce((s,t)=>s+num(t.amount),0);
+  return {amount:summaryFmtAmount(total),date:summaryUniqueDates(txs.map(t=>t.date))};
+}
+function summaryItemText(t){return String([t.item,t.note].filter(Boolean).join(' ')).toLowerCase();}
+function summaryDadLivingDateLabelsForMonth(t,monthId){
+  const text=String([t&&t.note,t&&t.item].filter(Boolean).join('｜'));
+  const txMonth=txMonthIdFromDate(t);
+  const txp=parseMonthId(txMonth);
+  const out=new Set();
+  const pushMonthLabel=()=>out.add(rocMonthLabel(monthId));
+  let m;
+  const fullDateRe=/(\d{2,3})\s*[\/年.．-]\s*(\d{1,2})(?:\s*[\/月.．-]\s*(\d{1,2}))?\s*日?/g;
+  while((m=fullDateRe.exec(text))){
+    const id=monthIdFromRoc(m[1],m[2]);
+    if(id===monthId){
+      const yy=(+m[1]>1911?+m[1]-1911:+m[1]);
+      out.add(m[3]?`${yy}/${+m[2]}/${+m[3]}`:`${yy}/${+m[2]}`);
+    }
+  }
+  const yearRangeRe=/(\d{2,3})\s*年?\s*(\d{1,2})\s*[-~～至到]\s*(\d{1,2})\s*月/g;
+  while((m=yearRangeRe.exec(text))){
+    let y=+m[1];if(y<300)y+=1911;let a=+m[2],b=+m[3];if(a>b){const tmp=a;a=b;b=tmp;}
+    const p=parseMonthId(monthId);
+    if(p&&p.year===y&&p.month>=a&&p.month<=b)pushMonthLabel();
+  }
+  const rangeRe=/(\d{1,2})\s*[-~～至到]\s*(\d{1,2})\s*月/g;
+  while((m=rangeRe.exec(text))){
+    if(!txp)continue;let a=+m[1],b=+m[2];if(a>b){const tmp=a;a=b;b=tmp;}
+    const p=parseMonthId(monthId);
+    if(p&&p.year===txp.year&&p.month>=a&&p.month<=b)pushMonthLabel();
+  }
+  const multiMonthRe=/((?:\d{1,2}\s*[、,，.．]\s*)+\d{1,2})\s*月/g;
+  while((m=multiMonthRe.exec(text))){
+    if(!txp)continue;const p=parseMonthId(monthId);if(!p||p.year!==txp.year)continue;
+    String(m[1]).split(/[、,，.．]/).forEach(x=>{const mm=+String(x).trim();if(mm===p.month)pushMonthLabel();});
+  }
+  const simpleSlashRe=/(?:^|[^\d])(\d{1,2})\/(\d{1,2})(?:[^\d]|$)/g;
+  while((m=simpleSlashRe.exec(text))){
+    if(!txp)continue;const mo=+m[1],day=+m[2];const p=parseMonthId(monthId);
+    if(p&&p.year===txp.year&&p.month===mo&&day>=1&&day<=31)out.add(`${txp.year-1911}/${mo}/${day}`);
+  }
+  const oneRe=/(?:^|[^\d])(\d{1,2})\s*月/g;
+  while((m=oneRe.exec(text))){
+    if(!txp)continue;const mm=+m[1];const p=parseMonthId(monthId);
+    if(p&&p.year===txp.year&&p.month===mm)pushMonthLabel();
+  }
+  return Array.from(out);
+}
+function summaryDadLivingBankCell(monthId){
+  const txs=(getGlobalData()?.taiwanBank?.txs||[]).filter(t=>{
+    if(!t||t.type!=='expense'||!num(t.amount))return false;
+    const text=txText(t);
+    if(!text.includes(DAD_LIVING_BANK_ITEM_KEY))return false;
+    return monthsMentionedInDadLivingBankTx(t).includes(monthId);
+  });
+  if(!txs.length)return summaryBlankCell();
+  const total=txs.reduce((s,t)=>s+num(t.amount),0);
+  const labels=[];
+  txs.forEach(t=>{
+    const noteLabels=summaryDadLivingDateLabelsForMonth(t,monthId);
+    if(noteLabels.length)labels.push(...noteLabels);
+    else if(t.date)labels.push(t.date);
+  });
+  const dates=labels.length?Array.from(new Set(labels)).join('、'):summaryUniqueDates(txs.map(t=>t.date));
+  return {amount:summaryFmtAmount(total),date:dates};
+}
+function summaryGroups(){
+  const has=(word)=>(label)=>label.includes(word);
+  return [
+    {title:'每月帳款',rows:[
+      {label:'薪水',get:id=>summaryPersonalCell(id,'收入薪資',(label)=>label.includes('收入薪資')||label.includes('薪水'))}
+    ]},
+    {title:'大橋支出',rows:[
+      {label:'管理費',get:id=>summaryPersonalCell(id,'大橋支出',(label)=>label==='管理費')},
+      {label:'3027690',get:id=>summaryPersonalCell(id,'大橋支出',(label)=>label.includes('3027690'))},
+      {label:'麗卉手機',get:id=>summaryPersonalCell(id,'大橋支出',(label)=>label.includes('麗卉_遠傳')||label.includes('0982-508-091'))},
+      {label:'志偉手機',get:id=>summaryPersonalCell(id,'大橋支出',(label)=>label.includes('志偉_台灣大哥大')||label.includes('0981-834-553'))},
+      {label:'匯款小孩',get:id=>summaryPersonalCell(id,'大橋支出',(label)=>label.includes('匯款小孩')||label.includes('國泰COCO'))}
+    ]},
+    {title:'大社支出',rows:[
+      {label:'大社電費',get:id=>summaryPersonalCell(id,'大社支出',(label)=>label.includes('大社電費'))},
+      {label:'爸爸手機',get:id=>summaryPersonalCell(id,'大社支出',(label)=>label.includes('爸爸手機')||label.includes('0910-810-529'))},
+      {label:'爸爸生活費',get:id=>summaryPersonalCell(id,'大社支出',(label)=>label.includes('爸爸生活費'))},
+      {label:'073520179',get:id=>summaryPersonalCell(id,'大社支出',(label)=>label.includes('073520179')||label.includes('07-3520179'))},
+      {label:'高雄房貸',get:id=>summaryPersonalCell(id,'大社支出',(label)=>label.includes('房貸'))},
+      {label:'高雄管理費',get:id=>summaryPersonalCell(id,'大社支出',(label)=>label.includes('大樓管理費')||label.includes('高雄管理費'))},
+      {label:'爸爸長照',get:id=>summaryPersonalCell(id,'大社支出',(label)=>label.includes('長照'))}
+    ]},
+    {title:'信用卡',rows:[
+      {label:'台新信用卡',get:id=>summaryPersonalCell(id,'信用卡',(label)=>label.includes('台新'))},
+      {label:'富邦',get:id=>summaryPersonalCell(id,'信用卡',(label)=>label.includes('富邦'))},
+      {label:'志偉聯邦',get:id=>summaryPersonalCell(id,'信用卡',(label)=>label.includes('志偉聯邦'))},
+      {label:'麗卉聯邦',get:id=>summaryPersonalCell(id,'信用卡',(label)=>label.includes('麗卉聯邦')||label.includes('聯邦賴點'))},
+      {label:'中信',get:id=>summaryPersonalCell(id,'信用卡',(label)=>label.includes('中信'))},
+      {label:'國泰',get:id=>summaryPersonalCell(id,'信用卡',(label)=>label==='國泰')},
+      {label:'玉山',get:id=>summaryPersonalCell(id,'信用卡',(label)=>label.includes('玉山'))},
+      {label:'星展',get:id=>summaryPersonalCell(id,'信用卡',(label)=>label.includes('星展'))},
+      {label:'凱基',get:id=>summaryPersonalCell(id,'信用卡',(label)=>label.includes('凱基'))},
+      {label:'永豐',get:id=>summaryPersonalCell(id,'信用卡',(label)=>label.includes('永豐'))},
+      {label:'新光',get:id=>summaryPersonalCell(id,'信用卡',(label)=>label.includes('新光'))}
+    ]},
+    {title:'郵局',rows:[
+      {label:'育兒',get:id=>summaryLedgerCell('postOffice',id,(t)=>{const txt=summaryItemText(t);const amt=num(t.amount);return txt.includes('育兒')||(txt.includes('補助')&&amt>0&&amt<=6500);},'income')},
+      {label:'托育',get:id=>summaryLedgerCell('postOffice',id,(t)=>summaryItemText(t).includes('托育'),'income')}
+    ]},
+    {title:'台灣銀行帳款',rows:[
+      {label:'大姊存款',get:id=>summaryLedgerCell('taiwanBank',id,(t)=>{const txt=summaryItemText(t);return txt.includes('大姊')&&(txt.includes('給款')||txt.includes('存款'))&&!txt.includes('特殊');},'income')},
+      {label:'麗雅給爸生活費',get:id=>summaryDadLivingBankCell(id)}
+    ]}
+  ];
+}
+function renderSummaryTable(){
+  const months=summaryMonthIds();
+  const groups=summaryGroups();
+  let body='';
+  groups.forEach(g=>{
+    body+=`<tr class="summary-group"><th class="summary-first">標題　${esc(g.title)}</th><td colspan="${months.length}"></td></tr>`;
+    g.rows.forEach((r,idx)=>{
+      const cells=months.map(id=>r.get(id));
+      const pairClass=idx%2===0?'summary-pair-a':'summary-pair-b';
+      body+=`<tr class="summary-amount ${pairClass}"><th class="summary-first">${esc(r.label)}</th>${cells.map(c=>`<td class="${c.amount?'':'summary-empty'}">${esc(c.amount||'—')}</td>`).join('')}</tr>`;
+      body+=`<tr class="summary-date ${pairClass}"><th class="summary-first">日期</th>${cells.map(c=>`<td class="${c.date?'':'summary-empty'}">${esc(c.date||'—')}</td>`).join('')}</tr>`;
+      body+=`<tr class="summary-gap"><td colspan="${months.length+1}"></td></tr>`;
+    });
+  });
+  document.getElementById('main').innerHTML=`<div class="panel summary-panel">
+    <div class="summary-top">
+      <div class="summary-title"><h2>總欄表</h2><div class="hint">自動抓取各月份金額與日期；月份欄位依已建立月份由近到遠排列；左右捲動時，年月、項目、分類標題會固定顯示。</div></div>
+      <div class="summary-tools"><button type="button" class="softbtn blue" onclick="copySummaryTableForExcel(this)">複製EXCEL格式</button></div>
+    </div>
+    <div class="summary-wrap"><table class="summary-table"><thead><tr><th class="summary-first">年月</th>${months.map(id=>`<th>${esc(rocMonthLabel(id))}</th>`).join('')}</tr></thead><tbody>${body}</tbody></table></div>
+    <div class="summary-note">育兒/托育抓取規則：郵局帳款中，項目或備註含「育兒」會歸到育兒；含「托育」會歸到托育；若寫「補助款」且金額約 6,500 元以下，也會先歸到育兒。</div>
+  </div>`;
+}
+function summaryTableExcelRows(){
+  const months=summaryMonthIds();
+  const rows=[['年月',...months.map(rocMonthLabel)]];
+  summaryGroups().forEach(g=>{
+    rows.push(['標題 '+g.title,...months.map(()=> '')]);
+    g.rows.forEach(r=>{
+      const cells=months.map(id=>r.get(id));
+      rows.push([r.label,...cells.map(c=>c.amount||'')]);
+      rows.push(['日期',...cells.map(c=>c.date||'')]);
+    });
+  });
+  return rows;
+}
+function copySummaryTableForExcel(btn){copyRowsForExcel(summaryTableExcelRows(),'總欄表',btn)}
+
 function renderNotice(){const m=getMonth();const missing=allItems().filter(it=>!it.isCard && !num(it.amount) && it.label!=='高雄翠屏路房貸（20號自動轉帳）').map(it=>it.label);const day=new Date().getDate();const remind=day<=15&&!m.notice.done;document.getElementById('main').innerHTML=`<div class="panel alt"><div class="panel-title"><div><h2>公告欄 / 每月提醒｜${rocMonthLabel(state.activeMonth)}</h2><div class="hint">首頁先當提醒區用：每月15日前輸入完帳款，並檢查固定項目有沒有漏填。</div></div><label class="checkline"><input type="checkbox" ${m.notice.done?'checked':''} onchange="getMonth().notice.done=this.checked;save();render()">本月帳款已輸入完成</label></div>${remind?'<div class="warnline">提醒：每月15日前要輸入完帳款，目前本月尚未勾選完成。</div>':'<div class="okline">本月提醒狀態：已完成或已超過提醒日前。</div>'}<div class="notice-grid"><div class="noticebox"><h3>待檢查項目</h3>${missing.length?`<ul class="notice-list">${missing.slice(0,18).map(x=>`<li>${esc(x)}</li>`).join('')}${missing.length>18?`<li>還有 ${missing.length-18} 筆...</li>`:''}</ul>`:'<div class="okline">固定清單目前沒有明顯漏填金額。</div>'}</div><div class="noticebox"><h3>公告/備忘</h3><textarea rows="9" placeholder="這裡可寫每月注意事項，會自動記住。" oninput="getMonth().notice.note=this.value;save()">${esc(m.notice.note)}</textarea></div></div></div>`}
 function renderPersonal(){const m=getMonth();document.getElementById('main').innerHTML=`<div class="panel"><div class="panel-title"><div><h2>麗卉每月帳款｜${rocMonthLabel(state.activeMonth)}</h2></div><div class="tools"><button class="softbtn blue" onclick="syncAllMobileToPersonal(true)">從項目紀錄帶入</button></div></div>${m.personal.sections.map(renderSection).join('')}</div>`;renderCardPreview();applyMobileHints()}
 function renderSection(sec,secIdx){
