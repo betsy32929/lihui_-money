@@ -6391,6 +6391,55 @@ function openCardPasteWindow(){
   function rocMonthText(v){const r=normalizeRocMonthValue(v);return r.ok?(r.y+'年'+r.m+'月'):String(v||'');}
   function compactDate(d){const r=normalizeRocDateValue(d,'');if(!r.ok)return '';return String(r.y)+String(r.m).padStart(2,'0')+String(r.d).padStart(2,'0');}
   function bankCell(r){return String(r.bank||'')+compactDate(r.payDate||'');}
+  function uniqueList(arr){return arr.filter((v,i,a)=>v&&a.indexOf(v)===i);}
+  function stripLeadingItemPrefix(s,prefix){
+    let out=String(s||'').trim();
+    const p=String(prefix||'').trim();
+    if(!p)return out;
+    const re=new RegExp('^\\s*'+escReg(p)+'\\s*[｜|,，:：\\-－]*\\s*');
+    let next=out.replace(re,'').trim();
+    while(next!==out){out=next;next=out.replace(re,'').trim();}
+    return out;
+  }
+  function stripClaimTextFromItem(s,r){
+    let out=String(s||'').trim();
+    const month=normalizeRocMonthValue((r&&r.belongMonth)||'').value;
+    const owner=String((r&&r.owner)||'').trim();
+    const c=(claimStatus[month]&&claimStatus[month][owner])?claimStatus[month][owner]:null;
+    const notes=[];
+    if(c&&String(c.note||'').trim())notes.push(String(c.note||'').trim());
+    if(c&&String(c.date||'').trim()){
+      notes.push('請款完成 '+String(c.date||'').trim());
+      notes.push('已請款 '+String(c.date||'').trim());
+    }
+    uniqueList(notes).forEach(n=>{
+      const p=escReg(n);
+      out=out.replace(new RegExp('\\s*[｜|]\\s*'+p+'\\s*$'),'').trim();
+      out=out.replace(new RegExp('^\\s*'+p+'\\s*[｜|]\\s*'),'').trim();
+    });
+    return out;
+  }
+  function cleanCardPasteItemValue(item,r){
+    const original=String(item||'').trim();
+    let s=original;
+    if(!s)return s;
+    const bank=String((r&&r.bank)||'').trim();
+    const pay=normalizeRocDateValue((r&&r.payDate)||'','');
+    const paySlash=pay.ok?pay.value:'';
+    const payCompact=pay.ok?(String(pay.y)+String(pay.m).padStart(2,'0')+String(pay.d).padStart(2,'0')):compactDate((r&&r.payDate)||'');
+    uniqueList([
+      bankCell(r),
+      bank+payCompact,
+      bank+' '+payCompact,
+      bank+'｜'+payCompact,
+      bank+paySlash,
+      bank+' '+paySlash,
+      bank+'｜'+paySlash
+    ]).forEach(c=>{s=stripLeadingItemPrefix(s,c);});
+    s=stripClaimTextFromItem(s,r);
+    return s||original;
+  }
+  function itemDisplay(r){return cleanCardPasteItemValue((r&&r.item)||'',r);}
   function isZeroBillRow(r){return moneyNum(r&&r.amount)===0 && /無帳單/.test(String((r&&r.item)||''));}
   function ownerDisplay(r){return isZeroBillRow(r)?'-':((r&&r.owner)||'未選');}
   function fullCardDate(d,payDate){
@@ -6466,12 +6515,31 @@ function openCardPasteWindow(){
   }
   function loadStores(){
     owners=normalizeOwnerList(readJson(OWNER_KEY,defaultOwnerOptions));
+    claimStatus=readJson(CLAIM_KEY,{});if(!claimStatus||typeof claimStatus!=='object')claimStatus={};
     records=readJson(STORE_KEY,null);
     if(!Array.isArray(records)){records=readJson(OLD_STORE_KEY,[]); if(!Array.isArray(records))records=[];}
-    records=records.map(r=>Object.assign({id:uid(),note:'',owner:'',saved:true},r,{saved:true}));
-    claimStatus=readJson(CLAIM_KEY,{});if(!claimStatus||typeof claimStatus!=='object')claimStatus={};
+    let recordsChanged=false;
+    records=records.map(r=>{
+      const obj=Object.assign({id:uid(),note:'',owner:'',saved:true},r,{saved:true});
+      const cleaned=cleanCardPasteItemValue(obj.item,obj);
+      if(cleaned!==String(obj.item||'').trim()){obj.item=cleaned;recordsChanged=true;}
+      return obj;
+    });
+    if(recordsChanged)saveRecords();
     const draft=readJson(DRAFT_KEY,null);
-    if(draft&&Array.isArray(draft.rows)){rows=draft.rows;doc.getElementById('belongMonth').value=draft.belongMonth||'';doc.getElementById('bank').value=draft.bank||'';doc.getElementById('payDate').value=draft.payDate||'';}
+    if(draft&&Array.isArray(draft.rows)){
+      let draftChanged=false;
+      rows=draft.rows.map(r=>{
+        const obj=Object.assign({},r);
+        const cleaned=cleanCardPasteItemValue(obj.item,obj);
+        if(cleaned!==String(obj.item||'').trim()){obj.item=cleaned;draftChanged=true;}
+        return obj;
+      });
+      doc.getElementById('belongMonth').value=draft.belongMonth||'';
+      doc.getElementById('bank').value=draft.bank||'';
+      doc.getElementById('payDate').value=draft.payDate||'';
+      if(draftChanged)writeJson(DRAFT_KEY,Object.assign({},draft,{rows}));
+    }
   }
   function upsertRows(list){
     const map=new Map(records.map((r,i)=>[r.id,i]));
@@ -6564,7 +6632,7 @@ function openCardPasteWindow(){
     const r={id:uid(),owner:'',bank,payDate,belongMonth,postDate:'',spendDate:'',item:'無帳單$0',amount:'0',note:'',saved:true,createdAt:new Date().toISOString()};
     records.push(r);saveRecords();selectedMonth=belongMonth;clearInputDefaults();saveDraft();setMsg('已新增 '+bankCell(r)+' 無帳單$0。',true);render();
   }
-  function setVal(i,k,v){if(!rows[i])return;rows[i][k]=v;rows[i].updatedAt=new Date().toISOString();if(k==='amount')rows[i][k]=String(v).replace(/[，,\s$]/g,'');if(rows[i].saved)upsertRows([rows[i]]);else saveDraft();render();}
+  function setVal(i,k,v){if(!rows[i])return;rows[i][k]=v;rows[i].updatedAt=new Date().toISOString();if(k==='amount')rows[i][k]=String(v).replace(/[，,\s$]/g,'');if(k==='item')rows[i][k]=cleanCardPasteItemValue(rows[i][k],rows[i]);if(rows[i].saved)upsertRows([rows[i]]);else saveDraft();render();}
   function delRow(i){const r=rows[i];if(!r)return;rows.splice(i,1);if(r.saved){records=records.filter(x=>x.id!==r.id);saveRecords();}saveDraft();render();}
   function dupRow(i){const r=rows[i];if(!r)return;const copy=Object.assign({},r,{id:uid(),saved:false,createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()});rows.splice(i+1,0,copy);saveDraft();render();}
   function clearAll(){if(rows.length && !w.confirm('清空目前整理列表？已存進總欄的資料不會刪除。'))return;rows=[];clearInputDefaults();removeJson(DRAFT_KEY);setMsg('',true);render();}
@@ -6646,10 +6714,10 @@ function openCardPasteWindow(){
       return (!owner||ownerText.includes(owner)) && (!claim||claimState===claim) && (!bank||bankText.includes(bank)) && (!d||dateText.includes(d)) && (!item||itemText.includes(item)) && (!amount||amountText.includes(amount)) && (!note||noteText.includes(note));
     });
   }
-  function rowToTsv(r){return [ownerDisplay(r),bankCell(r),fullCardDate(r.postDate,r.payDate),fullCardDate(r.spendDate,r.payDate),r.item||'',fmt(moneyNum(r.amount)),displayNoteForRow(r)].join('\t');}
+  function rowToTsv(r){return [ownerDisplay(r),bankCell(r),fullCardDate(r.postDate,r.payDate),fullCardDate(r.spendDate,r.payDate),itemDisplay(r),fmt(moneyNum(r.amount)),displayNoteForRow(r)].join('\t');}
   function rowsHeader(){return ['歸屬誰','銀行','入帳日期','消費日期','項目','金額','備註'].join('\t');}
   function filteredRowsHeader(){return ['年月','歸屬誰','銀行','入帳日期','消費日期','項目','金額','請款狀態','匯款備註'].join('\t');}
-  function rowToFilteredTsv(r){return [rocMonthText(r.belongMonth||''),ownerDisplay(r),bankCell(r),fullCardDate(r.postDate,r.payDate),fullCardDate(r.spendDate,r.payDate),r.item||'',fmt(moneyNum(r.amount)),rowClaimStatusText(r)||'—',rowClaimNoteText(r)].join('\t');}
+  function rowToFilteredTsv(r){return [rocMonthText(r.belongMonth||''),ownerDisplay(r),bankCell(r),fullCardDate(r.postDate,r.payDate),fullCardDate(r.spendDate,r.payDate),itemDisplay(r),fmt(moneyNum(r.amount)),rowClaimStatusText(r)||'—',rowClaimNoteText(r)].join('\t');}
   function filteredSubtotalLines(list){
     const total=list.reduce((s,r)=>s+moneyNum(r.amount),0);
     const pending=list.filter(r=>rowClaimState(r)==='pending');
@@ -6743,6 +6811,7 @@ function openCardPasteWindow(){
     const rec=records.find(r=>r.id===id);
     if(!rec)return;
     rec[k]=(k==='amount')?String(v).replace(/[,，\s$]/g,''):v;
+    if(k==='item')rec[k]=cleanCardPasteItemValue(rec[k],rec);
     rec.updatedAt=new Date().toISOString();
     const draft=rows.find(r=>r.id===id);
     if(draft){draft[k]=rec[k];draft.updatedAt=rec.updatedAt;}
@@ -6763,13 +6832,7 @@ function openCardPasteWindow(){
     return '請款完成 '+date;
   }
   function displayNoteForRow(r){
-    const base=String((r&&r.note)||'').trim();
-    const month=normalizeRocMonthValue((r&&r.belongMonth)||'').value;
-    const claimNote=claimNoteText(month,(r&&r.owner)||'');
-    if(!claimNote)return base;
-    if(!base||base===claimNote)return claimNote;
-    if(base.includes(claimNote))return base;
-    return base+'｜'+claimNote;
+    return String((r&&r.note)||'').trim();
   }
   function setClaim(month,owner,key,value){const c=getClaim(month,owner);c[key]=value;if(key==='date')c.done=!!String(value||'').trim();saveClaims();renderOverview();}
   function setSelectedMonth(month){selectedMonth=month;renderOverview();}
@@ -6848,7 +6911,7 @@ function openCardPasteWindow(){
       const sum=glist.reduce((s,r)=>s+moneyNum(r.amount),0);
       const body=glist.map(r=>{
         const ownerCell=isZeroBillRow(r)?'<span class="owner-dash">-</span>':'<select class="overview-edit '+(!String(r.owner||'').trim()?'owner-missing':'')+'" data-edit-record="'+esc2(r.id)+'" data-edit-k="owner">'+ownerSelectOptions(r.owner||'')+'</select>';
-        return '<tr><td>'+ownerCell+'</td><td><span class="bankcell">'+esc2(bankCell(r))+'</span></td><td>'+esc2(fullCardDate(r.postDate,r.payDate))+'</td><td>'+esc2(fullCardDate(r.spendDate,r.payDate))+'</td><td><input class="overview-edit" data-edit-record="'+esc2(r.id)+'" data-edit-k="item" value="'+esc2(r.item||'')+'"></td><td><input class="overview-edit money" data-edit-record="'+esc2(r.id)+'" data-edit-k="amount" value="'+esc2(fmt(moneyNum(r.amount)))+'"></td><td><input class="overview-edit" data-edit-record="'+esc2(r.id)+'" data-edit-k="note" value="'+esc2(r.note||'')+'" placeholder="可空白"></td><td><div class="row-actions"><button class="mini copy" data-dup-record="'+esc2(r.id)+'" type="button">複</button><button class="mini del" data-del-record="'+esc2(r.id)+'" type="button">刪</button></div></td></tr>';
+        return '<tr><td>'+ownerCell+'</td><td><span class="bankcell">'+esc2(bankCell(r))+'</span></td><td>'+esc2(fullCardDate(r.postDate,r.payDate))+'</td><td>'+esc2(fullCardDate(r.spendDate,r.payDate))+'</td><td><input class="overview-edit" data-edit-record="'+esc2(r.id)+'" data-edit-k="item" value="'+esc2(itemDisplay(r))+'"></td><td><input class="overview-edit money" data-edit-record="'+esc2(r.id)+'" data-edit-k="amount" value="'+esc2(fmt(moneyNum(r.amount)))+'"></td><td><input class="overview-edit" data-edit-record="'+esc2(r.id)+'" data-edit-k="note" value="'+esc2(r.note||'')+'" placeholder="可空白"></td><td><div class="row-actions"><button class="mini copy" data-dup-record="'+esc2(r.id)+'" type="button">複</button><button class="mini del" data-del-record="'+esc2(r.id)+'" type="button">刪</button></div></td></tr>';
       }).join('');
       const groupIds=glist.map(r=>r.id).join('|');
       const delBtn='<button class="mini del" data-del-bank-ids="'+esc2(groupIds)+'" data-del-bank-label="'+esc2(bank)+'" type="button">清空本張信用卡明細</button>';
@@ -6909,9 +6972,10 @@ function safeReadLocalJSON(key,def){
 function safeWriteLocalJSON(key,val){
   try{localStorage.setItem(key,JSON.stringify(val))}catch(e){}
 }
+let lastCardPasteRestoreCount=0;
 function buildCardPasteBackup(){
   return {
-    version:'V166',
+    version:'V168',
     exportedAt:new Date().toISOString(),
     records:safeReadLocalJSON('lihui_card_paste_records_v4',[]),
     legacyRecords:safeReadLocalJSON('lihui_card_paste_records_v3',[]),
@@ -6920,15 +6984,71 @@ function buildCardPasteBackup(){
     ownerOptions:safeReadLocalJSON('lihui_card_paste_owner_options_v1',null)
   };
 }
+function extractCardPasteBackup(obj){
+  if(!obj||typeof obj!=='object')return null;
+  const candidates=[];
+  const directKeys=['_cardPasteBackup','cardPasteBackup','cardPaste','_cardPaste','cardPasteData'];
+  directKeys.forEach(k=>{if(obj[k]&&typeof obj[k]==='object')candidates.push(obj[k]);});
+  if(Array.isArray(obj.cardPasteRecords))candidates.push({records:obj.cardPasteRecords});
+  if(Array.isArray(obj._cardPasteRecords))candidates.push({records:obj._cardPasteRecords});
+  if(Array.isArray(obj.lihui_card_paste_records_v4))candidates.push({records:obj.lihui_card_paste_records_v4});
+  if(Array.isArray(obj.lihui_card_paste_records_v3))candidates.push({legacyRecords:obj.lihui_card_paste_records_v3});
+  if(obj.localStorage&&typeof obj.localStorage==='object'){
+    const ls=obj.localStorage;
+    candidates.push({
+      records:ls.lihui_card_paste_records_v4,
+      legacyRecords:ls.lihui_card_paste_records_v3,
+      claims:ls.lihui_card_paste_claims_v3,
+      currentRows:ls.lihui_card_paste_current_rows_v4,
+      ownerOptions:ls.lihui_card_paste_owner_options_v1
+    });
+  }
+  for(const raw of candidates){
+    if(!raw||typeof raw!=='object')continue;
+    const b=Object.assign({},raw);
+    ['records','legacyRecords','ownerOptions'].forEach(k=>{
+      if(typeof b[k]==='string'){
+        try{b[k]=JSON.parse(b[k]);}catch(e){}
+      }
+    });
+    ['claims','currentRows'].forEach(k=>{
+      if(typeof b[k]==='string'){
+        try{b[k]=JSON.parse(b[k]);}catch(e){}
+      }
+    });
+    if(Array.isArray(b.records)||Array.isArray(b.legacyRecords)||b.claims||b.currentRows||Array.isArray(b.ownerOptions))return b;
+  }
+  return null;
+}
+function stripCardPasteBackupFields(obj){
+  if(!obj||typeof obj!=='object')return obj;
+  ['_cardPasteBackup','cardPasteBackup','cardPaste','_cardPaste','cardPasteData','cardPasteRecords','_cardPasteRecords','lihui_card_paste_records_v4','lihui_card_paste_records_v3'].forEach(k=>{try{delete obj[k];}catch(e){}});
+  return obj;
+}
 function restoreCardPasteBackup(obj){
-  const b=obj&&obj._cardPasteBackup;
+  lastCardPasteRestoreCount=0;
+  const b=extractCardPasteBackup(obj);
   if(!b||typeof b!=='object')return false;
-  if(Array.isArray(b.records))safeWriteLocalJSON('lihui_card_paste_records_v4',b.records);
-  else if(Array.isArray(b.legacyRecords))safeWriteLocalJSON('lihui_card_paste_records_v4',b.legacyRecords);
-  if(b.claims&&typeof b.claims==='object')safeWriteLocalJSON('lihui_card_paste_claims_v3',b.claims);
-  if(b.currentRows&&typeof b.currentRows==='object')safeWriteLocalJSON('lihui_card_paste_current_rows_v4',b.currentRows);
-  if(Array.isArray(b.ownerOptions))safeWriteLocalJSON('lihui_card_paste_owner_options_v1',b.ownerOptions);
-  return true;
+  let restored=false;
+  const recs=Array.isArray(b.records)?b.records:(Array.isArray(b.legacyRecords)?b.legacyRecords:null);
+  if(Array.isArray(recs)){
+    safeWriteLocalJSON('lihui_card_paste_records_v4',recs);
+    lastCardPasteRestoreCount=recs.length;
+    restored=true;
+  }
+  if(b.claims&&typeof b.claims==='object'){
+    safeWriteLocalJSON('lihui_card_paste_claims_v3',b.claims);
+    restored=true;
+  }
+  if(b.currentRows&&typeof b.currentRows==='object'){
+    safeWriteLocalJSON('lihui_card_paste_current_rows_v4',b.currentRows);
+    restored=true;
+  }
+  if(Array.isArray(b.ownerOptions)){
+    safeWriteLocalJSON('lihui_card_paste_owner_options_v1',b.ownerOptions);
+    restored=true;
+  }
+  return restored;
 }
 function exportJSON(){
   const payload=JSON.parse(JSON.stringify(state||{}));
@@ -6940,7 +7060,29 @@ function exportJSON(){
   a.click();
   URL.revokeObjectURL(a.href);
 }
-function importJSONFile(ev){const f=ev.target.files[0];if(!f)return;const reader=new FileReader();reader.onload=()=>{try{const incoming=JSON.parse(reader.result);const restoredCard=restoreCardPasteBackup(incoming);state=incoming;normalizeLegacyCardLabels();ensureMonth();save();render();alert('已載入JSON'+(restoredCard?'，並已還原另開視窗｜刷卡紀錄':'') )}catch(e){alert('載入失敗：'+e.message)}finally{ev.target.value=''}};reader.readAsText(f,'utf-8')}
+function importJSONFile(ev){
+  const f=ev.target.files[0];
+  if(!f)return;
+  const reader=new FileReader();
+  reader.onload=()=>{
+    try{
+      const incoming=JSON.parse(reader.result);
+      const restoredCard=restoreCardPasteBackup(incoming);
+      state=stripCardPasteBackupFields(incoming);
+      normalizeLegacyCardLabels();
+      ensureMonth();
+      save();
+      render();
+      const cardMsg=restoredCard?`，並已還原另開視窗｜刷卡紀錄${lastCardPasteRestoreCount?` ${lastCardPasteRestoreCount} 筆`:''}`:'；此 JSON 沒有包含另開視窗｜刷卡紀錄備份';
+      alert('已載入JSON'+cardMsg);
+    }catch(e){
+      alert('載入失敗：'+e.message);
+    }finally{
+      ev.target.value='';
+    }
+  };
+  reader.readAsText(f,'utf-8');
+}
 function exportExcel(){const rows=[['月份','頁面','收支','項目/卡別/手機','日期1','日期2/期限','金額','分類/帳單月份','備註/說明']];const old=state.activeMonth;Object.keys(state.months).sort().forEach(mid=>{state.activeMonth=mid;const m=getMonth();m.personal.sections.forEach(sec=>sec.items.forEach(it=>{if(it.isCard){it.subItems.forEach(d=>rows.push([mid,'信用卡','支出',it.label,d.date1,d.date2,d.amount,d.category,d.desc+(d.note?'｜'+d.note:'')]))}else rows.push([mid,'麗卉每月帳款',it.type==='income'?'收入':'支出',it.label,'',it.date,it.amount,it.dateType,it.note])}));['postOffice','taiwanBank'].forEach(key=>(m[key].txs||[]).forEach(t=>rows.push([mid,key==='postOffice'?'郵局帳款':'台灣銀行帳款',t.type==='income'?'收入':'支出',t.item,'',t.date,t.amount,'',t.note])));Object.keys(m.mobile.numbers||{}).forEach(phone=>(m.mobile.numbers[phone].records||[]).forEach(r=>rows.push([mid,'項目紀錄','支出',phone,'',r.dueDate,r.amount,r.billMonth,(r.desc!==undefined?r.desc:(r.period+(r.note?'｜'+r.note:'')))])))});(getGlobalData().dadLiving?.rows||[]).forEach(r=>rows.push(['固定延續','項目紀錄-爸生活費','', '爸生活費$5000(匯款麗卉富邦)','',r.date,[r.laiya,r.liling,r.lihui].filter(Boolean).join(' / '),'麗雅/麗玲/麗卉',r.note||'']));state.activeMonth=old;if(window.XLSX){const wb=XLSX.utils.book_new();const ws=XLSX.utils.aoa_to_sheet(rows);XLSX.utils.book_append_sheet(wb,ws,'帳款明細');XLSX.writeFile(wb,`麗卉帳款_V60_${state.activeMonth}.xlsx`)}else{const csv=rows.map(r=>r.map(c=>'"'+String(c||'').replace(/"/g,'""')+'"').join(',')).join('\\n');const blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`麗卉帳款_V60_${state.activeMonth}.csv`;a.click();URL.revokeObjectURL(a.href)}}
 window.addEventListener('load',()=>{load();render();loadSupabaseSettings();autoConnectSupabase()});
 </script>
