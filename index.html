@@ -3091,6 +3091,10 @@ function dataScore(obj){
     const gp=((g.taiwanBank||{}).petty||{});
     score+=countVal(gp.dajieStart)+countVal(gp.erjieStart)+((gp.dajieTxs||[]).length+(gp.erjieTxs||[]).length)*3;
     Object.values(((g.mobile||{}).numbers)||{}).forEach(n=>score+=((n||{}).records||[]).length*2);
+    const cb=obj._cardPasteBackup||obj.cardPasteBackup||obj.cardPaste||obj._cardPaste||{};
+    if(Array.isArray(cb.records))score+=cb.records.length*3;
+    if(Array.isArray(cb.legacyRecords))score+=cb.legacyRecords.length*2;
+    if(cb.claims&&typeof cb.claims==='object')score+=Object.keys(cb.claims).length*2;
     return score;
   }catch(e){return 0}
 }
@@ -5638,12 +5642,12 @@ function setSyncMsg(msg){const el=document.getElementById('syncMsg');if(el)el.te
 function updateSupabaseStatus(text,mode='off',last=''){const el=document.getElementById('syncStatus');if(el){el.textContent=text;el.className='sync-pill '+mode}const lastEl=document.getElementById('syncLast');if(lastEl){const s=getSupabaseSettings();lastEl.textContent='最後同步時間：'+(last||s.lastSyncAt||'—')}}
 function toggleSupabasePanel(){const p=document.getElementById('supabasePanel');if(!p)return;p.classList.toggle('hidden');saveSupabaseSettings()}
 function initSupabaseClient(){const url=document.getElementById('supabaseUrl')?.value.trim()||'';const key=document.getElementById('supabaseKey')?.value.trim()||'';if(!url||!key){alert('請先輸入 Supabase Project URL 和 Publishable Key');return null}if(!window.supabase||!window.supabase.createClient){alert('Supabase 函式庫尚未載入，請確認網路連線後再試一次。');return null}saveSupabaseSettings();supaClient=window.supabase.createClient(url,key);return supaClient}
-async function connectSupabase(){const client=initSupabaseClient();if(!client)return;updateSupabaseStatus('連線中','warn');setSyncMsg('正在檢查雲端資料...');try{const {data,error}=await client.from(SUPA_TABLE).select('payload,updated_at').eq('workspace_key',SUPA_WORKSPACE).maybeSingle();if(error)throw error;supaConnected=true;if(supaPollTimer)clearInterval(supaPollTimer);supaPollTimer=setInterval(checkSupabaseRemote,9000);if(data&&data.payload){const remoteAt=data.updated_at||'';supaLastRemoteAt=remoteAt;const localAt=state?._meta?.localUpdatedAt||'';let remoteIsLatest=false;if(!localAt)remoteIsLatest=true;else if(remoteAt&&new Date(remoteAt)>=new Date(localAt))remoteIsLatest=true;if(remoteIsLatest){const remoteScore=dataScore(data.payload),localScore=dataScore(state);if(localScore>remoteScore+3){await uploadToSupabase(true);setSyncMsg('雲端資料較少，已保留本機資料並同步到雲端');}else{backupStateSnapshot('before-remote-apply');supaApplyingRemote=true;state=data.payload;if(!state._meta)state._meta={};state._meta.localUpdatedAt=remoteAt||new Date().toISOString();localStorage.setItem(STORE,JSON.stringify(state));supaApplyingRemote=false;save({skipCloud:true});ensureMonth();render();markSupabaseSynced(remoteAt,'已自動載入雲端最新資料');}}else{await uploadToSupabase(true);setSyncMsg('本機資料較新，已自動同步到雲端');}}else{await uploadToSupabase(true);}updateSupabaseStatus('已連線','ok');}catch(err){console.error(err);supaConnected=false;updateSupabaseStatus('連線失敗','warn');setSyncMsg('請確認資料表/RLS/URL/Key：'+(err.message||err));}}
+async function connectSupabase(){const client=initSupabaseClient();if(!client)return;updateSupabaseStatus('連線中','warn');setSyncMsg('正在檢查雲端資料...');try{const {data,error}=await client.from(SUPA_TABLE).select('payload,updated_at').eq('workspace_key',SUPA_WORKSPACE).maybeSingle();if(error)throw error;supaConnected=true;if(supaPollTimer)clearInterval(supaPollTimer);supaPollTimer=setInterval(checkSupabaseRemote,9000);if(data&&data.payload){const remoteAt=data.updated_at||'';supaLastRemoteAt=remoteAt;const localAt=state?._meta?.localUpdatedAt||'';let remoteIsLatest=false;if(!localAt)remoteIsLatest=true;else if(remoteAt&&new Date(remoteAt)>=new Date(localAt))remoteIsLatest=true;if(remoteIsLatest){const remoteScore=dataScore(data.payload),localScore=dataScore(buildSupabasePayload());if(localScore>remoteScore+3){await uploadToSupabase(true);setSyncMsg('雲端資料較少，已保留本機資料並同步到雲端');}else{backupStateSnapshot('before-remote-apply');supaApplyingRemote=true;applySupabasePayload(data.payload,remoteAt);supaApplyingRemote=false;save({skipCloud:true});ensureMonth();render();markSupabaseSynced(remoteAt,'已自動載入雲端最新資料');}}else{await uploadToSupabase(true);setSyncMsg('本機資料較新，已自動同步到雲端');}}else{await uploadToSupabase(true);}updateSupabaseStatus('已連線','ok');}catch(err){console.error(err);supaConnected=false;updateSupabaseStatus('連線失敗','warn');setSyncMsg('請確認資料表/RLS/URL/Key：'+(err.message||err));}}
 function markSupabaseSynced(remoteAt,msg){const now=new Date();const txt=now.toLocaleString('zh-TW',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});const s=getSupabaseSettings();localStorage.setItem(SUPA_STORE,JSON.stringify({...s,lastSyncAt:txt}));supaLastRemoteAt=remoteAt||new Date().toISOString();updateSupabaseStatus(supaConnected?'已連線':'未連線',supaConnected?'ok':'off',txt);setSyncMsg(msg||'已同步')}
 function disconnectSupabase(){supaConnected=false;supaClient=null;if(supaPollTimer)clearInterval(supaPollTimer);supaPollTimer=null;if(supaSaveTimer)clearTimeout(supaSaveTimer);supaSaveTimer=null;updateSupabaseStatus('未連線','off');setSyncMsg('已中斷')}
 function scheduleSupabaseSave(){if(!supaConnected||!supaClient||supaApplyingRemote)return;if(supaSaveTimer)clearTimeout(supaSaveTimer);supaSaveTimer=setTimeout(()=>uploadToSupabase(false),1200)}
-async function uploadToSupabase(manual=false){if(!supaConnected||!supaClient){if(manual)alert('尚未連線 Supabase');return}try{if(!state._meta)state._meta={};state._meta.localUpdatedAt=new Date().toISOString();const payload=JSON.parse(JSON.stringify(state));const {data,error}=await supaClient.from(SUPA_TABLE).upsert({workspace_key:SUPA_WORKSPACE,payload,updated_at:new Date().toISOString()},{onConflict:'workspace_key'}).select('updated_at').single();if(error)throw error;markSupabaseSynced(data?.updated_at,'已同步到雲端');}catch(err){console.error(err);updateSupabaseStatus('同步失敗','warn');setSyncMsg(err.message||String(err));}}
-async function checkSupabaseRemote(){if(!supaConnected||!supaClient)return;try{const {data,error}=await supaClient.from(SUPA_TABLE).select('payload,updated_at').eq('workspace_key',SUPA_WORKSPACE).maybeSingle();if(error)throw error;if(!data||!data.payload)return;if(data.updated_at&&supaLastRemoteAt&&new Date(data.updated_at)<=new Date(supaLastRemoteAt))return;if(data.updated_at&&state?._meta?.localUpdatedAt&&new Date(data.updated_at)<=new Date(state._meta.localUpdatedAt))return;const remoteScore=dataScore(data.payload),localScore=dataScore(state);if(localScore>remoteScore+3){await uploadToSupabase(false);setSyncMsg('偵測到雲端資料較少，已保留本機資料。');return;}backupStateSnapshot('before-remote-poll-apply');supaApplyingRemote=true;state=data.payload;if(!state._meta)state._meta={};state._meta.localUpdatedAt=data.updated_at||new Date().toISOString();localStorage.setItem(STORE,JSON.stringify(state));supaApplyingRemote=false;ensureMonth();render();markSupabaseSynced(data.updated_at,'已收到另一台電腦的最新更新。');}catch(err){console.error(err);updateSupabaseStatus('同步異常','warn');setSyncMsg(err.message||String(err));}}
+async function uploadToSupabase(manual=false){if(!supaConnected||!supaClient){if(manual)alert('尚未連線 Supabase');return}try{if(!state._meta)state._meta={};state._meta.localUpdatedAt=new Date().toISOString();const payload=buildSupabasePayload();const {data,error}=await supaClient.from(SUPA_TABLE).upsert({workspace_key:SUPA_WORKSPACE,payload,updated_at:new Date().toISOString()},{onConflict:'workspace_key'}).select('updated_at').single();if(error)throw error;markSupabaseSynced(data?.updated_at,'已同步到雲端');}catch(err){console.error(err);updateSupabaseStatus('同步失敗','warn');setSyncMsg(err.message||String(err));}}
+async function checkSupabaseRemote(){if(!supaConnected||!supaClient)return;try{const {data,error}=await supaClient.from(SUPA_TABLE).select('payload,updated_at').eq('workspace_key',SUPA_WORKSPACE).maybeSingle();if(error)throw error;if(!data||!data.payload)return;if(data.updated_at&&supaLastRemoteAt&&new Date(data.updated_at)<=new Date(supaLastRemoteAt))return;if(data.updated_at&&state?._meta?.localUpdatedAt&&new Date(data.updated_at)<=new Date(state._meta.localUpdatedAt))return;const remoteScore=dataScore(data.payload),localScore=dataScore(buildSupabasePayload());if(localScore>remoteScore+3){await uploadToSupabase(false);setSyncMsg('偵測到雲端資料較少，已保留本機資料。');return;}backupStateSnapshot('before-remote-poll-apply');supaApplyingRemote=true;applySupabasePayload(data.payload,data.updated_at);supaApplyingRemote=false;ensureMonth();render();markSupabaseSynced(data.updated_at,'已收到另一台電腦的最新更新。');}catch(err){console.error(err);updateSupabaseStatus('同步異常','warn');setSyncMsg(err.message||String(err));}}
 async function manualSyncSupabase(){if(!supaConnected){const client=initSupabaseClient();if(!client)return;supaClient=client;supaConnected=true;}await uploadToSupabase(true)}
 
 /* ===== V20 整合列印：列印專用畫面、項目手動換行 ===== */
@@ -6103,6 +6107,16 @@ function importCurrentMonthCardPasteRecords(){
 }
 window.importCurrentMonthCardPasteRecords=importCurrentMonthCardPasteRecords;
 
+function notifyCardPasteChanged(){
+  try{
+    if(!state._meta)state._meta={};
+    state._meta.localUpdatedAt=new Date().toISOString();
+    localStorage.setItem(STORE,JSON.stringify(state));
+    renderTabsOnly();
+    scheduleSupabaseSave();
+  }catch(e){}
+}
+
 function openCardPasteWindow(){
   const w=window.open('', 'creditCardPasteWindow', 'width=1240,height=850,scrollbars=yes,resizable=yes');
   if(!w){alert('請允許瀏覽器跳出視窗，才能開啟信用卡刷卡紀錄整理視窗。');return;}
@@ -6120,7 +6134,7 @@ function openCardPasteWindow(){
   h1{margin:0;font-size:23px;font-weight:950;color:#334155;letter-spacing:.02em}.badge{display:inline-flex;border:1px solid #fed7aa;background:#fff7ed;color:#9a3412;border-radius:999px;padding:7px 11px;font-size:12px;font-weight:950;white-space:nowrap}
   .panel{margin-top:13px;background:#fffdfb;border:1px solid #d8e2ef;border-radius:22px;box-shadow:0 8px 20px rgba(42,65,105,.08);padding:14px;}
   .controls{display:grid;grid-template-columns:145px 150px 145px max-content;gap:9px;align-items:end;padding-bottom:12px;}
-  .field{position:relative}.field label{display:block;font-size:12px;color:#64748b;font-weight:950;margin-bottom:5px}.field select,.field input,.field textarea{width:100%;height:37px;border:1px solid #cbd5e1;border-radius:12px;padding:8px 9px;font-family:inherit;font-weight:850;background:#fff;color:#334155}.field textarea{height:auto;min-height:150px;resize:vertical;line-height:1.5;font-weight:800}.paste{margin-top:4px}.btn{border:1px solid #cbd5e1;border-radius:999px;padding:9px 13px;background:#fff;color:#334155;font-weight:950;cursor:pointer;white-space:nowrap;height:37px}.btn.main{background:#ede9fe;border-color:#c4b5fd;color:#5b21b6}.btn.green{background:#dcfce7;border-color:#86efac;color:#047857}.btn.rose{background:#ffe4e6;border-color:#fda4af;color:#be123c}.btn.blue{background:#e0f2fe;border-color:#7dd3fc;color:#0369a1}.btn.amber{background:#fff7ed;border-color:#fed7aa;color:#9a3412}.btn.gray{background:#f8fafc;border-color:#cbd5e1;color:#475569}.btn.zero{background:#fff;border-color:#cbd5e1;color:#475569;padding:7px 10px;height:34px;font-size:12px}.btn:hover{filter:saturate(1.05);transform:translateY(-1px)}.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px}.resulttop{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:9px}.total{display:inline-flex;border-radius:999px;background:#fff1f2;color:#be123c;border:1px solid #fda4af;padding:6px 11px;font-weight:950}.tablewrap{overflow:visible;border:1px solid #d8e2ef;border-radius:18px;background:#fff}.cc-table{width:100%;border-collapse:separate;border-spacing:0;min-width:0;table-layout:fixed;font-size:13px}.cc-table th,.cc-table td{border-right:1px solid #edf2f7;border-bottom:1px solid #edf2f7;padding:7px;vertical-align:middle}.cc-table th{background:#f8fafc;color:#475569;font-size:12px;font-weight:950;position:sticky;top:0;z-index:1}.cc-table tr:nth-child(even) td{background:#fcf7ff}.cc-table input,.cc-table select{width:100%;border:1px solid #dbe3ef;border-radius:9px;padding:6px 7px;background:#fff;font-family:inherit;font-weight:850}.cc-table .owner-missing,.overview-edit.owner-missing{border-color:#fb7185!important;background:#fff1f2!important;color:#be123c!important}.money{text-align:center;color:#2563eb}.bankcell{display:inline-flex;border-radius:999px;padding:5px 9px;background:#eff6ff;color:#1d4ed8;font-weight:950;white-space:nowrap}.readonly-date{display:inline-flex;align-items:center;min-height:30px;border-radius:10px;background:#f8fafc;border:1px solid #e2e8f0;color:#334155;font-weight:950;padding:5px 8px;white-space:nowrap}.savedtag{display:inline-flex;border-radius:999px;padding:4px 8px;background:#dcfce7;color:#047857;font-size:12px;font-weight:950}.mini{border:0;border-radius:999px;padding:6px 8px;font-size:12px;font-weight:950;cursor:pointer}.mini.copy{background:#e0f2fe;color:#0369a1}.mini.del{background:#ffe4e6;color:#be123c}.row-actions{display:flex;gap:5px;justify-content:center}.empty{padding:18px;text-align:center;color:#94a3b8;font-weight:950}.date-error{border-color:#f43f5e!important;background:#fff1f2!important;box-shadow:0 0 0 3px rgba(244,63,94,.13)!important}.err{position:absolute;left:0;right:0;top:61px;min-height:16px;color:#be123c;font-size:11px;font-weight:900;line-height:1.25;}.savehint{font-size:12px;color:#64748b;font-weight:900;margin-top:9px}.okhint{color:#047857}.warnhint{color:#be123c}
+  .field{position:relative}.field label{display:flex;align-items:center;gap:6px;font-size:12px;color:#64748b;font-weight:950;margin-bottom:5px;min-height:17px}.field select,.field input,.field textarea{width:100%;height:37px;border:1px solid #cbd5e1;border-radius:12px;padding:8px 9px;font-family:inherit;font-weight:850;background:#fff;color:#334155}.field textarea{height:auto;min-height:150px;resize:vertical;line-height:1.5;font-weight:800}.pay-lookup{display:inline-flex;align-items:center;border-radius:999px;padding:2px 7px;font-size:11px;font-weight:950;white-space:nowrap;background:#f1f5f9;color:#64748b;border:1px solid #e2e8f0}.pay-lookup.ok{background:#dcfce7;color:#047857;border-color:#86efac}.pay-lookup.warn{background:#fff7ed;color:#9a3412;border-color:#fed7aa}.paste{margin-top:4px}.btn{border:1px solid #cbd5e1;border-radius:999px;padding:9px 13px;background:#fff;color:#334155;font-weight:950;cursor:pointer;white-space:nowrap;height:37px}.btn.main{background:#ede9fe;border-color:#c4b5fd;color:#5b21b6}.btn.green{background:#dcfce7;border-color:#86efac;color:#047857}.btn.rose{background:#ffe4e6;border-color:#fda4af;color:#be123c}.btn.blue{background:#e0f2fe;border-color:#7dd3fc;color:#0369a1}.btn.amber{background:#fff7ed;border-color:#fed7aa;color:#9a3412}.btn.gray{background:#f8fafc;border-color:#cbd5e1;color:#475569}.btn.zero{background:#fff;border-color:#cbd5e1;color:#475569;padding:7px 10px;height:34px;font-size:12px}.btn:hover{filter:saturate(1.05);transform:translateY(-1px)}.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px}.resulttop{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:9px}.total{display:inline-flex;border-radius:999px;background:#fff1f2;color:#be123c;border:1px solid #fda4af;padding:6px 11px;font-weight:950}.tablewrap{overflow:visible;border:1px solid #d8e2ef;border-radius:18px;background:#fff}.cc-table{width:100%;border-collapse:separate;border-spacing:0;min-width:0;table-layout:fixed;font-size:13px}.cc-table th,.cc-table td{border-right:1px solid #edf2f7;border-bottom:1px solid #edf2f7;padding:7px;vertical-align:middle}.cc-table th{background:#f8fafc;color:#475569;font-size:12px;font-weight:950;position:sticky;top:0;z-index:1}.cc-table tr:nth-child(even) td{background:#fcf7ff}.cc-table input,.cc-table select{width:100%;border:1px solid #dbe3ef;border-radius:9px;padding:6px 7px;background:#fff;font-family:inherit;font-weight:850}.cc-table .owner-missing,.overview-edit.owner-missing{border-color:#fb7185!important;background:#fff1f2!important;color:#be123c!important}.money{text-align:center;color:#2563eb}.bankcell{display:inline-flex;border-radius:999px;padding:5px 9px;background:#eff6ff;color:#1d4ed8;font-weight:950;white-space:nowrap}.readonly-date{display:inline-flex;align-items:center;min-height:30px;border-radius:10px;background:#f8fafc;border:1px solid #e2e8f0;color:#334155;font-weight:950;padding:5px 8px;white-space:nowrap}.savedtag{display:inline-flex;border-radius:999px;padding:4px 8px;background:#dcfce7;color:#047857;font-size:12px;font-weight:950}.mini{border:0;border-radius:999px;padding:6px 8px;font-size:12px;font-weight:950;cursor:pointer}.mini.copy{background:#e0f2fe;color:#0369a1}.mini.del{background:#ffe4e6;color:#be123c}.row-actions{display:flex;gap:5px;justify-content:center}.empty{padding:18px;text-align:center;color:#94a3b8;font-weight:950}.date-error{border-color:#f43f5e!important;background:#fff1f2!important;box-shadow:0 0 0 3px rgba(244,63,94,.13)!important}.err{position:absolute;left:0;right:0;top:61px;min-height:16px;color:#be123c;font-size:11px;font-weight:900;line-height:1.25;}.savehint{font-size:12px;color:#64748b;font-weight:900;margin-top:9px}.okhint{color:#047857}.warnhint{color:#be123c}
   .month-chips{display:flex;gap:7px;flex-wrap:wrap;margin:8px 0 11px;max-height:92px;overflow:auto;align-content:flex-start;padding-right:4px}.month-chip{border:1px solid #cbd5e1;background:#fff;border-radius:999px;padding:7px 11px;font-weight:950;color:#475569;cursor:pointer}.month-chip.active{background:#7257d6;color:#fff;border-color:#7257d6}.overview-grid{display:block}.summary-card{width:100%;border:1px solid #d8e2ef;border-radius:18px;background:#fff;overflow:hidden;margin-bottom:12px}.summary-card h3{margin:0;padding:10px 12px;background:#f8fafc;border-bottom:1px solid #e2e8f0;font-size:15px;color:#334155;display:flex;justify-content:space-between;align-items:center;gap:8px}.owner-totals{display:grid;grid-template-columns:repeat(7,minmax(104px,1fr));gap:7px;padding:10px}.owner-total{border:1px solid #e2e8f0;border-radius:999px;background:#fbfdff;padding:7px 8px;display:flex;align-items:center;justify-content:center;gap:4px;min-height:36px;white-space:nowrap}.owner-total b{display:inline;font-size:13px;color:#334155}.owner-total span{display:inline;margin:0;font-size:15px;font-weight:950;color:#2563eb}.claim-box{padding:10px;border-top:1px solid #edf2f7}.claim-row{display:grid;grid-template-columns:120px 130px minmax(220px,1fr);gap:7px;align-items:center;margin-bottom:7px}.claim-row label{font-weight:950;color:#334155}.claim-row input[type="text"]{width:100%;border:1px solid #dbe3ef;border-radius:10px;padding:7px 8px;font-family:inherit;font-weight:850}.claim-check{display:flex;gap:5px;align-items:center;white-space:nowrap}.bank-group{width:100%;border:1px solid #e2e8f0;border-radius:16px;background:#fff;margin-bottom:9px;overflow:hidden}.bank-group-head{display:flex;justify-content:space-between;gap:10px;background:#f8fafc;border-bottom:1px solid #edf2f7;padding:9px 11px;font-weight:950;align-items:center}.bank-head-actions{display:flex;gap:7px;align-items:center;flex-wrap:wrap}.small-table{width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed}.small-table th,.small-table td{border-bottom:1px solid #edf2f7;padding:6px;text-align:left;vertical-align:top}.small-table th:nth-child(1){width:112px}.small-table th:nth-child(2),.small-table th:nth-child(3){width:92px}.small-table th:nth-child(5){width:7.5em}.small-table th:nth-child(7){width:78px}.small-table th{color:#64748b;background:#fbfdff}.small-table td:nth-child(5){text-align:center;font-weight:950;color:#2563eb}.muted{color:#64748b;font-size:12px;font-weight:850}.import-line{display:flex;gap:9px;align-items:center;justify-content:space-between;flex-wrap:wrap;border:1px solid #bbf7d0;background:#f0fdf4;color:#047857;border-radius:14px;padding:8px;margin-bottom:10px;font-weight:950}.overview-actions{display:flex;gap:7px;flex-wrap:wrap;align-items:center}.copyok{font-size:12px;color:#047857;font-weight:950;margin-left:4px}.overview-edit{width:100%;border:1px solid #dbe3ef;border-radius:8px;padding:5px 6px;background:#fff;font-family:inherit;font-size:12px;font-weight:850}.overview-edit.money{text-align:center;color:#2563eb}.owner-dash{display:inline-flex;align-items:center;justify-content:center;border-radius:999px;background:#f1f5f9;color:#64748b;font-weight:950;min-width:40px;padding:5px 9px}.missing-bank-list{display:flex;align-items:center;gap:5px;flex-wrap:wrap;justify-content:flex-start}.missing-bank-label{font-size:12px;font-weight:950;color:#92400e;margin-right:2px}.missing-bank-chip{display:inline-flex;align-items:center;border:1px solid #fed7aa;background:#fff7ed;color:#9a3412;border-radius:999px;padding:4px 9px;font-size:12px;font-weight:950;line-height:1}.missing-bank-chip.ok{border-color:#86efac;background:#dcfce7;color:#047857}.list-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}/* V157：恢復請款篩選；尚未請款金額只對志偉/小孩顯示 */
 /* V165：複製篩選結果增加「匯款備註」欄，取請款區塊的匯款備註 */
 .search-card{border:1.5px solid #fbbf24;background:linear-gradient(90deg,#fff7ed 0%,#ffffff 58%,#f0f9ff 100%);border-radius:18px;padding:11px 12px;margin:4px 0 12px;box-shadow:0 5px 14px rgba(245,158,11,.12)}
@@ -6238,7 +6252,7 @@ function openCardPasteWindow(){
       <div class="controls">
         <div class="field"><label>歸屬年月</label><input id="belongMonth" placeholder="115/5"><div id="belongMonthErr" class="err"></div></div>
         <div class="field"><label>信用卡銀行</label><select id="bank"></select><div id="bankErr" class="err"></div></div>
-        <div class="field"><label>繳款日期</label><input id="payDate" placeholder="115/5/20 或 5/20"><div id="payDateErr" class="err"></div></div>
+        <div class="field"><label>繳款日期 <span id="payDateLookup" class="pay-lookup"></span></label><input id="payDate" placeholder="115/5/20 或 5/20"><div id="payDateErr" class="err"></div></div>
         <button id="zeroBillBtn" class="btn zero" type="button">新增銀行無帳單$0</button>
       </div>
       <div class="field paste"><label>貼上信用卡刷卡紀錄</label><textarea id="pasteBox" placeholder="可貼上整段信用卡刷卡紀錄"></textarea></div>
@@ -6314,8 +6328,8 @@ function openCardPasteWindow(){
   function todayRocDate(){const d=new Date();return (d.getFullYear()-1911)+'/'+(d.getMonth()+1)+'/'+d.getDate();}
   function currentRocMonth(){const d=new Date();return (d.getFullYear()-1911)+'/'+(d.getMonth()+1);}
   function readJson(key,def){try{const raw=w.localStorage.getItem(key);return raw?JSON.parse(raw):def}catch(e){return def}}
-  function writeJson(key,val){w.localStorage.setItem(key,JSON.stringify(val));}
-  function removeJson(key){try{w.localStorage.removeItem(key)}catch(e){}}
+  function writeJson(key,val){w.localStorage.setItem(key,JSON.stringify(val));notifyCardPasteChanged();}
+  function removeJson(key){try{w.localStorage.removeItem(key);notifyCardPasteChanged()}catch(e){}}
   function normalizeOwnerList(list){
     const merged=[...defaultOwnerOptions,...(Array.isArray(list)?list:[])].map(v=>String(v||'').trim()).filter((v,i,a)=>i===a.indexOf(v));
     return merged.filter(v=>v===''||v==='-'||v);
@@ -6460,6 +6474,35 @@ function openCardPasteWindow(){
   function validatePayDate(show){const inp=doc.getElementById('payDate'),err=doc.getElementById('payDateErr');const r=normalizeRocDateValue(inp.value,'');if(!r.ok){inp.classList.toggle('date-error',show);err.textContent=show?r.msg:'';return null;}inp.value=r.value;inp.classList.remove('date-error');err.textContent='';return r.value;}
   function validateBelongMonth(show){const inp=doc.getElementById('belongMonth'),err=doc.getElementById('belongMonthErr');const r=normalizeRocMonthValue(inp.value);if(!r.ok){inp.classList.toggle('date-error',show);err.textContent=show?r.msg:'';return null;}inp.value=r.y+'/'+r.m;inp.classList.remove('date-error');err.textContent='';return r.value;}
   function validateBank(show){const sel=doc.getElementById('bank'),err=doc.getElementById('bankErr');if(!sel.value){sel.classList.toggle('date-error',show);err.textContent=show?'請選擇銀行':'';return '';}sel.classList.remove('date-error');err.textContent='';return sel.value;}
+  function cardPasteMonthKey(raw){
+    const r=normalizeRocMonthValue(raw);
+    if(!r.ok)return '';
+    return (r.y+1911)+'-'+String(r.m).padStart(2,'0');
+  }
+  function lookupMainCardPayDate(monthRaw,bankRaw){
+    const monthKey=cardPasteMonthKey(monthRaw);
+    const bank=String(bankRaw||'').trim();
+    if(!monthKey||!bank||!state||!state.months||!state.months[monthKey])return '';
+    const label=cardPasteBankToItemLabel(bank);
+    const m=state.months[monthKey];
+    const sections=((m.personal||{}).sections||[]).filter(sec=>String(sec.title||'').includes('信用卡'));
+    let found=null;
+    sections.forEach(sec=>{(sec.items||[]).forEach(it=>{
+      const itemLabel=String(it.label||'').trim();
+      if(!found && (itemLabel===label || itemLabel.includes(bank) || label.includes(itemLabel)))found=it;
+    });});
+    return found?String(found.date||'').trim():'';
+  }
+  function updatePayDateLookup(){
+    const el=doc.getElementById('payDateLookup');
+    if(!el)return;
+    const monthVal=doc.getElementById('belongMonth')?.value||'';
+    const bankVal=doc.getElementById('bank')?.value||'';
+    if(!String(monthVal).trim()||!String(bankVal).trim()){el.textContent='';el.className='pay-lookup';return;}
+    const found=lookupMainCardPayDate(monthVal,bankVal);
+    if(found){el.textContent='對照 '+found;el.className='pay-lookup ok';}
+    else{el.textContent='本月未填';el.className='pay-lookup warn';}
+  }
   function parseAmount(s){const m=String(s||'').match(/-?\d[\d,，]*$/);return m?m[0].replace(/[，,]/g,''):'';}
   function shortMD(s,payDate){
     const m=String(s||'').match(/(\d{4})[\/.-](\d{1,2})[\/.-](\d{1,2})|(\d{1,3})[\/.-](\d{1,2})[\/.-](\d{1,2})|(\d{1,2})[\/.-](\d{1,2})/);
@@ -6934,11 +6977,12 @@ function openCardPasteWindow(){
   function render(){renderCurrentRows();renderOverview();}
 
   doc.getElementById('bank').innerHTML=banks.map(b=>'<option value="'+esc2(b)+'">'+(b?esc2(b):'請選擇')+'</option>').join('');
-  doc.getElementById('payDate').addEventListener('blur',()=>{validatePayDate(false);saveDraft();});
-  doc.getElementById('payDate').addEventListener('change',()=>{validatePayDate(false);saveDraft();});
-  doc.getElementById('belongMonth').addEventListener('blur',()=>{validateBelongMonth(false);saveDraft();});
-  doc.getElementById('belongMonth').addEventListener('change',()=>{validateBelongMonth(false);saveDraft();});
-  doc.getElementById('bank').addEventListener('change',()=>{validateBank(false);saveDraft();});
+  doc.getElementById('payDate').addEventListener('blur',()=>{validatePayDate(false);saveDraft();updatePayDateLookup();});
+  doc.getElementById('payDate').addEventListener('change',()=>{validatePayDate(false);saveDraft();updatePayDateLookup();});
+  doc.getElementById('belongMonth').addEventListener('input',()=>{updatePayDateLookup();saveDraft();});
+  doc.getElementById('belongMonth').addEventListener('blur',()=>{validateBelongMonth(false);saveDraft();updatePayDateLookup();});
+  doc.getElementById('belongMonth').addEventListener('change',()=>{validateBelongMonth(false);saveDraft();updatePayDateLookup();});
+  doc.getElementById('bank').addEventListener('change',()=>{validateBank(false);saveDraft();updatePayDateLookup();});
   const parseBtn=doc.getElementById('parseBtn');
   const saveRowsBtn=doc.getElementById('saveRowsBtn');
   const clearBtn=doc.getElementById('clearBtn');
@@ -6958,6 +7002,7 @@ function openCardPasteWindow(){
   loadStores();
   renderOwnerManager();
   render();
+  updatePayDateLookup();
 }
 
 function exportFileStamp(){
@@ -6975,7 +7020,7 @@ function safeWriteLocalJSON(key,val){
 let lastCardPasteRestoreCount=0;
 function buildCardPasteBackup(){
   return {
-    version:'V168',
+    version:'V169',
     exportedAt:new Date().toISOString(),
     records:safeReadLocalJSON('lihui_card_paste_records_v4',[]),
     legacyRecords:safeReadLocalJSON('lihui_card_paste_records_v3',[]),
@@ -7049,6 +7094,19 @@ function restoreCardPasteBackup(obj){
     restored=true;
   }
   return restored;
+}
+function buildSupabasePayload(){
+  const payload=JSON.parse(JSON.stringify(state||{}));
+  payload._cardPasteBackup=buildCardPasteBackup();
+  return payload;
+}
+function applySupabasePayload(payload,remoteAt){
+  const cloned=JSON.parse(JSON.stringify(payload||{}));
+  restoreCardPasteBackup(cloned);
+  state=stripCardPasteBackupFields(cloned);
+  if(!state._meta)state._meta={};
+  state._meta.localUpdatedAt=remoteAt||new Date().toISOString();
+  localStorage.setItem(STORE,JSON.stringify(state));
 }
 function exportJSON(){
   const payload=JSON.parse(JSON.stringify(state||{}));
