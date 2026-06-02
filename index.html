@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>麗卉每月帳款｜V150 搜尋預設全部年月版</title>
+  <title>麗卉每月帳款｜V170 另開視窗編輯歸屬列強調版</title>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
   <style>
@@ -6243,6 +6243,27 @@ function openCardPasteWindow(){
 .small-table td:nth-child(1) select.overview-edit{font-size:12.2px!important;height:34px!important;padding:3px 3px!important;font-weight:950!important}
 .small-table td:nth-child(1) select.overview-edit option{font-size:13px!important;font-weight:950!important}
 .small-table .bankcell{white-space:nowrap!important;font-size:10px!important;letter-spacing:-.03em!important}
+
+/* V170：另開視窗編輯歸屬誰/明細時，整列自動強調 */
+.cc-table tbody tr,
+.small-table tbody tr{transition:background .12s ease, box-shadow .12s ease;}
+.cc-table tbody tr:focus-within td,
+.small-table tbody tr:focus-within td{
+  background:#fff7ed!important;
+  box-shadow:inset 0 1px 0 #fed7aa,inset 0 -1px 0 #fed7aa!important;
+}
+.cc-table tbody tr:focus-within td:first-child,
+.small-table tbody tr:focus-within td:first-child{
+  box-shadow:inset 5px 0 0 #f59e0b,inset 0 1px 0 #fed7aa,inset 0 -1px 0 #fed7aa!important;
+}
+.cc-table tbody tr:focus-within input,
+.cc-table tbody tr:focus-within select,
+.small-table tbody tr:focus-within input,
+.small-table tbody tr:focus-within select{
+  border-color:#f59e0b!important;
+  background:#fffdf7!important;
+}
+
 </style>
 </head>
 <body>
@@ -7020,7 +7041,7 @@ function safeWriteLocalJSON(key,val){
 let lastCardPasteRestoreCount=0;
 function buildCardPasteBackup(){
   return {
-    version:'V169',
+    version:'V170',
     exportedAt:new Date().toISOString(),
     records:safeReadLocalJSON('lihui_card_paste_records_v4',[]),
     legacyRecords:safeReadLocalJSON('lihui_card_paste_records_v3',[]),
