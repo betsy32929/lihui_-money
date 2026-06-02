@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>麗卉每月帳款｜V170 另開視窗編輯歸屬列強調版</title>
+  <title>麗卉每月帳款｜V172 同上小按鈕版</title>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
   <style>
@@ -6264,6 +6264,34 @@ function openCardPasteWindow(){
   background:#fffdf7!important;
 }
 
+/* V171：歸屬誰新增「同上」，可自動套用上方已選歸屬 */
+/* V172：同上改成淡淡小按鈕，不放在下拉選單內 */
+.owner-same-wrap{position:relative;width:100%;display:block;min-width:0}
+.owner-same-wrap select{padding-right:30px!important}
+.same-owner-btn{
+  position:absolute;
+  right:4px;
+  top:50%;
+  transform:translateY(-50%);
+  width:22px;
+  height:22px;
+  border:1px solid #e2e8f0;
+  border-radius:999px;
+  background:#f8fafc;
+  color:#94a3b8;
+  font-size:11px;
+  font-weight:950;
+  line-height:1;
+  padding:0;
+  opacity:.68;
+  cursor:pointer;
+  z-index:2;
+}
+.same-owner-btn:hover{opacity:1;background:#fff7ed;color:#92400e;border-color:#fed7aa}
+.same-owner-btn:active{transform:translateY(-50%) scale(.96)}
+.cc-table select option[value="__same_above__"],
+.small-table select option[value="__same_above__"]{font-weight:950;color:#b45309;}
+
 </style>
 </head>
 <body>
@@ -6357,7 +6385,10 @@ function openCardPasteWindow(){
   }
   function saveOwners(){writeJson(OWNER_KEY,owners);}
   function ownerOptionLabel(o){return o?o:'未選';}
-  function ownerSelectOptions(selected){return owners.map(o=>'<option value="'+esc2(o)+'" '+(o===selected?'selected':'')+'>'+esc2(ownerOptionLabel(o))+'</option>').join('');}
+  const SAME_OWNER_VALUE='__same_above__';
+  function ownerSelectOptions(selected,allowSameAbove){
+    return owners.map(o=>'<option value="'+esc2(o)+'" '+(o===selected?'selected':'')+'>'+esc2(ownerOptionLabel(o))+'</option>').join('');
+  }
   function searchOwnerOptions(selected){
     const opts=['',...owners.filter(o=>o!=='')].filter((v,i,a)=>a.indexOf(v)===i);
     return opts.map(o=>'<option value="'+esc2(o)+'" '+(o===selected?'selected':'')+'>'+(o?esc2(o):'全部')+'</option>').join('');
@@ -6696,6 +6727,58 @@ function openCardPasteWindow(){
     const r={id:uid(),owner:'',bank,payDate,belongMonth,postDate:'',spendDate:'',item:'無帳單$0',amount:'0',note:'',saved:true,createdAt:new Date().toISOString()};
     records.push(r);saveRecords();selectedMonth=belongMonth;clearInputDefaults();saveDraft();setMsg('已新增 '+bankCell(r)+' 無帳單$0。',true);render();
   }
+  function resolveSameAboveFromDraft(i){
+    for(let j=i-1;j>=0;j--){
+      const owner=String((rows[j]&&rows[j].owner)||'').trim();
+      if(owner && owner!==SAME_OWNER_VALUE)return owner;
+    }
+    return '';
+  }
+  function resolveSameAboveFromElement(el){
+    const tr=el&&el.closest?el.closest('tr'):null;
+    let prev=tr?tr.previousElementSibling:null;
+    while(prev){
+      const sel=prev.querySelector('select[data-edit-k="owner"]');
+      const owner=sel?String(sel.value||'').trim():'';
+      if(owner && owner!==SAME_OWNER_VALUE)return owner;
+      prev=prev.previousElementSibling;
+    }
+    return '';
+  }
+  function sameAboveFallback(selectEl,msg){
+    if(selectEl)selectEl.value='';
+    w.alert(msg||'上面沒有可帶入的歸屬誰。');
+  }
+  function handleDraftEdit(el){
+    const i=Number(el.dataset.i), k=el.dataset.k;
+    let v=el.value;
+    if(k==='owner' && v===SAME_OWNER_VALUE){
+      const same=resolveSameAboveFromDraft(i);
+      if(!same){sameAboveFallback(el,'上面沒有已選的歸屬誰，無法套用同上。');return;}
+      v=same;
+    }
+    setVal(i,k,v);
+  }
+  function handleOverviewEdit(el){
+    const id=el.dataset.editRecord, k=el.dataset.editK;
+    let v=el.value;
+    if(k==='owner' && v===SAME_OWNER_VALUE){
+      const same=resolveSameAboveFromElement(el);
+      if(!same){sameAboveFallback(el,'上面沒有已選的歸屬誰，無法套用同上。');return;}
+      v=same;
+    }
+    editRecord(id,k,v);
+  }
+  function applySameOwnerDraft(i){
+    const same=resolveSameAboveFromDraft(i);
+    if(!same){w.alert('上面沒有已選的歸屬誰，無法套用同上。');return;}
+    setVal(i,'owner',same);
+  }
+  function applySameOwnerRecord(id,btn){
+    const same=resolveSameAboveFromElement(btn);
+    if(!same){w.alert('上面沒有已選的歸屬誰，無法套用同上。');return;}
+    editRecord(id,'owner',same);
+  }
   function setVal(i,k,v){if(!rows[i])return;rows[i][k]=v;rows[i].updatedAt=new Date().toISOString();if(k==='amount')rows[i][k]=String(v).replace(/[，,\s$]/g,'');if(k==='item')rows[i][k]=cleanCardPasteItemValue(rows[i][k],rows[i]);if(rows[i].saved)upsertRows([rows[i]]);else saveDraft();render();}
   function delRow(i){const r=rows[i];if(!r)return;rows.splice(i,1);if(r.saved){records=records.filter(x=>x.id!==r.id);saveRecords();}saveDraft();render();}
   function dupRow(i){const r=rows[i];if(!r)return;const copy=Object.assign({},r,{id:uid(),saved:false,createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()});rows.splice(i+1,0,copy);saveDraft();render();}
@@ -6919,7 +7002,7 @@ function openCardPasteWindow(){
     rows.forEach((r,i)=>{
       const miss=!isZeroBillRow(r)&&!String(r.owner||'').trim();
       html+='<tr>';
-      html+='<td><select class="'+(miss?'owner-missing':'')+'" data-i="'+i+'" data-k="owner">'+ownerSelectOptions(r.owner||'')+'</select></td>';
+      html+='<td><div class="owner-same-wrap"><select class="'+(miss?'owner-missing':'')+'" data-i="'+i+'" data-k="owner">'+ownerSelectOptions(r.owner||'',false)+'</select><button class="same-owner-btn" data-same-draft="'+i+'" title="同上" type="button">同</button></div></td>';
       html+='<td><span class="bankcell">'+esc2(bankCell(r))+'</span></td>';
       html+='<td><span class="readonly-date">'+esc2(fullCardDate(r.postDate,r.payDate))+'</span></td>';
       html+='<td><span class="readonly-date">'+esc2(fullCardDate(r.spendDate,r.payDate))+'</span></td>';
@@ -6931,7 +7014,8 @@ function openCardPasteWindow(){
     });
     html+='</tbody></table>';
     box.innerHTML=html;
-    box.querySelectorAll('[data-k]').forEach(el=>el.addEventListener('change',()=>setVal(Number(el.dataset.i),el.dataset.k,el.value)));
+    box.querySelectorAll('[data-k]').forEach(el=>el.addEventListener('change',()=>handleDraftEdit(el)));
+    box.querySelectorAll('[data-same-draft]').forEach(btn=>btn.addEventListener('click',()=>applySameOwnerDraft(Number(btn.dataset.sameDraft))));
     box.querySelectorAll('[data-dup]').forEach(btn=>btn.addEventListener('click',()=>dupRow(Number(btn.dataset.dup))));
     box.querySelectorAll('[data-del]').forEach(btn=>btn.addEventListener('click',()=>delRow(Number(btn.dataset.del))));
   }
@@ -6974,7 +7058,7 @@ function openCardPasteWindow(){
       const glist=groups[bank];
       const sum=glist.reduce((s,r)=>s+moneyNum(r.amount),0);
       const body=glist.map(r=>{
-        const ownerCell=isZeroBillRow(r)?'<span class="owner-dash">-</span>':'<select class="overview-edit '+(!String(r.owner||'').trim()?'owner-missing':'')+'" data-edit-record="'+esc2(r.id)+'" data-edit-k="owner">'+ownerSelectOptions(r.owner||'')+'</select>';
+        const ownerCell=isZeroBillRow(r)?'<span class="owner-dash">-</span>':'<div class="owner-same-wrap"><select class="overview-edit '+(!String(r.owner||'').trim()?'owner-missing':'')+'" data-edit-record="'+esc2(r.id)+'" data-edit-k="owner">'+ownerSelectOptions(r.owner||'',false)+'</select><button class="same-owner-btn" data-same-record="'+esc2(r.id)+'" title="同上" type="button">同</button></div>';
         return '<tr><td>'+ownerCell+'</td><td><span class="bankcell">'+esc2(bankCell(r))+'</span></td><td>'+esc2(fullCardDate(r.postDate,r.payDate))+'</td><td>'+esc2(fullCardDate(r.spendDate,r.payDate))+'</td><td><input class="overview-edit" data-edit-record="'+esc2(r.id)+'" data-edit-k="item" value="'+esc2(itemDisplay(r))+'"></td><td><input class="overview-edit money" data-edit-record="'+esc2(r.id)+'" data-edit-k="amount" value="'+esc2(fmt(moneyNum(r.amount)))+'"></td><td><input class="overview-edit" data-edit-record="'+esc2(r.id)+'" data-edit-k="note" value="'+esc2(r.note||'')+'" placeholder="可空白"></td><td><div class="row-actions"><button class="mini copy" data-dup-record="'+esc2(r.id)+'" type="button">複</button><button class="mini del" data-del-record="'+esc2(r.id)+'" type="button">刪</button></div></td></tr>';
       }).join('');
       const groupIds=glist.map(r=>r.id).join('|');
@@ -6988,7 +7072,8 @@ function openCardPasteWindow(){
     box.querySelectorAll('[data-claim-note]').forEach(inp=>inp.addEventListener('change',()=>setClaim(selectedMonth,inp.dataset.claimNote,'note',inp.value)));
     box.querySelectorAll('[data-copy-bank]').forEach(btn=>btn.addEventListener('click',()=>copyOverviewBank(btn.dataset.copyBank)));
     box.querySelectorAll('[data-del-bank-ids]').forEach(btn=>btn.addEventListener('click',()=>deleteRecordGroup(btn.dataset.delBankLabel,btn.dataset.delBankIds)));
-    box.querySelectorAll('[data-edit-record]').forEach(el=>el.addEventListener('change',()=>editRecord(el.dataset.editRecord,el.dataset.editK,el.value)));
+    box.querySelectorAll('[data-edit-record]').forEach(el=>el.addEventListener('change',()=>handleOverviewEdit(el)));
+    box.querySelectorAll('[data-same-record]').forEach(btn=>btn.addEventListener('click',()=>applySameOwnerRecord(btn.dataset.sameRecord,btn)));
     box.querySelectorAll('[data-dup-record]').forEach(btn=>btn.addEventListener('click',()=>duplicateRecord(btn.dataset.dupRecord)));
     box.querySelectorAll('[data-del-record]').forEach(btn=>btn.addEventListener('click',()=>deleteRecord(btn.dataset.delRecord)));
     const copyAll=doc.getElementById('copyAllBanksBtn');if(copyAll)copyAll.addEventListener('click',copyOverviewAll);
@@ -7041,7 +7126,7 @@ function safeWriteLocalJSON(key,val){
 let lastCardPasteRestoreCount=0;
 function buildCardPasteBackup(){
   return {
-    version:'V170',
+    version:'V172',
     exportedAt:new Date().toISOString(),
     records:safeReadLocalJSON('lihui_card_paste_records_v4',[]),
     legacyRecords:safeReadLocalJSON('lihui_card_paste_records_v3',[]),
