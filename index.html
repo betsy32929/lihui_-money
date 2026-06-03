@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>麗卉每月帳款｜V175 金額可連續編輯保留繳款日期</title>
+  <title>麗卉每月帳款｜V181 無帳單灰字可編輯日期警告即時消失</title>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
   <style>
@@ -692,6 +692,20 @@
       overflow:hidden!important;
       text-overflow:ellipsis!important;
     }
+
+
+    /* V181：每月帳款主表信用卡繳款日期提示（無帳單只用灰字 placeholder，可直接改輸入日期） */
+    .card-date-status{
+      margin-top:4px;
+      font-size:11px;
+      font-weight:950;
+      line-height:1.25;
+      white-space:nowrap;
+    }
+    .card-date-status.ok{color:#047857;}
+    .card-date-status.warn{color:#be123c;}
+    .card-date-nobill{color:#334155!important;background:#fff!important;font-weight:700!important;}
+    .card-date-nobill::placeholder{color:#94a3b8!important;opacity:1!important;font-weight:700!important;}
 
 
     /* V128：首頁提醒信用卡總欄修正、刷卡整理按鈕位置調整 */
@@ -3143,7 +3157,7 @@ function rescueInterruptedData(){
     localStorage.setItem(STORE,JSON.stringify(state));
   }
 }
-function load(){try{state=JSON.parse(localStorage.getItem(STORE)||'null')}catch(e){} if(!state){state={activeMonth:defaultMonth,activeTab:'home',activePhone:'0910-810-529',categoryMemory:{},months:{}}} rescueInterruptedData(); if(!state._meta)state._meta={localUpdatedAt:new Date().toISOString()}; if(state.activeTab==='notice'||!state.activeTab)state.activeTab='home'; state.activeTab='home'; ensureMonth();backupStateSnapshot('load');}
+function load(){try{state=JSON.parse(localStorage.getItem(STORE)||'null')}catch(e){} if(!state){state={activeMonth:defaultMonth,activeTab:'home',activePhone:'0910-810-529',categoryMemory:{},months:{}}} rescueInterruptedData(); if(!state._meta)state._meta={localUpdatedAt:new Date().toISOString()}; if(state.activeTab==='notice'||!state.activeTab)state.activeTab='home'; state.activeTab='home'; ensureMonth();migrateMainCardDateRules();backupStateSnapshot('load');}
 
 function normalizeMonth(input){let s=String(input||'').trim();let m=s.match(/^(\d{2,4})[-\/年]?(\d{1,2})/);if(!m)return null;let y=+m[1],mo=+m[2];if(mo<1||mo>12)return null;if(y<300)y+=1911;return `${y}-${String(mo).padStart(2,'0')}`}
 function rocMonthLabel(id){const [y,m]=String(id).split('-').map(Number);return `${y-1911}年${m}月`}
@@ -4819,7 +4833,97 @@ function renderSection(sec,secIdx){
   return `<div class="section"><div class="section-head"><div><h3>${esc(sec.title)}</h3></div><div class="section-tools">${cardTools}<button class="tinybtn" onclick="addPersonalItem(${secIdx})">＋新增項目</button></div></div>${extra}${sec.items.map((it,idx)=>it.isCard?renderCardRow(it,secIdx,idx):renderFixedRow(it,secIdx,idx)).join('')}</div>`
 }
 function renderFixedRow(it,secIdx,idx){const split=!isDadLivingItemLabel(it.label)&&!String(it.label||'').includes('高雄翠屏路大樓管理費')&&(it.label.includes('大社')||it.label.includes('爸爸')||it.label.includes('翠屏')||it.label.includes('長照'));const fixedAmt=getFixedDefaultAmount(it.label);return `<div class="fixed-row normalrow"><div><div class="tiny">項目${fixedAmt?`｜固定預設${fmt(fixedAmt,true)}`:''}</div><input class="labelcell" value="${esc(it.label)}" oninput="setItem(${secIdx},${idx},'label',this.value)"></div><div><div class="tiny">金額</div><input inputmode="numeric" class="amountinp" value="${esc(it.amount)}" oninput="this.value=moneyOnly(this.value);setItem(${secIdx},${idx},'amount',this.value)" placeholder="0"></div><div><div class="tiny">${esc(it.dateType)}</div><input value="${esc(it.date)}" onchange="this.value=normalizeDateInput(this);setItem(${secIdx},${idx},'date',this.value)" placeholder="115/5/8"></div><div><div class="tiny">備註</div><input value="${esc(it.note)}" oninput="setItem(${secIdx},${idx},'note',this.value)" placeholder="備註事項"></div><div>${split?`<div class="tiny">零用金</div><select onchange="setItem(${secIdx},${idx},'splitMode',this.value)"><option value="none" ${it.splitMode==='none'?'selected':''}>不扣</option><option value="2" ${it.splitMode==='2'?'selected':''}>/2</option><option value="3" ${it.splitMode==='3'?'selected':''}>/3</option><option value="dadLiving" ${it.splitMode==='dadLiving'?'selected':''}>爸生活費規則</option></select>`:'<div class="tiny">&nbsp;</div><div class="compact-empty"></div>'}</div><div><div class="tiny">&nbsp;</div><div class="row-actions"><button class="iconbtn keep" onclick="clearPersonalItemData(${secIdx},${idx})">清</button><button class="iconbtn del" onclick="deletePersonalItem(${secIdx},${idx})">刪</button></div></div></div>`}
-function renderCardRow(it,secIdx,idx){const sum=it.subItems.reduce((s,d)=>s+numSigned(d.amount),0);const hidden=it.noBill||it.detailsHidden;return `<div class="fixed-row cardrow"><div><div class="tiny">項目</div><input class="labelcell" value="${esc(it.label)}" oninput="setItem(${secIdx},${idx},'label',this.value)"></div><div><div class="tiny">小計</div><input class="amountinp ${sum<0?'signedNeg':''}" value="${sum?fmtSigned(sum,true):''}" readonly placeholder="-"></div><div><div class="tiny" title="${esc(it.dueInfo)}">${esc(it.dateType)}</div><input value="${esc(it.date)}" onchange="this.value=normalizeDateInput(this);setItem(${secIdx},${idx},'date',this.value)" placeholder="115/5/18" title="${esc(it.dueInfo)}"></div><div><div class="tiny">帳單</div><label class="checkline"><input type="checkbox" ${it.noBill?'checked':''} onchange="setItem(${secIdx},${idx},'noBill',this.checked);render()">無帳單</label></div><div><div class="tiny">備註</div><input value="${esc(it.note)}" oninput="setItem(${secIdx},${idx},'note',this.value)" placeholder="飲食1250+交通50"></div><div><div class="tiny">操作</div><div class="row-actions"><button class="iconbtn" onclick="addManualCardDetail(${secIdx},${idx})">＋明細</button>${it.noBill?'':`<button class="iconbtn edit" onclick="toggleCardDetails(${secIdx},${idx})">${hidden?'明細展開':'收起明細'}</button>`}<button class="iconbtn keep" onclick="clearPersonalItemData(${secIdx},${idx})">清</button><button class="iconbtn del" onclick="deletePersonalItem(${secIdx},${idx})">刪</button></div></div>${hidden?'':renderCardDetails(it,secIdx,idx)}</div>`}
+function extractRocDateFromMainCardText(raw){
+  const s=String(raw||'').trim();
+  if(!s)return '';
+  const direct=normalizeDate(s);
+  if(direct)return direct;
+  if(/尚未輸入|無帳單|免填/.test(s))return '';
+  const cleaned=s.replace(/[年月.\-]/g,'/').replace(/日/g,'').replace(/\/+/g,'/');
+  let m=cleaned.match(/(\d{2,4})\/(\d{1,2})\/(\d{1,2})/);
+  if(m){
+    const v=normalizeDate(`${m[1]}/${m[2]}/${m[3]}`);
+    if(v)return v;
+  }
+  m=cleaned.match(/(?:^|\D)(\d{1,2})\/(\d{1,2})(?:\D|$)/);
+  if(m){
+    const v=normalizeDate(`${m[1]}/${m[2]}`);
+    if(v)return v;
+  }
+  return '';
+}
+function cleanMainCardPayDateText(raw){
+  return extractRocDateFromMainCardText(raw);
+}
+function mainCardNoBillText(monthId){
+  return '無帳單，免填';
+}
+function mainCardDateStatus(it){
+  if((it&&it.noBill)||/無帳單/.test(String((it&&it.note)||'')))return {cls:'',text:''};
+  const d=cleanMainCardPayDateText(it&&it.date);
+  if(d)return {cls:'',text:''};
+  return {cls:'warn',text:'⚠ 尚未輸入繳款日期'};
+}
+function mainCardPayDateLive(el){
+  const status=el&&el.parentElement?el.parentElement.querySelector('.card-date-status'):null;
+  if(status)status.style.display=String(el.value||'').trim()?'none':'';
+}
+function setMainCardPayDate(secIdx,idx,el){
+  const it=getMonth().personal.sections[secIdx].items[idx];
+  const normalized=normalizeDateInput(el);
+  const clean=cleanMainCardPayDateText(normalized);
+  el.value=clean;
+  it.date=clean;
+  if(clean){
+    it.noBill=false;
+  }
+  save();
+  render();
+}
+function migrateMainCardDateRules(){
+  let changed=false;
+  Object.entries((state&&state.months)||{}).forEach(([mid,m])=>{
+    (((m.personal||{}).sections)||[]).forEach(sec=>{
+      if(!String(sec.title||'').includes('信用卡'))return;
+      (sec.items||[]).forEach(it=>{
+        if(!it||!it.isCard)return;
+        const raw=String(it.date||'').trim();
+        const clean=cleanMainCardPayDateText(raw);
+        if(raw && clean!==raw){it.date=clean;changed=true;}
+        if(it.noBill && /無帳單|免填/.test(String(it.date||''))){it.date='';changed=true;}
+        if(it.noBill && clean){it.noBill=false;changed=true;}
+        if((it.noBill||/無帳單/.test(String(it.note||''))) && !String(it.note||'').trim()){it.note=rocMonthLabel(mid)+'無帳單$0';changed=true;}
+      });
+    });
+  });
+  if(changed){
+    if(!state._meta)state._meta={};
+    state._meta.localUpdatedAt=new Date().toISOString();
+    localStorage.setItem(STORE,JSON.stringify(state));
+  }
+}
+function setCardNoBill(secIdx,idx,checked){
+  const it=getMonth().personal.sections[secIdx].items[idx];
+  it.noBill=!!checked;
+  if(it.noBill){
+    it.detailsHidden=true;
+    it.date='';
+    if(!String(it.note||'').trim())it.note=rocMonthLabel(state.activeMonth)+'無帳單$0';
+  }
+  save();
+  render();
+}
+function renderCardRow(it,secIdx,idx){
+  const sum=it.subItems.reduce((s,d)=>s+numSigned(d.amount),0);
+  const hidden=it.noBill||it.detailsHidden;
+  const cleanDate=cleanMainCardPayDateText(it.date);
+  if(String(it.date||'').trim()&&cleanDate!==String(it.date||'').trim()){it.date=cleanDate;}
+  const status=mainCardDateStatus(it);
+  const dateBoxValue=cleanDate;
+  const datePlaceholder=it.noBill?mainCardNoBillText(state.activeMonth):'';
+  const dateStatusHtml=status.text?`<div class="card-date-status ${status.cls}">${esc(status.text)}</div>`:'';
+  return `<div class="fixed-row cardrow"><div><div class="tiny">項目</div><input class="labelcell" value="${esc(it.label)}" oninput="setItem(${secIdx},${idx},'label',this.value)"></div><div><div class="tiny">小計</div><input class="amountinp ${sum<0?'signedNeg':''}" value="${sum?fmtSigned(sum,true):''}" readonly placeholder="-"></div><div><div class="tiny" title="${esc(it.dueInfo)}">${esc(it.dateType)}</div><input class="${it.noBill?'card-date-nobill':''}" value="${esc(dateBoxValue)}" placeholder="${esc(datePlaceholder)}" oninput="mainCardPayDateLive(this)" onchange="setMainCardPayDate(${secIdx},${idx},this)" title="${esc(it.dueInfo)}">${dateStatusHtml}</div><div><div class="tiny">帳單</div><label class="checkline"><input type="checkbox" ${it.noBill?'checked':''} onchange="setCardNoBill(${secIdx},${idx},this.checked)">無帳單</label></div><div><div class="tiny">備註</div><input value="${esc(it.note)}" oninput="setItem(${secIdx},${idx},'note',this.value)" placeholder="飲食1250+交通50"></div><div><div class="tiny">操作</div><div class="row-actions"><button class="iconbtn" onclick="addManualCardDetail(${secIdx},${idx})">＋明細</button>${it.noBill?'':`<button class="iconbtn edit" onclick="toggleCardDetails(${secIdx},${idx})">${hidden?'明細展開':'收起明細'}</button>`}<button class="iconbtn keep" onclick="clearPersonalItemData(${secIdx},${idx})">清</button><button class="iconbtn del" onclick="deletePersonalItem(${secIdx},${idx})">刪</button></div></div>${hidden?'':renderCardDetails(it,secIdx,idx)}</div>`
+}
 function renderCardDetails(it,secIdx,idx){if(!it.subItems.length)return `<div class="details"><div class="empty">尚無信用卡明細</div></div>`;return `<div class="details"><div class="detail-head"><div>消費日</div><div>入帳日</div><div>說明</div><div>分類</div><div>金額</div><div>備註</div><div></div></div>${it.subItems.map((d,di)=>`<div class="detail-row"><input value="${esc(d.date1)}" onchange="this.value=normalizeDateInput(this);setCardDetail(${secIdx},${idx},${di},'date1',this.value)"><input value="${esc(d.date2)}" onchange="this.value=normalizeDateInput(this);setCardDetail(${secIdx},${idx},${di},'date2',this.value)"><input value="${esc(d.desc)}" oninput="setCardDetail(${secIdx},${idx},${di},'desc',this.value)"><input value="${esc(d.category)}" oninput="setCardDetail(${secIdx},${idx},${di},'category',this.value)"><input inputmode="numeric" class="num ${numSigned(d.amount)<0?'signedNeg':''}" value="${esc(d.amount)}" oninput="this.value=signedMoney(this.value);setCardDetail(${secIdx},${idx},${di},'amount',this.value)"><input value="${esc(d.note)}" oninput="setCardDetail(${secIdx},${idx},${di},'note',this.value)"><button class="iconbtn del" onclick="delCardDetail(${secIdx},${idx},${di})">刪</button></div>`).join('')}</div>`}
 function savePersonalTemplate(){
   const sections=getMonth().personal.sections.map(sec=>({title:sec.title,tone:sec.tone,items:sec.items.map(it=>({label:it.label,dateType:it.dateType,type:it.type,isCard:!!it.isCard,dueInfo:it.dueInfo||'',splitMode:it.splitMode||'none'}))}));
@@ -6087,16 +6191,57 @@ function cardPasteFullRocDate(shortDate,payDate){
   if(m>pm && pm<=2)y-=1;
   return `${y}/${m}/${day}`;
 }
+
+function isCardPasteNoBillImportRow(r){
+  return numSigned(r&&r.amount)===0 && /無帳單/.test(String((r&&r.item)||''));
+}
+function findCardItemByPasteBank(bank){
+  const label=cardPasteBankToItemLabel(bank);
+  const cards=cardItems();
+  return cards.find(c=>String(c.label||'').trim()===label)
+    || cards.find(c=>String(c.label||'').includes(bank)||String(label||'').includes(String(c.label||'')))
+    || cards.find(c=>String(c.label||'').trim()==='未分類信用卡')
+    || cards[0]
+    || null;
+}
+function applyImportedNoBillRows(noBillRows,targetId){
+  const monthText=rocMonthLabel(targetId);
+  const noteText=monthText+'無帳單$0';
+  let count=0;
+  (noBillRows||[]).forEach(r=>{
+    const it=findCardItemByPasteBank(String(r&&r.bank||''));
+    if(!it)return;
+    const keepDate=it.date;
+    const keepDateType=it.dateType;
+    it.noBill=true;
+    it.subItems=[];
+    it.amount='';
+    it.note=noteText;
+    it._autoNote='';
+    it.detailsHidden=true;
+    // 保留原本主表已輸入的信用卡繳款日期；只有原本空白且總欄有日期時才帶入。
+    it.date=keepDate || String(r&&r.payDate||'');
+    it.dateType=keepDateType || it.dateType;
+    count++;
+  });
+  return count;
+}
 function importLihuiCardRowsFromPaste(cardRows,targetMonthRaw){
   try{
-    const rows=(cardRows||[]).filter(r=>String(r.owner||'').trim()==='麗卉' && numSigned(r.amount));
-    if(!rows.length)return {ok:false,msg:'沒有可帶入的麗卉刷卡資料'};
-    const targetId=normalizeMonth(targetMonthRaw || rows[0].belongMonth || state.activeMonth);
+    const sourceRows=(cardRows||[]).filter(r=>{
+      const owner=String(r.owner||'').trim();
+      return (owner==='麗卉' && numSigned(r.amount)) || isCardPasteNoBillImportRow(r);
+    });
+    if(!sourceRows.length)return {ok:false,msg:'沒有可帶入的麗卉刷卡資料'};
+    const targetId=normalizeMonth(targetMonthRaw || sourceRows[0].belongMonth || state.activeMonth);
     if(!targetId)return {ok:false,msg:'歸屬年月格式錯誤'};
     if(!state.months[targetId])state.months[targetId]=makeMonth();
     state.activeMonth=targetId;
     state.activeTab='personal';
     ensureMonth();
+    const noBillRows=sourceRows.filter(isCardPasteNoBillImportRow);
+    const rows=sourceRows.filter(r=>!isCardPasteNoBillImportRow(r) && String(r.owner||'').trim()==='麗卉' && numSigned(r.amount));
+    const noBillCount=applyImportedNoBillRows(noBillRows,targetId);
     tempCardPreview=rows.map(r=>({
       card:cardPasteBankToItemLabel(r.bank),
       date1:cardPasteFullRocDate(r.spendDate,r.payDate),
@@ -6110,7 +6255,7 @@ function importLihuiCardRowsFromPaste(cardRows,targetMonthRaw){
     render();
     renderCardPreview();
     const total=tempCardPreview.reduce((s,r)=>s+numSigned(r.amount),0);
-    return {ok:true,count:tempCardPreview.length,total,preview:true};
+    return {ok:true,count:tempCardPreview.length,total,preview:!!tempCardPreview.length,noBillCount};
   }catch(err){
     return {ok:false,msg:err&&err.message?err.message:String(err)};
   }
@@ -6123,10 +6268,15 @@ function importCurrentMonthCardPasteRecords(){
     const all=raw?JSON.parse(raw):[];
     if(!Array.isArray(all)||!all.length)return alert('信用卡刷卡紀錄總欄目前沒有資料。');
     const target=normalizeMonth(state.activeMonth);
-    const list=all.filter(r=>String(r.owner||'').trim()==='麗卉' && normalizeMonth(r.belongMonth||'')===target && numSigned(r.amount));
-    if(!list.length)return alert('本月沒有歸屬「麗卉」的刷卡資料可帶入。');
+    const list=all.filter(r=>normalizeMonth(r.belongMonth||'')===target && ((String(r.owner||'').trim()==='麗卉' && numSigned(r.amount)) || isCardPasteNoBillImportRow(r)));
+    if(!list.length)return alert('本月沒有歸屬「麗卉」的刷卡資料或無帳單資料可帶入。');
     const res=importLihuiCardRowsFromPaste(list,target);
-    if(res&&res.ok)alert('已帶入本月信用卡預覽：'+res.count+' 筆，合計 '+fmtSigned(res.total,true));
+    if(res&&res.ok){
+      const parts=[];
+      if(res.count)parts.push('預覽 '+res.count+' 筆，合計 '+fmtSigned(res.total,true));
+      if(res.noBillCount)parts.push('無帳單 '+res.noBillCount+' 張已勾選並寫入備註');
+      alert('已帶入本月信用卡：'+(parts.length?parts.join('；'):'0 筆'));
+    }
     else alert((res&&res.msg)||'帶入失敗');
   }catch(err){
     alert('帶入失敗：'+(err&&err.message?err.message:err));
