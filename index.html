@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>麗卉每月帳款｜V174 確認新增放在分類下方</title>
+  <title>麗卉每月帳款｜V175 金額可連續編輯保留繳款日期</title>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
   <style>
@@ -4922,8 +4922,35 @@ function refreshCardPreview(){
   renderCardPreview();
 }
 function autoFillCardPreviewCategories(){if(!tempCardPreview.length)return alert('目前沒有預覽資料');tempCardPreview.forEach(r=>{r.category=inferCategory(r.desc||'')});renderCardPreview()}
-function renderCardPreview(){const box=document.getElementById('cardPreviewBox');if(!box)return;if(!tempCardPreview.length){box.innerHTML='';return}const byCard={},byCat={};tempCardPreview.forEach(r=>{byCard[r.card]=(byCard[r.card]||0)+numSigned(r.amount);byCat[r.category]=(byCat[r.category]||0)+numSigned(r.amount)});box.innerHTML=`<div class="preview-wrap"><div class="preview-top"><b>預覽 ${tempCardPreview.length} 筆，確認後才會新增</b><span class="tag out preview-total">總計 ${fmtSigned(tempCardPreview.reduce((s,r)=>s+numSigned(r.amount),0),true)}</span></div><div class="preview-grid"><div class="mini-summary"><h5>信用卡小計</h5>${Object.entries(byCard).map(([k,v])=>`<div><span>${esc(k)}</span><b>${fmtSigned(v,true)}</b></div>`).join('')}</div><div class="mini-summary"><h5>消費分類小計</h5>${Object.entries(byCat).map(([k,v])=>`<div><span>${esc(k)}</span><b>${fmtSigned(v,true)}</b></div>`).join('')}</div></div><div class="card-preview-confirm-row"><button class="softbtn rose danger-outline" onclick="confirmCardPreview()">確認新增</button></div><table class="preview-table"><thead><tr><th style="width:150px">信用卡</th><th style="width:90px">消費日</th><th style="width:90px">入帳日</th><th>說明</th><th style="width:140px">分類</th><th style="width:90px">金額</th><th style="width:44px"></th></tr></thead><tbody>${tempCardPreview.map((r,i)=>`<tr><td><select onchange="tempCardPreview[${i}].card=this.value;renderCardPreview()">${CARD_NAMES.map(n=>`<option ${n===r.card?'selected':''}>${esc(n)}</option>`).join('')}</select></td><td><input value="${esc(r.date1)}" onchange="tempCardPreview[${i}].date1=normalizeDateInput(this);renderCardPreview()"></td><td><input value="${esc(r.date2)}" onchange="tempCardPreview[${i}].date2=normalizeDateInput(this);renderCardPreview()"></td><td><input value="${esc(r.desc)}" oninput="tempCardPreview[${i}].desc=this.value"></td><td><input value="${esc(r.category)}" oninput="tempCardPreview[${i}].category=this.value;state.categoryMemory[normKey(tempCardPreview[${i}].desc)]=this.value;save()"></td><td><input class="money" inputmode="numeric" value="${esc(r.amount)}" oninput="this.value=signedMoney(this.value);tempCardPreview[${i}].amount=this.value;renderCardPreview()"></td><td><button class="iconbtn del" onclick="tempCardPreview.splice(${i},1);renderCardPreview()">刪</button></td></tr>`).join('')}</tbody></table></div>`}
-function confirmCardPreview(){if(!tempCardPreview.length)return alert('尚未產生預覽');const cards=cardItems();const touched=new Set();tempCardPreview.forEach(r=>{let it=cards.find(c=>c.label===r.card);if(!it){it=cards.find(c=>c.label==='未分類信用卡')||cards[0]}it.subItems.push({date1:r.date1,date2:r.date2,desc:r.desc,category:r.category,amount:r.amount,note:r.note||''});it.detailsHidden=true;touched.add(it.id);if(r.desc&&r.category)state.categoryMemory[normKey(r.desc)]=r.category});cards.forEach(it=>{if(touched.has(it.id))updateCardNoteFromDetails(it,true)});tempCardPreview=[];save();render();alert('已新增到信用卡明細，分類小計已寫入備註欄')}
+function renderCardPreview(){const box=document.getElementById('cardPreviewBox');if(!box)return;if(!tempCardPreview.length){box.innerHTML='';return}const byCard={},byCat={};tempCardPreview.forEach(r=>{byCard[r.card]=(byCard[r.card]||0)+numSigned(r.amount);byCat[r.category]=(byCat[r.category]||0)+numSigned(r.amount)});box.innerHTML=`<div class="preview-wrap"><div class="preview-top"><b>預覽 ${tempCardPreview.length} 筆，確認後才會新增</b><span class="tag out preview-total">總計 ${fmtSigned(tempCardPreview.reduce((s,r)=>s+numSigned(r.amount),0),true)}</span></div><div class="preview-grid"><div class="mini-summary"><h5>信用卡小計</h5>${Object.entries(byCard).map(([k,v])=>`<div><span>${esc(k)}</span><b>${fmtSigned(v,true)}</b></div>`).join('')}</div><div class="mini-summary"><h5>消費分類小計</h5>${Object.entries(byCat).map(([k,v])=>`<div><span>${esc(k)}</span><b>${fmtSigned(v,true)}</b></div>`).join('')}</div></div><div class="card-preview-confirm-row"><button class="softbtn rose danger-outline" onclick="confirmCardPreview()">確認新增</button></div><table class="preview-table"><thead><tr><th style="width:150px">信用卡</th><th style="width:90px">消費日</th><th style="width:90px">入帳日</th><th>說明</th><th style="width:140px">分類</th><th style="width:90px">金額</th><th style="width:44px"></th></tr></thead><tbody>${tempCardPreview.map((r,i)=>`<tr><td><select onchange="tempCardPreview[${i}].card=this.value;renderCardPreview()">${CARD_NAMES.map(n=>`<option ${n===r.card?'selected':''}>${esc(n)}</option>`).join('')}</select></td><td><input value="${esc(r.date1)}" onchange="tempCardPreview[${i}].date1=normalizeDateInput(this);renderCardPreview()"></td><td><input value="${esc(r.date2)}" onchange="tempCardPreview[${i}].date2=normalizeDateInput(this);renderCardPreview()"></td><td><input value="${esc(r.desc)}" oninput="tempCardPreview[${i}].desc=this.value"></td><td><input value="${esc(r.category)}" oninput="tempCardPreview[${i}].category=this.value;state.categoryMemory[normKey(tempCardPreview[${i}].desc)]=this.value;save()"></td><td><input class="money" inputmode="numeric" value="${esc(r.amount)}" oninput="this.value=signedMoney(this.value);tempCardPreview[${i}].amount=this.value" onchange="renderCardPreview()" onblur="renderCardPreview()"></td><td><button class="iconbtn del" onclick="tempCardPreview.splice(${i},1);renderCardPreview()">刪</button></td></tr>`).join('')}</tbody></table></div>`}
+function confirmCardPreview(){
+  if(!tempCardPreview.length)return alert('尚未產生預覽');
+  const cards=cardItems();
+  const touched=new Set();
+  const keepCardMeta=new Map();
+  tempCardPreview.forEach(r=>{
+    let it=cards.find(c=>c.label===r.card);
+    if(!it){it=cards.find(c=>c.label==='未分類信用卡')||cards[0]}
+    if(!it)return;
+    if(!keepCardMeta.has(it.id))keepCardMeta.set(it.id,{date:it.date,noBill:it.noBill,dateType:it.dateType});
+    it.subItems.push({date1:r.date1,date2:r.date2,desc:r.desc,category:r.category,amount:r.amount,note:r.note||''});
+    it.detailsHidden=true;
+    touched.add(it.id);
+    if(r.desc&&r.category)state.categoryMemory[normKey(r.desc)]=r.category;
+  });
+  cards.forEach(it=>{
+    if(touched.has(it.id)){
+      const keep=keepCardMeta.get(it.id);
+      updateCardNoteFromDetails(it,true);
+      // 防呆：確認新增只新增明細與分類備註，不覆蓋原本信用卡繳款日期/無帳單狀態。
+      if(keep){it.date=keep.date;it.noBill=keep.noBill;it.dateType=keep.dateType;}
+    }
+  });
+  tempCardPreview=[];
+  save();
+  render();
+  alert('已新增到信用卡明細，分類小計已寫入備註欄；原本信用卡繳款日期已保留')
+}
 function addTxAs(kind,type){
   const id=kind==='postOffice'?'post':'bank';
   const dateEl=document.getElementById(id+'_date');
