@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>麗卉每月帳款｜V181 無帳單灰字可編輯日期警告即時消失</title>
+  <title>麗卉每月帳款｜V183 首頁信用卡提醒只看備註</title>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
   <style>
@@ -4168,7 +4168,12 @@ function getLaiyaManagementMissingMonths(){
   return monthsBetweenIds(start,cur).filter(id=>!paid.has(id));
 }
 function hasAnyText(v){return String(v??'').trim()!==''}
-function personalMonthHasInput(monthId){const m=(state.months||{})[monthId];if(!m)return false;if(m.notice&&m.notice.done)return true;return (((m.personal||{}).sections||[]).some(sec=>(sec.items||[]).some(it=>it.isCard?!!(it.noBill||hasAnyText(it.date)||hasAnyText(it.note)||(it.subItems||[]).length):!!(hasAnyText(it.amount)||hasAnyText(it.date)||hasAnyText(it.note)))));}
+function cardHomeReminderHasInput(it){
+  if(!it)return false;
+  // V183：首頁提醒的信用卡項目只看備註欄；備註沒文字就提醒，不看繳款日期/小計/無帳單勾選。
+  return hasAnyText(it.note);
+}
+function personalMonthHasInput(monthId){const m=(state.months||{})[monthId];if(!m)return false;if(m.notice&&m.notice.done)return true;return (((m.personal||{}).sections||[]).some(sec=>(sec.items||[]).some(it=>it.isCard?cardHomeReminderHasInput(it):!!(hasAnyText(it.amount)||hasAnyText(it.date)||hasAnyText(it.note)))));}
 function textHasAny(text,keys){const t=String(text||'').toLowerCase();return (keys||[]).some(k=>t.includes(String(k||'').toLowerCase()));}
 function ledgerTxText(t){return [t.item,t.note].filter(Boolean).join('｜')}
 function hasLedgerMonth(kind,monthId,type,keys){const txs=(getGlobalData()[kind]?.txs)||[];return txs.some(t=>t&&t.type===type&&num(t.amount)>0&&dateParts(t.date)?.monthId===monthId&&textHasAny(ledgerTxText(t),keys));}
@@ -4210,14 +4215,16 @@ function personalItemHasInput(monthId,rule){
   const it=(sec&&sec.items||[]).find(item=>rule.match(String(item.label||''),item));
   if(!it)return false;
   if(it.isCard){
-    return !!(it.noBill||(it.subItems||[]).length||num(it.amount)>0);
+    // V183：信用卡首頁提醒只看備註欄，備註空白就算缺。
+    return cardHomeReminderHasInput(it);
   }
   return !!(hasAnyText(it.amount)||hasAnyText(it.date)||hasAnyText(it.note));
 }
 function personalHomeItemHasInput(it){
   if(!it)return false;
   if(it.isCard){
-    return !!(it.noBill||(it.subItems||[]).length||num(it.amount)>0);
+    // V183：帶入本月信用卡後小計為列表自動計算，首頁提醒只看備註欄。
+    return cardHomeReminderHasInput(it);
   }
   return !!(hasAnyText(it.amount)||hasAnyText(it.date)||hasAnyText(it.note));
 }
@@ -4253,18 +4260,24 @@ function getCardPasteClaimsForHome(){const obj=readCardPasteJson('lihui_card_pas
 function getCardPasteMonthFromRecord(r){return normalizeMonth((r&&r.belongMonth)||'')}
 function cardPasteOwnerTotalForHome(records,monthId,owner){return records.filter(r=>getCardPasteMonthFromRecord(r)===monthId&&String(r.owner||'')===owner).reduce((s,r)=>s+num(r.amount),0)}
 function cardPasteClaimDoneForHome(claims,monthId,owner){const roc=monthIdToRocShort(monthId);const c=claims&&claims[roc]&&claims[roc][owner];return !!(c&&String(c.date||'').trim())}
+function cardPasteClaimMonthAllowedForHome(monthId){
+  const cur=currentReminderMonthId();
+  const p=parseMonthId(monthId), cp=parseMonthId(cur);
+  if(!p||!cp)return !!monthId;
+  // V184：請款提醒不能只看本月/上月；所有已存入刷卡總欄、且不屬於未來月份的未請款月份都要提醒。
+  return String(monthId)<=String(cur);
+}
 function buildCardPasteHomeRows(){
   const records=getCardPasteRecordsForHome();
   const claims=getCardPasteClaimsForHome();
-  const dueMonths=new Set(reminderMonthsNoDue());
-  const checkMonths=[...new Set(records.map(r=>getCardPasteMonthFromRecord(r)).filter(id=>id&&dueMonths.has(id)))].sort();
+  const checkMonths=[...new Set(records.map(r=>getCardPasteMonthFromRecord(r)).filter(id=>id&&cardPasteClaimMonthAllowedForHome(id)))].sort();
   const rows=[];
-  [['志偉','跟志偉請款'],['小孩','小孩款項']].forEach(([owner,label])=>{
+  [['志偉','跟志偉請款'],['小孩','跟小孩請款']].forEach(([owner,label])=>{
     const miss=checkMonths.filter(id=>{
       const hasTotal=cardPasteOwnerTotalForHome(records,id,owner)>0;
       return hasTotal&&!cardPasteClaimDoneForHome(claims,id,owner);
     });
-    if(miss.length)rows.push({name:label,type:'請款',missing:miss,ruleText:'尚未填請款日期'});
+    if(miss.length)rows.push({name:label,type:'請款',missing:miss,ruleText:'有刷卡紀錄但尚未填請款日期'});
   });
   return rows;
 }
