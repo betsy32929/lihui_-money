@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>麗卉每月帳款｜V188 歸屬小計請款設定＋另開視窗同步狀態</title>
+  <title>麗卉每月帳款｜V189 歸屬小計請款設定＋另開視窗同步狀態</title>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
   <style>
@@ -7316,7 +7316,7 @@ function openCardPasteWindow(){
     const ownerCards=ownersForTotal.map(o=>{
       if(o==='志偉'||o==='小孩'){
         const b=ownerClaimBreakdown(allList,o);
-        return '<div class="owner-total claim-owner-total"><button class="owner-total-btn" type="button" data-owner-detail="'+esc2(o)+'"><span class="top"><b>'+esc2(o)+'</b><span>'+fmt(b.total)+'</span></span><em>要請款 '+fmt(b.needTotal)+'｜不請款 '+fmt(b.skipTotal)+'</em></button></div>';
+        return '<div class="owner-total claim-owner-total"><button class="owner-total-btn" type="button" data-owner-detail="'+esc2(o)+'"><span class="top"><b>'+esc2(o)+'</b><span>'+fmt(b.total)+'</span></span></button></div>';
       }
       return '<div class="owner-total"><b>'+esc2(o)+'</b><span>'+fmt(ownerTotal(allList,o))+'</span></div>';
     }).join('');
@@ -7408,7 +7408,7 @@ function safeWriteLocalJSON(key,val){
 let lastCardPasteRestoreCount=0;
 function buildCardPasteBackup(){
   return {
-    version:'V188',
+    version:'V189',
     exportedAt:new Date().toISOString(),
     records:safeReadLocalJSON('lihui_card_paste_records_v4',[]),
     legacyRecords:safeReadLocalJSON('lihui_card_paste_records_v3',[]),
