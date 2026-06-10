@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>麗卉每月帳款｜V186 另開視窗雲端同步狀態</title>
+  <title>麗卉每月帳款｜V187 另開視窗讀取保護</title>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
   <style>
@@ -3156,10 +3156,11 @@ function rescueInterruptedData(){
     state=JSON.parse(JSON.stringify(best.payload));
     if(!state._meta)state._meta={};
     state._meta.localUpdatedAt=new Date().toISOString();
+    if(typeof backupCardPasteSnapshot==='function')backupCardPasteSnapshot('notify-card-changed');
     localStorage.setItem(STORE,JSON.stringify(state));
   }
 }
-function load(){try{state=JSON.parse(localStorage.getItem(STORE)||'null')}catch(e){} if(!state){state={activeMonth:defaultMonth,activeTab:'home',activePhone:'0910-810-529',categoryMemory:{},months:{}}} rescueInterruptedData(); if(!state._meta)state._meta={localUpdatedAt:new Date().toISOString()}; if(state.activeTab==='notice'||!state.activeTab)state.activeTab='home'; state.activeTab='home'; ensureMonth();migrateMainCardDateRules();backupStateSnapshot('load');}
+function load(){try{state=JSON.parse(localStorage.getItem(STORE)||'null')}catch(e){} if(!state){state={activeMonth:defaultMonth,activeTab:'home',activePhone:'0910-810-529',categoryMemory:{},months:{}}} try{restoreCardPasteBackup(state);state=stripCardPasteBackupFields(state);recoverCardPasteRecordsIfEmpty('load');}catch(e){} rescueInterruptedData(); if(!state._meta)state._meta={localUpdatedAt:new Date().toISOString()}; if(state.activeTab==='notice'||!state.activeTab)state.activeTab='home'; state.activeTab='home'; ensureMonth();migrateMainCardDateRules();backupStateSnapshot('load');}
 
 function normalizeMonth(input){let s=String(input||'').trim();let m=s.match(/^(\d{2,4})[-\/年]?(\d{1,2})/);if(!m)return null;let y=+m[1],mo=+m[2];if(mo<1||mo>12)return null;if(y<300)y+=1911;return `${y}-${String(mo).padStart(2,'0')}`}
 function rocMonthLabel(id){const [y,m]=String(id).split('-').map(Number);return `${y-1911}年${m}月`}
@@ -4920,6 +4921,7 @@ function migrateMainCardDateRules(){
   if(changed){
     if(!state._meta)state._meta={};
     state._meta.localUpdatedAt=new Date().toISOString();
+    if(typeof backupCardPasteSnapshot==='function')backupCardPasteSnapshot('notify-card-changed');
     localStorage.setItem(STORE,JSON.stringify(state));
   }
 }
@@ -6334,6 +6336,7 @@ function notifyCardPasteChanged(){
   try{
     if(!state._meta)state._meta={};
     state._meta.localUpdatedAt=new Date().toISOString();
+    if(typeof backupCardPasteSnapshot==='function')backupCardPasteSnapshot('notify-card-changed');
     localStorage.setItem(STORE,JSON.stringify(state));
     renderTabsOnly();
     if(supaConnected&&supaClient){
@@ -6583,6 +6586,7 @@ function openCardPasteWindow(){
           <div class="search-actions">
             <button id="runSearchBtn" class="btn main" type="button">搜尋</button>
             <button id="clearSearchBtn" class="btn gray" type="button">清除</button>
+            <button id="reloadCardStoreBtn" class="btn amber" type="button">重新讀取總欄</button>
             <button id="copyFilteredBtn" class="btn blue" type="button">複製篩選結果</button>
           </div>
         </div>
@@ -6629,8 +6633,8 @@ function openCardPasteWindow(){
   function todayRocDate(){const d=new Date();return (d.getFullYear()-1911)+'/'+(d.getMonth()+1)+'/'+d.getDate();}
   function currentRocMonth(){const d=new Date();return (d.getFullYear()-1911)+'/'+(d.getMonth()+1);}
   function readJson(key,def){try{const raw=w.localStorage.getItem(key);return raw?JSON.parse(raw):def}catch(e){return def}}
-  function writeJson(key,val){w.localStorage.setItem(key,JSON.stringify(val));notifyCardPasteChanged();}
-  function removeJson(key){try{w.localStorage.removeItem(key);notifyCardPasteChanged()}catch(e){}}
+  function writeJson(key,val){try{if(key===STORE_KEY&&typeof backupCardPasteSnapshot==='function')backupCardPasteSnapshot('before-card-write');}catch(e){} w.localStorage.setItem(key,JSON.stringify(val));try{if(key===STORE_KEY&&typeof backupCardPasteSnapshot==='function')backupCardPasteSnapshot('after-card-write');}catch(e){} notifyCardPasteChanged();}
+  function removeJson(key){try{if(key===STORE_KEY&&typeof backupCardPasteSnapshot==='function')backupCardPasteSnapshot('before-card-remove');w.localStorage.removeItem(key);notifyCardPasteChanged()}catch(e){}}
   function normalizeOwnerList(list){
     const merged=[...defaultOwnerOptions,...(Array.isArray(list)?list:[])].map(v=>String(v||'').trim()).filter((v,i,a)=>i===a.indexOf(v));
     return merged.filter(v=>v===''||v==='-'||v);
@@ -6888,6 +6892,18 @@ function openCardPasteWindow(){
       if(draftChanged)writeJson(DRAFT_KEY,Object.assign({},draft,{rows}));
     }
   }
+  function reloadCardStoresFromParent(reason){
+    try{
+      if(typeof recoverCardPasteRecordsIfEmpty==='function')recoverCardPasteRecordsIfEmpty('reload-window');
+      loadStores();
+      renderOwnerManager();
+      render();
+      updatePayDateLookup();
+      setMsg((reason||'已重新讀取刷卡紀錄總欄')+'：'+records.length+' 筆',true);
+      refreshCardPasteCloudStatus('已重新讀取本機/雲端還原後的刷卡紀錄');
+    }catch(e){setMsg('重新讀取失敗：'+(e&&e.message?e.message:e),false);}
+  }
+  w.__reloadCardPasteStores=reloadCardStoresFromParent;
   function upsertRows(list){
     const map=new Map(records.map((r,i)=>[r.id,i]));
     list.forEach(r=>{const obj=Object.assign({},r,{saved:true});if(map.has(obj.id))records[map.get(obj.id)]=obj;else records.push(obj);r.saved=true;});
@@ -7281,7 +7297,7 @@ function openCardPasteWindow(){
     const box=doc.getElementById('monthOverview');
     const monthSet=new Set(records.map(r=>normalizeRocMonthValue(r.belongMonth||'').value).filter(Boolean));
     const months=[...monthSet].sort(compareMonthDesc);
-    if(!months.length){selectedMonth='';box.innerHTML='<div class="empty">尚未存入信用卡刷卡紀錄總欄。</div>';return;}
+    if(!months.length){selectedMonth='';box.innerHTML='<div class="empty">尚未讀到信用卡刷卡紀錄總欄。請先按「重新讀取總欄」；如果仍沒有，請確認主畫面雲端已連線。</div>';return;}
     if(!selectedMonth || !months.includes(selectedMonth))selectedMonth=months[0];
     const allList=monthRecords(selectedMonth);
     const searchScope=searchVal('searchScope')||'all';
@@ -7372,6 +7388,8 @@ function openCardPasteWindow(){
   const copyFilteredBtn=doc.getElementById('copyFilteredBtn');if(copyFilteredBtn)copyFilteredBtn.addEventListener('click',copyOverviewFiltered);
   const clearSearchBtn=doc.getElementById('clearSearchBtn');
   if(clearSearchBtn)clearSearchBtn.addEventListener('click',()=>{['searchOwner','searchClaim','searchBank','searchDate','searchItem','searchAmount','searchNote'].forEach(id=>{const el=doc.getElementById(id);if(el)el.value='';});const scope=doc.getElementById('searchScope');if(scope)scope.value='all';renderOverview();});
+  const reloadCardStoreBtn=doc.getElementById('reloadCardStoreBtn');if(reloadCardStoreBtn)reloadCardStoreBtn.addEventListener('click',()=>reloadCardStoresFromParent('已手動重新讀取刷卡紀錄總欄'));
+  if(typeof recoverCardPasteRecordsIfEmpty==='function')recoverCardPasteRecordsIfEmpty('open-window');
   loadStores();
   renderOwnerManager();
   render();
@@ -7392,17 +7410,76 @@ function safeReadLocalJSON(key,def){
 function safeWriteLocalJSON(key,val){
   try{localStorage.setItem(key,JSON.stringify(val))}catch(e){}
 }
+const CARD_PASTE_RECORD_KEY='lihui_card_paste_records_v4';
+const CARD_PASTE_OLD_RECORD_KEY='lihui_card_paste_records_v3';
+const CARD_PASTE_CLAIM_KEY='lihui_card_paste_claims_v3';
+const CARD_PASTE_DRAFT_KEY='lihui_card_paste_current_rows_v4';
+const CARD_PASTE_OWNER_KEY='lihui_card_paste_owner_options_v1';
+const CARD_PASTE_SNAPSHOT_KEY='lihui_card_paste_local_snapshots_v1';
+function cardPasteSnapshotRecordCount(snap){
+  const r=snap&&Array.isArray(snap.records)?snap.records:[];
+  const l=snap&&Array.isArray(snap.legacyRecords)?snap.legacyRecords:[];
+  return Math.max(r.length,l.length);
+}
+function readCardPasteCurrentSnapshot(){
+  return {
+    version:'V187',
+    at:new Date().toISOString(),
+    records:safeReadLocalJSON(CARD_PASTE_RECORD_KEY,[]),
+    legacyRecords:safeReadLocalJSON(CARD_PASTE_OLD_RECORD_KEY,[]),
+    claims:safeReadLocalJSON(CARD_PASTE_CLAIM_KEY,{}),
+    currentRows:safeReadLocalJSON(CARD_PASTE_DRAFT_KEY,null),
+    ownerOptions:safeReadLocalJSON(CARD_PASTE_OWNER_KEY,null)
+  };
+}
+function backupCardPasteSnapshot(reason='auto'){
+  try{
+    const snap=readCardPasteCurrentSnapshot();
+    if(!cardPasteSnapshotRecordCount(snap)&&!(snap.claims&&Object.keys(snap.claims).length))return;
+    snap.reason=reason;
+    let list=safeReadLocalJSON(CARD_PASTE_SNAPSHOT_KEY,[]);
+    if(!Array.isArray(list))list=[];
+    list.unshift(snap);
+    const seen=new Set();
+    list=list.filter(x=>{
+      const key=cardPasteSnapshotRecordCount(x)+'|'+JSON.stringify((x&&x.claims)||{}).slice(0,120)+'|'+((x&&x.records&&x.records[0]&&x.records[0].id)||'');
+      if(seen.has(key))return false;
+      seen.add(key);return true;
+    }).slice(0,12);
+    localStorage.setItem(CARD_PASTE_SNAPSHOT_KEY,JSON.stringify(list));
+  }catch(e){}
+}
+function bestCardPasteSnapshot(){
+  try{
+    const list=safeReadLocalJSON(CARD_PASTE_SNAPSHOT_KEY,[]);
+    if(!Array.isArray(list))return null;
+    return list.filter(x=>x&&cardPasteSnapshotRecordCount(x)>0).sort((a,b)=>cardPasteSnapshotRecordCount(b)-cardPasteSnapshotRecordCount(a)||new Date(b.at||0)-new Date(a.at||0))[0]||null;
+  }catch(e){return null}
+}
+function recoverCardPasteRecordsIfEmpty(reason='recover'){
+  const cur=safeReadLocalJSON(CARD_PASTE_RECORD_KEY,[]);
+  if(Array.isArray(cur)&&cur.length)return false;
+  const best=bestCardPasteSnapshot();
+  if(!best||!cardPasteSnapshotRecordCount(best))return false;
+  if(Array.isArray(best.records)&&best.records.length)safeWriteLocalJSON(CARD_PASTE_RECORD_KEY,best.records);
+  else if(Array.isArray(best.legacyRecords)&&best.legacyRecords.length)safeWriteLocalJSON(CARD_PASTE_RECORD_KEY,best.legacyRecords);
+  if(best.claims&&typeof best.claims==='object')safeWriteLocalJSON(CARD_PASTE_CLAIM_KEY,best.claims);
+  if(best.currentRows&&typeof best.currentRows==='object')safeWriteLocalJSON(CARD_PASTE_DRAFT_KEY,best.currentRows);
+  if(Array.isArray(best.ownerOptions))safeWriteLocalJSON(CARD_PASTE_OWNER_KEY,best.ownerOptions);
+  console.warn('V187 recovered card paste records from snapshot',reason,cardPasteSnapshotRecordCount(best));
+  return true;
+}
+function reloadOpenCardPasteWindowFromStorage(detail='已重新讀取刷卡紀錄'){
+  try{
+    if(cardPasteWindowRef&&!cardPasteWindowRef.closed&&typeof cardPasteWindowRef.__reloadCardPasteStores==='function')cardPasteWindowRef.__reloadCardPasteStores(detail);
+  }catch(e){}
+}
 let lastCardPasteRestoreCount=0;
 function buildCardPasteBackup(){
-  return {
-    version:'V186',
-    exportedAt:new Date().toISOString(),
-    records:safeReadLocalJSON('lihui_card_paste_records_v4',[]),
-    legacyRecords:safeReadLocalJSON('lihui_card_paste_records_v3',[]),
-    claims:safeReadLocalJSON('lihui_card_paste_claims_v3',{}),
-    currentRows:safeReadLocalJSON('lihui_card_paste_current_rows_v4',null),
-    ownerOptions:safeReadLocalJSON('lihui_card_paste_owner_options_v1',null)
-  };
+  recoverCardPasteRecordsIfEmpty('build-payload');
+  const snap=readCardPasteCurrentSnapshot();
+  snap.exportedAt=new Date().toISOString();
+  return snap;
 }
 function extractCardPasteBackup(obj){
   if(!obj||typeof obj!=='object')return null;
@@ -7450,24 +7527,36 @@ function restoreCardPasteBackup(obj){
   const b=extractCardPasteBackup(obj);
   if(!b||typeof b!=='object')return false;
   let restored=false;
-  const recs=Array.isArray(b.records)?b.records:(Array.isArray(b.legacyRecords)?b.legacyRecords:null);
-  if(Array.isArray(recs)){
-    safeWriteLocalJSON('lihui_card_paste_records_v4',recs);
-    lastCardPasteRestoreCount=recs.length;
-    restored=true;
+  const incomingRecs=Array.isArray(b.records)?b.records:(Array.isArray(b.legacyRecords)?b.legacyRecords:null);
+  const existing=safeReadLocalJSON(CARD_PASTE_RECORD_KEY,[]);
+  if(Array.isArray(existing)&&existing.length)backupCardPasteSnapshot('before-cloud-restore');
+  if(Array.isArray(incomingRecs)){
+    if(incomingRecs.length>0 || !(Array.isArray(existing)&&existing.length>0)){
+      safeWriteLocalJSON(CARD_PASTE_RECORD_KEY,incomingRecs);
+      lastCardPasteRestoreCount=incomingRecs.length;
+      restored=true;
+    }else{
+      // V187：雲端空的另開視窗備份，不可以覆蓋本機既有刷卡紀錄。
+      lastCardPasteRestoreCount=existing.length;
+      restored=true;
+    }
   }
   if(b.claims&&typeof b.claims==='object'){
-    safeWriteLocalJSON('lihui_card_paste_claims_v3',b.claims);
+    const oldClaims=safeReadLocalJSON(CARD_PASTE_CLAIM_KEY,{});
+    const merged=Object.assign({},oldClaims,b.claims);
+    safeWriteLocalJSON(CARD_PASTE_CLAIM_KEY,merged);
     restored=true;
   }
   if(b.currentRows&&typeof b.currentRows==='object'){
-    safeWriteLocalJSON('lihui_card_paste_current_rows_v4',b.currentRows);
+    safeWriteLocalJSON(CARD_PASTE_DRAFT_KEY,b.currentRows);
     restored=true;
   }
   if(Array.isArray(b.ownerOptions)){
-    safeWriteLocalJSON('lihui_card_paste_owner_options_v1',b.ownerOptions);
+    safeWriteLocalJSON(CARD_PASTE_OWNER_KEY,b.ownerOptions);
     restored=true;
   }
+  recoverCardPasteRecordsIfEmpty('after-restore');
+  if(restored)reloadOpenCardPasteWindowFromStorage('已從雲端/主畫面重新讀取刷卡紀錄 '+lastCardPasteRestoreCount+' 筆');
   return restored;
 }
 function buildSupabasePayload(){
