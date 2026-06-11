@@ -2257,6 +2257,7 @@ let supaPollTimer=null;
 let supaSaveTimer=null;
 let supaApplyingRemote=false;
 let supaLastRemoteAt='';
+let supaLastCloudLoadedAt='';
 let cardPasteWindowRef=null;
 let state;
 let tempCardPreview=[];
@@ -6111,13 +6112,160 @@ function refreshCardPasteCloudStatus(detail){
 function updateSupabaseStatus(text,mode='off',last=''){const el=document.getElementById('syncStatus');if(el){el.textContent=text;el.className='sync-pill '+mode}const lastEl=document.getElementById('syncLast');if(lastEl){const s=getSupabaseSettings();lastEl.textContent='最後同步時間：'+(last||s.lastSyncAt||'—')}}
 function toggleSupabasePanel(){const p=document.getElementById('supabasePanel');if(!p)return;p.classList.toggle('hidden');saveSupabaseSettings()}
 function initSupabaseClient(){const url=document.getElementById('supabaseUrl')?.value.trim()||'';const key=document.getElementById('supabaseKey')?.value.trim()||'';if(!url||!key){alert('請先輸入 Supabase Project URL 和 Publishable Key');return null}if(!window.supabase||!window.supabase.createClient){alert('Supabase 函式庫尚未載入，請確認網路連線後再試一次。');return null}saveSupabaseSettings();supaClient=window.supabase.createClient(url,key);return supaClient}
-async function connectSupabase(){const client=initSupabaseClient();if(!client)return;updateSupabaseStatus('連線中','warn');setSyncMsg('正在檢查雲端資料...');try{const {data,error}=await client.from(SUPA_TABLE).select('payload,updated_at').eq('workspace_key',SUPA_WORKSPACE).maybeSingle();if(error)throw error;supaConnected=true;if(supaPollTimer)clearInterval(supaPollTimer);supaPollTimer=setInterval(checkSupabaseRemote,9000);if(data&&data.payload){const remoteAt=data.updated_at||'';supaLastRemoteAt=remoteAt;const localAt=state?._meta?.localUpdatedAt||'';let remoteIsLatest=false;if(!localAt)remoteIsLatest=true;else if(remoteAt&&new Date(remoteAt)>=new Date(localAt))remoteIsLatest=true;if(remoteIsLatest){const remoteScore=dataScore(data.payload),localScore=dataScore(buildSupabasePayload());if(localScore>remoteScore+3){await uploadToSupabase(true);setSyncMsg('雲端資料較少，已保留本機資料並同步到雲端');}else{backupStateSnapshot('before-remote-apply');supaApplyingRemote=true;applySupabasePayload(data.payload,remoteAt);supaApplyingRemote=false;save({skipCloud:true});ensureMonth();render();markSupabaseSynced(remoteAt,'已自動載入雲端最新資料');}}else{await uploadToSupabase(true);setSyncMsg('本機資料較新，已自動同步到雲端');}}else{await uploadToSupabase(true);}updateSupabaseStatus('已連線','ok');}catch(err){console.error(err);supaConnected=false;updateSupabaseStatus('連線失敗','warn');setSyncMsg('請確認資料表/RLS/URL/Key：'+(err.message||err));}}
-function markSupabaseSynced(remoteAt,msg){const now=new Date();const txt=now.toLocaleString('zh-TW',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});const s=getSupabaseSettings();localStorage.setItem(SUPA_STORE,JSON.stringify({...s,lastSyncAt:txt}));supaLastRemoteAt=remoteAt||new Date().toISOString();updateSupabaseStatus(supaConnected?'已連線':'未連線',supaConnected?'ok':'off',txt);setSyncMsg(msg||'已同步');setCardPasteCloudStatus('已完成雲端上傳','ok','另開視窗資料已同步到 Supabase')}
+async function connectSupabase(){
+  const client=initSupabaseClient();
+  if(!client)return;
+  updateSupabaseStatus('連線中','warn');
+  setSyncMsg('正在讀取雲端資料；開啟頁面不會自動上傳本機資料...');
+  try{
+    const {data,error}=await client.from(SUPA_TABLE).select('payload,updated_at').eq('workspace_key',SUPA_WORKSPACE).maybeSingle();
+    if(error)throw error;
+    supaConnected=true;
+    if(supaPollTimer)clearInterval(supaPollTimer);
+    supaPollTimer=setInterval(checkSupabaseRemote,9000);
+
+    // V196：開啟/連線只讀取雲端，不因本機較新或資料較多就自動上傳，避免舊電腦覆蓋最新雲端資料。
+    if(data&&data.payload){
+      const remoteAt=data.updated_at||'';
+      backupStateSnapshot('before-cloud-load-on-connect');
+      supaApplyingRemote=true;
+      applySupabasePayload(data.payload,remoteAt);
+      supaApplyingRemote=false;
+      ensureMonth();
+      render();
+      markSupabaseSynced(remoteAt,'已載入雲端最新資料；開啟本機不會自動上傳覆蓋雲端。');
+    }else{
+      supaLastRemoteAt='';
+      updateSupabaseStatus('已連線','ok');
+      setSyncMsg('雲端目前沒有資料；不會自動上傳本機。請確認資料正確後再開始修改，修改後才會上傳。');
+      refreshCardPasteCloudStatus('雲端目前沒有資料；本機修改後才會建立雲端資料');
+    }
+  }catch(err){
+    console.error(err);
+    supaConnected=false;
+    updateSupabaseStatus('連線失敗','warn');
+    setSyncMsg('請確認資料表/RLS/URL/Key：'+(err.message||err));
+  }
+}
+function markSupabaseSynced(remoteAt,msg){
+  const now=new Date();
+  const txt=now.toLocaleString('zh-TW',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
+  const s=getSupabaseSettings();
+  localStorage.setItem(SUPA_STORE,JSON.stringify({...s,lastSyncAt:txt,lastRemoteAt:remoteAt||s.lastRemoteAt||''}));
+  supaLastRemoteAt=remoteAt||supaLastRemoteAt||new Date().toISOString();
+  supaLastCloudLoadedAt=supaLastRemoteAt;
+  updateSupabaseStatus(supaConnected?'已連線':'未連線',supaConnected?'ok':'off',txt);
+  setSyncMsg(msg||'已同步');
+  const m=String(msg||'');
+  if(m.includes('載入')||m.includes('收到')||m.includes('雲端最新')){
+    setCardPasteCloudStatus('已載入雲端資料','ok','目前以雲端最新資料為準；只有修改後才會上傳');
+  }else{
+    setCardPasteCloudStatus('已完成雲端上傳','ok','另開視窗資料已同步到 Supabase');
+  }
+}
 function disconnectSupabase(){supaConnected=false;supaClient=null;if(supaPollTimer)clearInterval(supaPollTimer);supaPollTimer=null;if(supaSaveTimer)clearTimeout(supaSaveTimer);supaSaveTimer=null;updateSupabaseStatus('未連線','off');setSyncMsg('已中斷');setCardPasteCloudStatus('雲端未連線','off','已中斷 Supabase 連線')}
-function scheduleSupabaseSave(){if(!supaConnected||!supaClient||supaApplyingRemote)return;if(supaSaveTimer)clearTimeout(supaSaveTimer);setCardPasteCloudStatus('等待雲端上傳','warn','另開視窗資料已同步主畫面，等待上傳雲端');supaSaveTimer=setTimeout(()=>uploadToSupabase(false),1200)}
-async function uploadToSupabase(manual=false){if(!supaConnected||!supaClient){if(manual)alert('尚未連線 Supabase');setCardPasteCloudStatus('雲端未連線','off','已先存在本機；主畫面連線後再同步');return}try{setCardPasteCloudStatus('正在上傳雲端','warn','正在把主畫面＋另開視窗資料上傳 Supabase');if(!state._meta)state._meta={};state._meta.localUpdatedAt=new Date().toISOString();const payload=buildSupabasePayload();const {data,error}=await supaClient.from(SUPA_TABLE).upsert({workspace_key:SUPA_WORKSPACE,payload,updated_at:new Date().toISOString()},{onConflict:'workspace_key'}).select('updated_at').single();if(error)throw error;markSupabaseSynced(data?.updated_at,'已同步到雲端');}catch(err){console.error(err);updateSupabaseStatus('同步失敗','warn');setSyncMsg(err.message||String(err));setCardPasteCloudStatus('雲端上傳失敗','off',err.message||String(err));}}
-async function checkSupabaseRemote(){if(!supaConnected||!supaClient)return;try{const {data,error}=await supaClient.from(SUPA_TABLE).select('payload,updated_at').eq('workspace_key',SUPA_WORKSPACE).maybeSingle();if(error)throw error;if(!data||!data.payload)return;if(data.updated_at&&supaLastRemoteAt&&new Date(data.updated_at)<=new Date(supaLastRemoteAt))return;if(data.updated_at&&state?._meta?.localUpdatedAt&&new Date(data.updated_at)<=new Date(state._meta.localUpdatedAt))return;const remoteScore=dataScore(data.payload),localScore=dataScore(buildSupabasePayload());if(localScore>remoteScore+3){await uploadToSupabase(false);setSyncMsg('偵測到雲端資料較少，已保留本機資料。');return;}backupStateSnapshot('before-remote-poll-apply');supaApplyingRemote=true;applySupabasePayload(data.payload,data.updated_at);supaApplyingRemote=false;ensureMonth();render();markSupabaseSynced(data.updated_at,'已收到另一台電腦的最新更新。');}catch(err){console.error(err);updateSupabaseStatus('同步異常','warn');setSyncMsg(err.message||String(err));}}
-async function manualSyncSupabase(){if(!supaConnected){const client=initSupabaseClient();if(!client)return;supaClient=client;supaConnected=true;}await uploadToSupabase(true)}
+function scheduleSupabaseSave(){
+  if(!supaConnected||!supaClient||supaApplyingRemote)return;
+  if(supaSaveTimer)clearTimeout(supaSaveTimer);
+  setCardPasteCloudStatus('等待雲端上傳','warn','資料已在這台電腦修改，準備上傳前會先比對雲端時間');
+  setSyncMsg('已偵測到本機修改，等待上傳雲端...');
+  supaSaveTimer=setTimeout(()=>uploadToSupabase(false),1200);
+}
+async function fetchSupabaseRemoteState(){
+  if(!supaClient)return null;
+  const {data,error}=await supaClient.from(SUPA_TABLE).select('payload,updated_at').eq('workspace_key',SUPA_WORKSPACE).maybeSingle();
+  if(error)throw error;
+  return data||null;
+}
+function remoteIsNewerThanKnown(remoteAt){
+  if(!remoteAt)return false;
+  if(!supaLastRemoteAt)return true;
+  const r=new Date(remoteAt).getTime();
+  const k=new Date(supaLastRemoteAt).getTime();
+  if(!Number.isFinite(r)||!Number.isFinite(k))return true;
+  return r>k+1000;
+}
+function applyRemoteBecauseNewer(payload,remoteAt,msg){
+  backupStateSnapshot('before-newer-cloud-apply');
+  supaApplyingRemote=true;
+  applySupabasePayload(payload,remoteAt);
+  supaApplyingRemote=false;
+  ensureMonth();
+  render();
+  markSupabaseSynced(remoteAt,msg||'雲端資料比本機新，已停止上傳並載入雲端最新資料。');
+}
+async function uploadToSupabase(manual=false){
+  if(!supaConnected||!supaClient){
+    if(manual)alert('尚未連線 Supabase');
+    setCardPasteCloudStatus('雲端未連線','off','已先存在本機；連線後會先讀雲端，不會自動覆蓋雲端');
+    return;
+  }
+  try{
+    setCardPasteCloudStatus('比對雲端時間','warn','上傳前先確認雲端是否比本機更新');
+    const remote=await fetchSupabaseRemoteState();
+    if(remote&&remote.payload&&remoteIsNewerThanKnown(remote.updated_at)){
+      applyRemoteBecauseNewer(remote.payload,remote.updated_at,'雲端資料比這台電腦新，已停止上傳並載入雲端最新資料，避免舊資料覆蓋。');
+      return;
+    }
+    setCardPasteCloudStatus('正在上傳雲端','warn','正在把目前修改後的資料上傳 Supabase');
+    if(!state._meta)state._meta={};
+    const nowIso=new Date().toISOString();
+    state._meta.localUpdatedAt=nowIso;
+    state._meta.lastUserSavedAt=nowIso;
+    state._meta.lastUploadBaseRemoteAt=supaLastRemoteAt||'';
+    const payload=buildSupabasePayload();
+    const {data,error}=await supaClient.from(SUPA_TABLE).upsert({workspace_key:SUPA_WORKSPACE,payload,updated_at:new Date().toISOString()},{onConflict:'workspace_key'}).select('updated_at').single();
+    if(error)throw error;
+    markSupabaseSynced(data?.updated_at,'已同步到雲端');
+  }catch(err){
+    console.error(err);
+    updateSupabaseStatus('同步失敗','warn');
+    setSyncMsg(err.message||String(err));
+    setCardPasteCloudStatus('雲端上傳失敗','off',err.message||String(err));
+  }
+}
+async function checkSupabaseRemote(){
+  if(!supaConnected||!supaClient)return;
+  try{
+    const data=await fetchSupabaseRemoteState();
+    if(!data||!data.payload)return;
+    if(!remoteIsNewerThanKnown(data.updated_at))return;
+    if(supaSaveTimer){
+      clearTimeout(supaSaveTimer);
+      supaSaveTimer=null;
+      applyRemoteBecauseNewer(data.payload,data.updated_at,'雲端已經有另一台電腦的新資料，已停止本機待上傳並載入雲端。');
+      return;
+    }
+    applyRemoteBecauseNewer(data.payload,data.updated_at,'已收到另一台電腦的最新更新。');
+  }catch(err){
+    console.error(err);
+    updateSupabaseStatus('同步異常','warn');
+    setSyncMsg(err.message||String(err));
+  }
+}
+async function manualSyncSupabase(){
+  if(!supaConnected){
+    const client=initSupabaseClient();
+    if(!client)return;
+    supaClient=client;
+    supaConnected=true;
+  }
+  updateSupabaseStatus('同步中','warn');
+  setSyncMsg('手動同步：先讀取雲端最新資料，不自動上傳本機。');
+  try{
+    const data=await fetchSupabaseRemoteState();
+    if(data&&data.payload){
+      applyRemoteBecauseNewer(data.payload,data.updated_at,'已手動載入雲端最新資料。');
+    }else{
+      updateSupabaseStatus('已連線','ok');
+      setSyncMsg('雲端目前沒有資料；不會自動上傳本機，請修改資料後再由自動存檔上傳。');
+    }
+  }catch(err){
+    console.error(err);
+    updateSupabaseStatus('同步失敗','warn');
+    setSyncMsg(err.message||String(err));
+  }
+}
 
 /* ===== V20 整合列印：列印專用畫面、項目手動換行 ===== */
 const PRINT_LABEL_STORE='lihui_monthly_print_label_overrides_v1';
@@ -7797,7 +7945,13 @@ function applySupabasePayload(payload,remoteAt){
   restoreCardPasteBackup(cloned);
   state=stripCardPasteBackupFields(cloned);
   if(!state._meta)state._meta={};
-  state._meta.localUpdatedAt=remoteAt||new Date().toISOString();
+  if(remoteAt){
+    state._meta.localUpdatedAt=remoteAt;
+    state._meta.cloudUpdatedAt=remoteAt;
+    state._meta.lastLoadedCloudAt=remoteAt;
+  }else if(!state._meta.localUpdatedAt){
+    state._meta.localUpdatedAt=new Date().toISOString();
+  }
   localStorage.setItem(STORE,JSON.stringify(state));
 }
 function exportJSON(){
