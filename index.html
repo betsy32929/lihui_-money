@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>麗卉每月帳款｜V192 參考V187補回完整試算</title>
+  <title>麗卉每月帳款｜V197 總攬補大橋水電天然氣</title>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
   <style>
@@ -4696,10 +4696,14 @@ function summaryGroups(){
       {label:'薪水',get:id=>summaryPersonalCell(id,'收入薪資',(label)=>label.includes('收入薪資')||label.includes('薪水'))}
     ]},
     {title:'大橋支出',rows:[
-      {label:'管理費',get:id=>summaryPersonalCell(id,'大橋支出',(label)=>label==='管理費')},
+      {label:'管理費',get:id=>summaryPersonalCell(id,'大橋支出',(label)=>label==='管理費'||label.includes('大橋管理費'))},
+      // V197：總攬｜大橋支出補列每月帳款內的大橋電費、大橋水費、天然氣。
+      {label:'大橋電費',get:id=>summaryPersonalCell(id,'大橋支出',(label)=>label.includes('大橋電費'))},
+      {label:'大橋水費',get:id=>summaryPersonalCell(id,'大橋支出',(label)=>label.includes('大橋水費'))},
+      {label:'天然氣',get:id=>summaryPersonalCell(id,'大橋支出',(label)=>label.includes('天然氣')||label.includes('瓦斯'))},
       {label:'3027690',get:id=>summaryPersonalCell(id,'大橋支出',(label)=>label.includes('3027690'))},
-      {label:'麗卉手機',get:id=>summaryPersonalCell(id,'大橋支出',(label)=>label.includes('麗卉_遠傳')||label.includes('0982-508-091'))},
-      {label:'志偉手機',get:id=>summaryPersonalCell(id,'大橋支出',(label)=>label.includes('志偉_台灣大哥大')||label.includes('0981-834-553'))},
+      {label:'麗卉手機',get:id=>summaryPersonalCell(id,'大橋支出',(label)=>label.includes('麗卉_遠傳')||label.includes('麗卉遠傳')||label.includes('0982-508-091'))},
+      {label:'志偉手機',get:id=>summaryPersonalCell(id,'大橋支出',(label)=>label.includes('志偉_台灣大哥大')||label.includes('志偉台灣大哥')||label.includes('0981-834-553'))},
       {label:'匯款小孩',get:id=>summaryPersonalCell(id,'大橋支出',(label)=>label.includes('匯款小孩')||label.includes('國泰COCO'))}
     ]},
     {title:'大社支出',rows:[
