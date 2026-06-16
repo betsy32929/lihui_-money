@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>麗卉每月帳款｜V197 總攬補大橋水電天然氣</title>
+  <title>麗卉每月帳款｜V199 信用卡繳款日期不限定麗卉</title>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
   <style>
@@ -4698,6 +4698,7 @@ function summaryGroups(){
     {title:'大橋支出',rows:[
       {label:'管理費',get:id=>summaryPersonalCell(id,'大橋支出',(label)=>label==='管理費'||label.includes('大橋管理費'))},
       // V197：總攬｜大橋支出補列每月帳款內的大橋電費、大橋水費、天然氣。
+      // V199：信用卡繳款日期規則：每月帳務主表已填日期優先；主表空白時才由另開視窗刷卡明細的繳款日期補入，且不限定歸屬麗卉。
       {label:'大橋電費',get:id=>summaryPersonalCell(id,'大橋支出',(label)=>label.includes('大橋電費'))},
       {label:'大橋水費',get:id=>summaryPersonalCell(id,'大橋支出',(label)=>label.includes('大橋水費'))},
       {label:'天然氣',get:id=>summaryPersonalCell(id,'大橋支出',(label)=>label.includes('天然氣')||label.includes('瓦斯'))},
@@ -6685,14 +6686,48 @@ function cardPasteFullRocDate(shortDate,payDate){
 function isCardPasteNoBillImportRow(r){
   return numSigned(r&&r.amount)===0 && /無帳單/.test(String((r&&r.item)||''));
 }
-function findCardItemByPasteBank(bank){
+function cardItemsForMonth(monthId){
+  const m=(state&&state.months)?state.months[monthId]:null;
+  if(!m)return [];
+  const out=[];
+  (((m.personal||{}).sections)||[]).forEach(sec=>{
+    (sec.items||[]).forEach(it=>{if(it&&it.isCard)out.push(it);});
+  });
+  return out;
+}
+function findCardItemByPasteBank(bank,monthId){
   const label=cardPasteBankToItemLabel(bank);
-  const cards=cardItems();
+  const cards=monthId?cardItemsForMonth(monthId):cardItems();
   return cards.find(c=>String(c.label||'').trim()===label)
     || cards.find(c=>String(c.label||'').includes(bank)||String(label||'').includes(String(c.label||'')))
     || cards.find(c=>String(c.label||'').trim()==='未分類信用卡')
     || cards[0]
     || null;
+}
+function applyImportedCardPayDates(cardRows,targetMonthRaw,opts){
+  const options=opts||{};
+  let count=0;
+  (cardRows||[]).forEach(r=>{
+    const monthId=normalizeMonth(targetMonthRaw || (r&&r.belongMonth) || state.activeMonth);
+    if(!monthId || !state.months || !state.months[monthId])return;
+    const payDate=cleanMainCardPayDateText(r&&r.payDate);
+    if(!payDate)return;
+    const it=findCardItemByPasteBank(String(r&&r.bank||''),monthId);
+    if(!it)return;
+    const keepDate=cleanMainCardPayDateText(it.date);
+    // V199：信用卡繳款日期以每月帳務主表已填寫為主；主表空白時，才用另開視窗刷卡明細的繳款日期補入。
+    // 不限定歸屬麗卉；但只補日期，不因非麗卉明細改動無帳單狀態。
+    if(keepDate){
+      if(keepDate!==String(it.date||'').trim())it.date=keepDate;
+      return;
+    }
+    it.date=payDate;
+    if(options.clearNoBillOnRealCharge && !isCardPasteNoBillImportRow(r)){
+      it.noBill=false;
+    }
+    count++;
+  });
+  return count;
 }
 function applyImportedNoBillRows(noBillRows,targetId){
   const monthText=rocMonthLabel(targetId);
@@ -6710,7 +6745,7 @@ function applyImportedNoBillRows(noBillRows,targetId){
     it._autoNote='';
     it.detailsHidden=true;
     // 保留原本主表已輸入的信用卡繳款日期；只有原本空白且總欄有日期時才帶入。
-    it.date=keepDate || String(r&&r.payDate||'');
+    it.date=keepDate || cleanMainCardPayDateText(r&&r.payDate);
     it.dateType=keepDateType || it.dateType;
     count++;
   });
@@ -6718,20 +6753,27 @@ function applyImportedNoBillRows(noBillRows,targetId){
 }
 function importLihuiCardRowsFromPaste(cardRows,targetMonthRaw){
   try{
-    const sourceRows=(cardRows||[]).filter(r=>{
-      const owner=String(r.owner||'').trim();
-      return (owner==='麗卉' && numSigned(r.amount)) || isCardPasteNoBillImportRow(r);
-    });
-    if(!sourceRows.length)return {ok:false,msg:'沒有可帶入的麗卉刷卡資料'};
-    const targetId=normalizeMonth(targetMonthRaw || sourceRows[0].belongMonth || state.activeMonth);
+    const allRows=(cardRows||[]);
+    const targetId=normalizeMonth(targetMonthRaw || (allRows[0]&&allRows[0].belongMonth) || state.activeMonth);
     if(!targetId)return {ok:false,msg:'歸屬年月格式錯誤'};
     if(!state.months[targetId])state.months[targetId]=makeMonth();
     state.activeMonth=targetId;
     state.activeTab='personal';
     ensureMonth();
+
+    // V199：繳款日期不看歸屬誰。即使該月沒有歸屬「麗卉」的刷卡明細，
+    // 只要另開視窗有同月同銀行的繳款日期，且每月帳務主表日期空白，就補回主表。
+    const payDateRows=allRows.filter(r=>String(r&&r.bank||'').trim() && cleanMainCardPayDateText(r&&r.payDate));
+    const sourceRows=allRows.filter(r=>{
+      const owner=String(r.owner||'').trim();
+      return (owner==='麗卉' && numSigned(r.amount)) || isCardPasteNoBillImportRow(r);
+    });
     const noBillRows=sourceRows.filter(isCardPasteNoBillImportRow);
     const rows=sourceRows.filter(r=>!isCardPasteNoBillImportRow(r) && String(r.owner||'').trim()==='麗卉' && numSigned(r.amount));
+    if(!rows.length && !noBillRows.length && !payDateRows.length)return {ok:false,msg:'沒有可帶入的麗卉刷卡資料、無帳單資料或信用卡繳款日期'};
+
     const noBillCount=applyImportedNoBillRows(noBillRows,targetId);
+    const payDateCount=applyImportedCardPayDates(payDateRows,targetId,{clearNoBillOnRealCharge:false});
     tempCardPreview=rows.map(r=>({
       card:cardPasteBankToItemLabel(r.bank),
       date1:cardPasteFullRocDate(r.spendDate,r.payDate),
@@ -6745,7 +6787,7 @@ function importLihuiCardRowsFromPaste(cardRows,targetMonthRaw){
     render();
     renderCardPreview();
     const total=tempCardPreview.reduce((s,r)=>s+numSigned(r.amount),0);
-    return {ok:true,count:tempCardPreview.length,total,preview:!!tempCardPreview.length,noBillCount};
+    return {ok:true,count:tempCardPreview.length,total,preview:!!tempCardPreview.length,noBillCount,payDateCount};
   }catch(err){
     return {ok:false,msg:err&&err.message?err.message:String(err)};
   }
@@ -6758,12 +6800,13 @@ function importCurrentMonthCardPasteRecords(){
     const all=raw?JSON.parse(raw):[];
     if(!Array.isArray(all)||!all.length)return alert('信用卡刷卡紀錄總欄目前沒有資料。');
     const target=normalizeMonth(state.activeMonth);
-    const list=all.filter(r=>normalizeMonth(r.belongMonth||'')===target && ((String(r.owner||'').trim()==='麗卉' && numSigned(r.amount)) || isCardPasteNoBillImportRow(r)));
-    if(!list.length)return alert('本月沒有歸屬「麗卉」的刷卡資料或無帳單資料可帶入。');
+    const list=all.filter(r=>normalizeMonth(r.belongMonth||'')===target);
+    if(!list.length)return alert('本月沒有可帶入的刷卡資料或信用卡繳款日期。');
     const res=importLihuiCardRowsFromPaste(list,target);
     if(res&&res.ok){
       const parts=[];
       if(res.count)parts.push('預覽 '+res.count+' 筆，合計 '+fmtSigned(res.total,true));
+      if(res.payDateCount)parts.push('繳款日期補入 '+res.payDateCount+' 張');
       if(res.noBillCount)parts.push('無帳單 '+res.noBillCount+' 張已勾選並寫入備註');
       alert('已帶入本月信用卡：'+(parts.length?parts.join('；'):'0 筆'));
     }
@@ -7712,13 +7755,19 @@ function openCardPasteWindow(){
   function setClaim(month,owner,key,value){const c=getClaim(month,owner);c[key]=value;if(key==='date')c.done=!!String(value||'').trim();saveClaims();renderOverview();}
   function setSelectedMonth(month){selectedMonth=month;renderOverview();}
   function importLihuiToMain(){
-    const list=monthRecords(selectedMonth).filter(r=>r.owner==='麗卉' && moneyNum(r.amount));
-    if(!list.length){w.alert('這個年月沒有歸屬「麗卉」的刷卡資料。');return;}
+    const list=monthRecords(selectedMonth);
+    if(!list.length){w.alert('這個年月沒有可帶入的刷卡資料或信用卡繳款日期。');return;}
     if(!w.opener || w.opener.closed || typeof w.opener.importLihuiCardRowsFromPaste!=='function'){
       w.alert('找不到主視窗，請從原本的「麗卉每月帳款」頁面重新開啟刷卡紀錄視窗。');return;
     }
     const res=w.opener.importLihuiCardRowsFromPaste(list,selectedMonth);
-    if(res&&res.ok)w.alert('已帶入每月帳款預覽：'+res.count+' 筆，合計 '+fmt(res.total));
+    if(res&&res.ok){
+      const parts=[];
+      if(res.count)parts.push('預覽 '+res.count+' 筆，合計 '+fmt(res.total));
+      if(res.payDateCount)parts.push('繳款日期補入 '+res.payDateCount+' 張');
+      if(res.noBillCount)parts.push('無帳單 '+res.noBillCount+' 張已勾選');
+      w.alert('已帶入每月帳款：'+(parts.length?parts.join('；'):'0 筆'));
+    }
     else w.alert((res&&res.msg)||'帶入失敗');
   }
   function renderCurrentRows(){
