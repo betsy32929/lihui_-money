@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>麗卉每月帳款｜V220 大橋備註加寬欄位縮短</title>
+  <title>麗卉每月帳款｜V221 歸屬鎖定負擔比例</title>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
   <style>
@@ -7414,6 +7414,7 @@ function openCardPasteWindow(){
 .share-cell label{display:flex;align-items:center;gap:2px;font-size:11px;font-weight:950;color:#475569;min-width:0}
 .share-cell input{height:28px!important;padding:3px 4px!important;text-align:right;font-size:12px!important;font-weight:950;color:#2563eb;min-width:0}
 .share-cell.share-missing input{border-color:#f43f5e!important;background:#fff1f2!important}
+.share-cell.share-locked input,.item-rule-table input:disabled,.item-rule-form input:disabled{background:#f1f5f9!important;color:#94a3b8!important;border-color:#e2e8f0!important;cursor:not-allowed!important}
 .share-note{font-size:10px;color:#64748b;line-height:1.2;margin-top:2px}
 .item-rule-manager{margin-top:8px;border:1px solid #d8e2ef;border-radius:16px;background:#fff;overflow:hidden}
 .item-rule-manager summary{cursor:pointer;padding:10px 12px;font-weight:950;background:linear-gradient(90deg,#f0f9ff,#fff7ed);color:#334155}
@@ -7750,13 +7751,14 @@ function openCardPasteWindow(){
   w.document.open();
   w.document.write(html);
   w.document.close();
-  refreshCardPasteCloudStatus('另開視窗已開啟；不帶入帳務＋大橋支出一項目一排 V214');
+  refreshCardPasteCloudStatus('另開視窗已開啟；歸屬鎖定負擔比例 V221');
 
   const doc=w.document;
-  const defaultOwnerOptions=['','麗卉個人','志偉個人','志偉公司','小孩','家庭支出','-','公司環姐','大社','其他人'];
+  const defaultOwnerOptions=['','麗卉個人','志偉個人','小孩','家庭支出','志偉公司','公司環姐','大社','其他人','-'];
   let owners=defaultOwnerOptions.slice();
-  const ownersForTotal=['麗卉個人','志偉個人','志偉公司','小孩','家庭支出','公司環姐','大社','其他人'];
+  const ownersForTotal=['麗卉個人','志偉個人','小孩','家庭支出','志偉公司','公司環姐','大社','其他人','-'];
   const legacyOwnerOptions=['志偉','麗卉','大橋','公司/環姊'];
+  const lockedShareOwners=['公司環姐','大社','其他人','-'];
   const payerOptionsBase=['','麗卉負擔','志偉負擔'];
   const banks=['','台新','富邦','志偉聯邦','麗卉聯邦','中信','國泰','玉山','星展','凱基','永豐','新光','其他'];
   const STORE_KEY='lihui_card_paste_records_v4';
@@ -7992,6 +7994,9 @@ function openCardPasteWindow(){
     return String(Math.round(clamped*100)/100).replace(/\.0+$/,'').replace(/(\.\d*?)0+$/,'$1');
   }
   function rowNoMonthly(r){return !!(r&&(r.noMonthly===true||String(r.noMonthly).toLowerCase()==='true'));}
+  function shareLockedForOwner(owner){return lockedShareOwners.includes(String(owner||'').trim());}
+  function shareLockedRow(r){return !!(r && shareLockedForOwner(r.owner));}
+  function clearShareForLockedOwner(obj){if(!obj||!shareLockedForOwner(obj.owner))return false;obj.lihuiPct='';obj.zhiweiPct='';obj.payer='';obj.shareVersion='';return true;}
   function rowHasCustomShare(r){
     if(!r)return false;
     const ltxt=String(r.lihuiPct||'').trim(), ztxt=String(r.zhiweiPct||'').trim();
@@ -8009,14 +8014,14 @@ function openCardPasteWindow(){
     // 115年6月尚未選歸屬誰的銀行列表資料，視為接下來要用的新制；已選過歸屬誰的舊資料不強迫補比例。
     return !!(m.ok && m.y===115 && m.m===6 && !owner);
   }
-  function rowShareManaged(r){return !!(r && (isV207NewShareRequired(r) || rowHasCustomShare(r) || rowLegacyPayer(r)));}
+  function rowShareManaged(r){if(shareLockedRow(r))return false;return !!(r && (isV207NewShareRequired(r) || rowHasCustomShare(r) || rowLegacyPayer(r)));}
   function rowLihuiPct(r){
-    if(isZeroBillRow(r))return 0;
+    if(isZeroBillRow(r)||shareLockedRow(r))return 0;
     if(rowHasCustomShare(r))return pctValue(r.lihuiPct);
     return rowLegacyPayer(r)==='麗卉負擔'?100:0;
   }
   function rowZhiweiPct(r){
-    if(isZeroBillRow(r))return 0;
+    if(isZeroBillRow(r)||shareLockedRow(r))return 0;
     if(rowHasCustomShare(r))return pctValue(r.zhiweiPct);
     return rowLegacyPayer(r)==='志偉負擔'?100:0;
   }
@@ -8028,7 +8033,7 @@ function openCardPasteWindow(){
   }
   function rowShareTotalPct(r){return rowLihuiPct(r)+rowZhiweiPct(r);}
   function shareMissing(r){
-    if(isZeroBillRow(r))return false;
+    if(isZeroBillRow(r)||shareLockedRow(r))return false;
     if(!rowShareManaged(r))return false;
     return Math.round(rowShareTotalPct(r)*100)/100!==100;
   }
@@ -8043,6 +8048,7 @@ function openCardPasteWindow(){
   function payerDisplay(r){return isZeroBillRow(r)?'-':burdenDisplay(r);}
   function burdenDisplay(r){
     if(isZeroBillRow(r))return '-';
+    if(shareLockedRow(r))return '鎖定';
     const l=rowLihuiPct(r), z=rowZhiweiPct(r);
     const noMonthly=rowNoMonthly(r)?'｜不帶入帳務':'';
     if(l<=0 && z<=0)return (rowShareManaged(r)?'未填':'舊資料未填')+noMonthly;
@@ -8056,20 +8062,29 @@ function openCardPasteWindow(){
   }
   function shareCellDraftHtml(r,i){
     if(isZeroBillRow(r))return '<span class="owner-dash">-</span>';
-    return '<div class="share-cell '+(shareMissing(r)?'share-missing':'')+'"><label><input inputmode="decimal" data-i="'+i+'" data-k="lihuiPct" placeholder="麗卉負擔" title="麗卉負擔%" value="'+esc2(pctInputValue(r,'lihuiPct'))+'"></label><label><input inputmode="decimal" data-i="'+i+'" data-k="zhiweiPct" placeholder="志偉負擔" title="志偉負擔%" value="'+esc2(pctInputValue(r,'zhiweiPct'))+'"></label></div>';
+    const locked=shareLockedRow(r);
+    const cls='share-cell '+(locked?'share-locked ' : '')+(shareMissing(r)?'share-missing':'');
+    const dis=locked?' disabled':'';
+    return '<div class="'+cls+'"><label><input inputmode="decimal" data-i="'+i+'" data-k="lihuiPct" placeholder="麗卉負擔" title="麗卉負擔%" value="'+esc2(locked?'':pctInputValue(r,'lihuiPct'))+'"'+dis+'></label><label><input inputmode="decimal" data-i="'+i+'" data-k="zhiweiPct" placeholder="志偉負擔" title="志偉負擔%" value="'+esc2(locked?'':pctInputValue(r,'zhiweiPct'))+'"'+dis+'></label></div>';
   }
   function shareCellRecordHtml(r){
     if(isZeroBillRow(r))return '<span class="owner-dash">-</span>';
-    return '<div class="share-cell '+(shareMissing(r)?'share-missing':'')+'"><label><input class="overview-edit" inputmode="decimal" data-edit-record="'+esc2(r.id)+'" data-edit-k="lihuiPct" placeholder="麗卉負擔" title="麗卉負擔%" value="'+esc2(pctInputValue(r,'lihuiPct'))+'"></label><label><input class="overview-edit" inputmode="decimal" data-edit-record="'+esc2(r.id)+'" data-edit-k="zhiweiPct" placeholder="志偉負擔" title="志偉負擔%" value="'+esc2(pctInputValue(r,'zhiweiPct'))+'"></label></div>';
+    const locked=shareLockedRow(r);
+    const cls='share-cell '+(locked?'share-locked ' : '')+(shareMissing(r)?'share-missing':'');
+    const dis=locked?' disabled':'';
+    return '<div class="'+cls+'"><label><input class="overview-edit" inputmode="decimal" data-edit-record="'+esc2(r.id)+'" data-edit-k="lihuiPct" placeholder="麗卉負擔" title="麗卉負擔%" value="'+esc2(locked?'':pctInputValue(r,'lihuiPct'))+'"'+dis+'></label><label><input class="overview-edit" inputmode="decimal" data-edit-record="'+esc2(r.id)+'" data-edit-k="zhiweiPct" placeholder="志偉負擔" title="志偉負擔%" value="'+esc2(locked?'':pctInputValue(r,'zhiweiPct'))+'"'+dis+'></label></div>';
   }
   function defaultPayerForOwner(owner){
     const o=String(owner||'').trim();
+    if(shareLockedForOwner(o))return '';
     if(o==='麗卉個人')return '麗卉負擔';
     if(o==='志偉個人'||o==='志偉公司')return '志偉負擔';
     return '';
   }
   function applyDefaultShareForOwner(obj){
-    if(!obj || rowHasCustomShare(obj) || rowLegacyPayer(obj))return;
+    if(!obj)return;
+    if(clearShareForLockedOwner(obj))return;
+    if(rowHasCustomShare(obj) || rowLegacyPayer(obj))return;
     const o=String(obj.owner||'').trim();
     if(o==='麗卉個人'){obj.lihuiPct='100';obj.zhiweiPct='0';obj.payer='麗卉負擔';obj.shareVersion='V213';}
     else if(o==='志偉個人'||o==='志偉公司'){obj.lihuiPct='0';obj.zhiweiPct='100';obj.payer='志偉負擔';obj.shareVersion='V213';}
@@ -8093,6 +8108,7 @@ function openCardPasteWindow(){
     const rule=findItemShareRule(obj.item);
     if(!rule)return false;
     if(force || !String(obj.owner||'').trim())obj.owner=String(rule.owner||'').trim();
+    if(shareLockedRow(obj)){clearShareForLockedOwner(obj);obj.noMonthly=!!rule.noMonthly;return true;}
     if(force || (!rowHasCustomShare(obj) && !rowLegacyPayer(obj))){
       obj.lihuiPct=cleanPct(rule.lihuiPct);
       obj.zhiweiPct=cleanPct(rule.zhiweiPct);
@@ -8105,6 +8121,7 @@ function openCardPasteWindow(){
   function shareRuleIsValid(rule){
     if(!rule)return false;
     if(!String(rule.owner||'').trim())return false;
+    if(shareLockedForOwner(rule.owner))return true;
     return Math.round((pctValue(rule.lihuiPct)+pctValue(rule.zhiweiPct))*100)/100===100;
   }
   function applyItemRuleToUnselectedRow(obj){
@@ -8115,6 +8132,7 @@ function openCardPasteWindow(){
     if(!shareRuleIsValid(rule))return {matched:true,changed:false,invalid:true};
     const before=[String(obj.owner||''),String(obj.lihuiPct||''),String(obj.zhiweiPct||''),String(obj.payer||''),String(obj.shareVersion||''),String(obj.noMonthly||'')].join('｜');
     obj.owner=String(rule.owner||'').trim();
+    if(shareLockedRow(obj)){clearShareForLockedOwner(obj);obj.noMonthly=!!rule.noMonthly;obj.updatedAt=new Date().toISOString();const afterLocked=[String(obj.owner||''),String(obj.lihuiPct||''),String(obj.zhiweiPct||''),String(obj.payer||''),String(obj.shareVersion||''),String(obj.noMonthly||'')].join('｜');return {matched:true,changed:before!==afterLocked,invalid:false};}
     obj.lihuiPct=cleanPct(rule.lihuiPct);
     obj.zhiweiPct=cleanPct(rule.zhiweiPct);
     obj.noMonthly=!!rule.noMonthly;
@@ -8164,6 +8182,7 @@ function openCardPasteWindow(){
   }
   function normalizeSharePair(obj,changedKey){
     if(!obj)return;
+    if(clearShareForLockedOwner(obj))return;
     if(changedKey==='lihuiPct'){
       obj.lihuiPct=cleanPct(obj.lihuiPct);
       obj.zhiweiPct=String(obj.lihuiPct||'').trim()===''?'':cleanPct(100-pctValue(obj.lihuiPct));
@@ -8188,17 +8207,23 @@ function openCardPasteWindow(){
     saveShareRules();
     renderItemRuleManager();
   }
+  function toggleItemRuleFormShareLock(){
+    const owner=String(doc.getElementById('itemRuleOwner')?.value||'').trim();
+    const locked=shareLockedForOwner(owner);
+    ['itemRuleLihui','itemRuleZhiwei'].forEach(id=>{const el=doc.getElementById(id);if(el){el.disabled=locked;if(locked)el.value='';}});
+  }
   function renderItemRuleManager(){
     const ownerSel=doc.getElementById('itemRuleOwner');
     if(ownerSel){
       const cur=ownerSel.value;
       ownerSel.innerHTML=owners.filter(o=>o!=='').map(o=>'<option value="'+esc2(o)+'" '+(o===cur?'selected':'')+'>'+esc2(o)+'</option>').join('');
       if(!ownerSel.value && ownerSel.options.length)ownerSel.selectedIndex=0;
+      toggleItemRuleFormShareLock();
     }
     const box=doc.getElementById('itemRuleList');
     if(!box)return;
     if(!shareRules.length){box.innerHTML='<div class="empty">尚未建立項目規則。可先新增，例如：好市多｜家庭支出｜麗卉37.5｜志偉62.5。</div>';return;}
-    box.innerHTML='<table class="item-rule-table"><thead><tr><th>項目關鍵字</th><th style="width:120px">歸屬誰</th><th style="width:78px">麗卉%</th><th style="width:78px">志偉%</th><th style="width:78px">帳務</th><th>備註</th><th style="width:58px">操作</th></tr></thead><tbody>'+shareRules.map(r=>'<tr><td><input data-rule-id="'+esc2(r.id)+'" data-rule-k="keyword" value="'+esc2(r.keyword||'')+'"></td><td><select data-rule-id="'+esc2(r.id)+'" data-rule-k="owner">'+owners.filter(o=>o!=='').map(o=>'<option value="'+esc2(o)+'" '+(o===String(r.owner||'')?'selected':'')+'>'+esc2(o)+'</option>').join('')+'</select></td><td><input class="pct" inputmode="decimal" data-rule-id="'+esc2(r.id)+'" data-rule-k="lihuiPct" value="'+esc2(cleanPct(r.lihuiPct))+'"></td><td><input class="pct" inputmode="decimal" data-rule-id="'+esc2(r.id)+'" data-rule-k="zhiweiPct" value="'+esc2(cleanPct(r.zhiweiPct))+'"></td><td><label class="item-rule-no-monthly"><input type="checkbox" data-rule-id="'+esc2(r.id)+'" data-rule-k="noMonthly" '+(r.noMonthly?'checked':'')+'>不帶入</label></td><td><input data-rule-id="'+esc2(r.id)+'" data-rule-k="note" value="'+esc2(r.note||'')+'"></td><td><button class="mini del" data-rule-del="'+esc2(r.id)+'" type="button">刪</button></td></tr>').join('')+'</tbody></table>';
+    box.innerHTML='<table class="item-rule-table"><thead><tr><th>項目關鍵字</th><th style="width:120px">歸屬誰</th><th style="width:78px">麗卉%</th><th style="width:78px">志偉%</th><th style="width:78px">帳務</th><th>備註</th><th style="width:58px">操作</th></tr></thead><tbody>'+shareRules.map(r=>{const locked=shareLockedForOwner(r.owner);const dis=locked?' disabled':'';return '<tr><td><input data-rule-id="'+esc2(r.id)+'" data-rule-k="keyword" value="'+esc2(r.keyword||'')+'"></td><td><select data-rule-id="'+esc2(r.id)+'" data-rule-k="owner">'+owners.filter(o=>o!=='').map(o=>'<option value="'+esc2(o)+'" '+(o===String(r.owner||'')?'selected':'')+'>'+esc2(o)+'</option>').join('')+'</select></td><td><input class="pct" inputmode="decimal" data-rule-id="'+esc2(r.id)+'" data-rule-k="lihuiPct" value="'+esc2(locked?'':cleanPct(r.lihuiPct))+'"'+dis+'></td><td><input class="pct" inputmode="decimal" data-rule-id="'+esc2(r.id)+'" data-rule-k="zhiweiPct" value="'+esc2(locked?'':cleanPct(r.zhiweiPct))+'"'+dis+'></td><td><label class="item-rule-no-monthly"><input type="checkbox" data-rule-id="'+esc2(r.id)+'" data-rule-k="noMonthly" '+(r.noMonthly?'checked':'')+'>不帶入</label></td><td><input data-rule-id="'+esc2(r.id)+'" data-rule-k="note" value="'+esc2(r.note||'')+'"></td><td><button class="mini del" data-rule-del="'+esc2(r.id)+'" type="button">刪</button></td></tr>';}).join('')+'</tbody></table>';
     box.querySelectorAll('[data-rule-k]').forEach(el=>el.addEventListener('change',()=>editShareRule(el.dataset.ruleId,el.dataset.ruleK,el.type==='checkbox'?el.checked:el.value)));
     box.querySelectorAll('[data-rule-del]').forEach(btn=>btn.addEventListener('click',()=>deleteShareRule(btn.dataset.ruleDel)));
   }
@@ -8208,12 +8233,14 @@ function openCardPasteWindow(){
     const owner=String(doc.getElementById('itemRuleOwner')?.value||'').trim();
     let lihui=cleanPct(doc.getElementById('itemRuleLihui')?.value||'');
     let zhiwei=cleanPct(doc.getElementById('itemRuleZhiwei')?.value||'');
-    if(lihui && !zhiwei)zhiwei=cleanPct(100-pctValue(lihui));
-    if(zhiwei && !lihui)lihui=cleanPct(100-pctValue(zhiwei));
+    if(shareLockedForOwner(owner)){lihui='';zhiwei='';}
+    else {if(lihui && !zhiwei)zhiwei=cleanPct(100-pctValue(lihui));
+    if(zhiwei && !lihui)lihui=cleanPct(100-pctValue(zhiwei));}
     const noMonthly=!!doc.getElementById('itemRuleNoMonthly')?.checked;
     const note=String(doc.getElementById('itemRuleNote')?.value||'').trim();
-    if(!owner || !lihui && !zhiwei){w.alert('請選歸屬誰，並填麗卉/志偉負擔比例。');return;}
-    if(Math.round((pctValue(lihui)+pctValue(zhiwei))*100)/100!==100){w.alert('負擔比例合計一定要100%。');return;}
+    if(!owner){w.alert('請選歸屬誰。');return;}
+    if(!shareLockedForOwner(owner) && !lihui && !zhiwei){w.alert('請填麗卉/志偉負擔比例。');return;}
+    if(!shareLockedForOwner(owner) && Math.round((pctValue(lihui)+pctValue(zhiwei))*100)/100!==100){w.alert('負擔比例合計一定要100%。');return;}
     const idx=shareRules.findIndex(r=>ruleKey(r.keyword)===ruleKey(kw));
     const obj={keyword:kw,owner,lihuiPct:lihui,zhiweiPct:zhiwei,noMonthly,note,updatedAt:new Date().toISOString()};
     if(idx>=0)shareRules[idx]=Object.assign({},shareRules[idx],obj);
@@ -8225,8 +8252,11 @@ function openCardPasteWindow(){
     const r=shareRules.find(x=>x.id===id);if(!r)return;
     if(k==='noMonthly')r[k]=!!v;
     else r[k]=(k==='lihuiPct'||k==='zhiweiPct')?cleanPct(v):String(v||'').trim();
-    if(k==='lihuiPct')r.zhiweiPct=String(r.lihuiPct||'').trim()===''?'':cleanPct(100-pctValue(r.lihuiPct));
-    if(k==='zhiweiPct')r.lihuiPct=String(r.zhiweiPct||'').trim()===''?'':cleanPct(100-pctValue(r.zhiweiPct));
+    if(shareLockedForOwner(r.owner)){r.lihuiPct='';r.zhiweiPct='';}
+    else {
+      if(k==='lihuiPct')r.zhiweiPct=String(r.lihuiPct||'').trim()===''?'':cleanPct(100-pctValue(r.lihuiPct));
+      if(k==='zhiweiPct')r.lihuiPct=String(r.zhiweiPct||'').trim()===''?'':cleanPct(100-pctValue(r.zhiweiPct));
+    }
     r.updatedAt=new Date().toISOString();
     saveShareRules();renderItemRuleManager();
   }
@@ -8517,7 +8547,7 @@ function openCardPasteWindow(){
     rows[i].updatedAt=new Date().toISOString();
     if(k==='amount')rows[i][k]=String(v).replace(/[，,\s$]/g,'');
     if(k==='lihuiPct'||k==='zhiweiPct')normalizeSharePair(rows[i],k);
-    if(k==='owner'){rows[i].shareVersion='V213';applyDefaultShareForOwner(rows[i]);}
+    if(k==='owner'){rows[i].shareVersion='V213';if(shareLockedRow(rows[i]))clearShareForLockedOwner(rows[i]);else applyDefaultShareForOwner(rows[i]);}
     if(k==='item'){
       rows[i][k]=cleanCardPasteItemValue(rows[i][k],rows[i]);
       applyItemRuleToRow(rows[i],false);
@@ -8757,7 +8787,7 @@ function openCardPasteWindow(){
     if(k==='claimMode')rec[k]=String(v)==='no'?'no':'yes';
     if(k==='claimNote')rec[k]=String(v||'').trim();
     if(k==='lihuiPct'||k==='zhiweiPct')normalizeSharePair(rec,k);
-    if(k==='owner'){rec.shareVersion='V213';applyDefaultShareForOwner(rec);}
+    if(k==='owner'){rec.shareVersion='V213';if(shareLockedRow(rec))clearShareForLockedOwner(rec);else applyDefaultShareForOwner(rec);}
     if(k==='item'){
       rec[k]=cleanCardPasteItemValue(rec[k],rec);
       applyItemRuleToRow(rec,false);
@@ -8924,9 +8954,10 @@ function openCardPasteWindow(){
   const ownerDeleteBtn=doc.getElementById('ownerDeleteBtn');if(ownerDeleteBtn)ownerDeleteBtn.addEventListener('click',deleteOwnerOption);
   const ownerEditSel=doc.getElementById('ownerEditSelect');if(ownerEditSel)ownerEditSel.addEventListener('change',()=>{const inp=doc.getElementById('ownerEditInput');if(inp)inp.value=ownerEditSel.value;});
   const itemRuleAddBtn=doc.getElementById('itemRuleAddBtn');if(itemRuleAddBtn)itemRuleAddBtn.addEventListener('click',addShareRule);
+  const itemRuleOwner=doc.getElementById('itemRuleOwner');if(itemRuleOwner)itemRuleOwner.addEventListener('change',toggleItemRuleFormShareLock);
   const itemRuleApplyMonthBtn=doc.getElementById('itemRuleApplyMonthBtn');if(itemRuleApplyMonthBtn)itemRuleApplyMonthBtn.addEventListener('click',applyShareRulesToCurrentMonthUnselected);
-  const itemRuleLihui=doc.getElementById('itemRuleLihui');if(itemRuleLihui)itemRuleLihui.addEventListener('change',()=>{const other=doc.getElementById('itemRuleZhiwei');itemRuleLihui.value=cleanPct(itemRuleLihui.value);if(other)other.value=String(itemRuleLihui.value||'').trim()===''?'':cleanPct(100-pctValue(itemRuleLihui.value));});
-  const itemRuleZhiwei=doc.getElementById('itemRuleZhiwei');if(itemRuleZhiwei)itemRuleZhiwei.addEventListener('change',()=>{const other=doc.getElementById('itemRuleLihui');itemRuleZhiwei.value=cleanPct(itemRuleZhiwei.value);if(other)other.value=String(itemRuleZhiwei.value||'').trim()===''?'':cleanPct(100-pctValue(itemRuleZhiwei.value));});
+  const itemRuleLihui=doc.getElementById('itemRuleLihui');if(itemRuleLihui)itemRuleLihui.addEventListener('change',()=>{if(shareLockedForOwner(doc.getElementById('itemRuleOwner')?.value||'')){toggleItemRuleFormShareLock();return;}const other=doc.getElementById('itemRuleZhiwei');itemRuleLihui.value=cleanPct(itemRuleLihui.value);if(other)other.value=String(itemRuleLihui.value||'').trim()===''?'':cleanPct(100-pctValue(itemRuleLihui.value));});
+  const itemRuleZhiwei=doc.getElementById('itemRuleZhiwei');if(itemRuleZhiwei)itemRuleZhiwei.addEventListener('change',()=>{if(shareLockedForOwner(doc.getElementById('itemRuleOwner')?.value||'')){toggleItemRuleFormShareLock();return;}const other=doc.getElementById('itemRuleLihui');itemRuleZhiwei.value=cleanPct(itemRuleZhiwei.value);if(other)other.value=String(itemRuleZhiwei.value||'').trim()===''?'':cleanPct(100-pctValue(itemRuleZhiwei.value));});
   w.__ccParsePaste=parsePaste;
   w.__ccSaveRows=saveCurrentRows;
   w.__ccClearRows=clearAll;
