@@ -7711,7 +7711,7 @@ function openCardPasteWindow(){
           <div><label>備註</label><input id="itemRuleNote" placeholder="可空白"></div>
           <div class="item-rule-actions"><button id="itemRuleAddBtn" class="btn blue" type="button">新增/更新</button><button id="itemRuleApplyMonthBtn" class="btn green" type="button">更新本月未選</button></div>
         </div>
-        <div class="item-rule-help">先記錄「項目關鍵字、歸屬誰、麗卉/志偉比例」。勾「不帶入」時，銀行列表仍保留、信用卡總額仍計算，但帶入每月帳務與當月試算會排除；已在銀行列表選過歸屬誰的舊資料不會被新增、修改、刪除規則影響。</div>
+        <div class="item-rule-help">。</div>
         <div id="itemRuleList" class="item-rule-list"></div>
       </details>
     </div>
@@ -7751,7 +7751,7 @@ function openCardPasteWindow(){
   w.document.open();
   w.document.write(html);
   w.document.close();
-  refreshCardPasteCloudStatus('另開視窗已開啟；志偉分攤搜尋修正 V222');
+  refreshCardPasteCloudStatus('另開視窗已開啟；項目比對全形數字修正 V223');
 
   const doc=w.document;
   const defaultOwnerOptions=['','麗卉個人','志偉個人','小孩','家庭支出','志偉公司','公司環姐','大社','其他人','-'];
@@ -8090,7 +8090,13 @@ function openCardPasteWindow(){
     else if(o==='志偉個人'||o==='志偉公司'){obj.lihuiPct='0';obj.zhiweiPct='100';obj.payer='志偉負擔';obj.shareVersion='V213';}
   }
   function maybeSetDefaultPayer(obj){applyDefaultShareForOwner(obj);}
-  function ruleKey(v){return String(v||'').trim().toLowerCase().replace(/[\s　]+/g,'').replace(/[＊*・·．.，,。:：|｜/\-]/g,'');}
+  function ruleKey(v){
+    let s=String(v||'');
+    try{s=s.normalize('NFKC');}catch(e){}
+    return s.trim().toLowerCase()
+      .replace(/[\s　]+/g,'')
+      .replace(/[＊*・·．.，,。:：|｜/\\\-－_＿$＄()（）\[\]【】{}]/g,'');
+  }
   function saveShareRules(){writeJson(SHARE_RULE_KEY,shareRules);}
   function findItemShareRule(item){
     const k=ruleKey(item);
