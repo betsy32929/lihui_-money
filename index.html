@@ -7751,7 +7751,7 @@ function openCardPasteWindow(){
   w.document.open();
   w.document.write(html);
   w.document.close();
-  refreshCardPasteCloudStatus('另開視窗已開啟；歸屬鎖定負擔比例 V221');
+  refreshCardPasteCloudStatus('另開視窗已開啟；志偉分攤搜尋修正 V222');
 
   const doc=w.document;
   const defaultOwnerOptions=['','麗卉個人','志偉個人','小孩','家庭支出','志偉公司','公司環姐','大社','其他人','-'];
@@ -8654,10 +8654,16 @@ function openCardPasteWindow(){
   function rowsHeader(){return ['歸屬誰','負擔比例','銀行','入帳日期','消費日期','項目','金額','備註'].join('	');}
   function filteredRowsHeader(){return ['年月','歸屬誰','負擔比例','銀行','入帳日期','消費日期','項目','金額','請款狀態','匯款備註'].join('	');}
   function rowToFilteredTsv(r){return [rocMonthText(r.belongMonth||''),ownerDisplay(r),burdenDisplay(r),bankCell(r),fullCardDate(r.postDate,r.payDate),fullCardDate(r.spendDate,r.payDate),itemDisplay(r),fmt(moneyNum(r.amount)),rowClaimStatusText(r)||'—',rowClaimNoteText(r)].join('	');}
+  function filteredSearchAmount(r){
+    const payer=searchVal('searchPayer');
+    if(payer==='志偉負擔')return rowShareAmount(r,'zhiwei');
+    if(payer==='麗卉負擔')return rowShareAmount(r,'lihui');
+    return moneyNum(r.amount);
+  }
   function filteredSubtotalLines(list){
-    const total=list.reduce((s,r)=>s+moneyNum(r.amount),0);
+    const total=list.reduce((s,r)=>s+filteredSearchAmount(r),0);
     const pending=list.filter(r=>rowClaimState(r)==='pending');
-    const pendingTotal=pending.reduce((s,r)=>s+moneyNum(r.amount),0);
+    const pendingTotal=pending.reduce((s,r)=>s+filteredSearchAmount(r),0);
     const allPending=pending.length>0 && pending.length===list.length;
     const lines=[];
     if(allPending){
@@ -8729,7 +8735,8 @@ function openCardPasteWindow(){
     return {total,needTotal,skipTotal,needList,skipList,count:payerList.length};
   }
   function ownerClaimDetailHtml(list,payer){
-    const rowsForPayer=list.filter(r=>rowPayer(r)===payer);
+    const side=payer==='志偉負擔'?'zhiwei':'lihui';
+    const rowsForPayer=list.filter(r=>rowShareAmount(r,side)>0);
     const b=ownerClaimBreakdown(list,payer);
     if(!rowsForPayer.length)return '<div class="claim-detail-panel"><div class="claim-detail-head"><span>'+esc2(payer)+' 明細/請款設定</span><button class="mini del" data-close-claim-detail type="button">關閉</button></div><div class="empty">這個月份沒有 '+esc2(payer)+' 明細。</div></div>';
     const body=rowsForPayer.map(r=>{
@@ -8875,9 +8882,9 @@ function openCardPasteWindow(){
     const searchScope=searchVal('searchScope')||'all';
     const searching=overviewHasSearch();
     const list=overviewFilteredList();
-    const searchTotal=list.reduce((s,r)=>s+moneyNum(r.amount),0);
+    const searchTotal=list.reduce((s,r)=>s+filteredSearchAmount(r),0);
     const pendingSearchList=list.filter(r=>rowClaimState(r)==='pending');
-    const pendingSearchTotal=pendingSearchList.reduce((s,r)=>s+moneyNum(r.amount),0);
+    const pendingSearchTotal=pendingSearchList.reduce((s,r)=>s+filteredSearchAmount(r),0);
     const summaryEl=doc.getElementById('searchSummary');
     if(summaryEl){
       const selectedPayer=searchVal('searchPayer');
@@ -8910,7 +8917,7 @@ function openCardPasteWindow(){
     const groups=groupByBank(list,searchScope==='all'&&searching);
     const groupHtml=Object.keys(groups).sort().map(bank=>{
       const glist=groups[bank];
-      const sum=glist.reduce((s,r)=>s+moneyNum(r.amount),0);
+      const sum=glist.reduce((s,r)=>s+filteredSearchAmount(r),0);
       const body=glist.map(r=>{
         const ownerCell=isZeroBillRow(r)?'<span class="owner-dash">-</span>':'<div class="owner-same-wrap"><select class="overview-edit '+(!String(r.owner||'').trim()?'owner-missing':'')+'" data-edit-record="'+esc2(r.id)+'" data-edit-k="owner">'+ownerSelectOptions(r.owner||'',false)+'</select><button class="same-owner-btn" data-same-record="'+esc2(r.id)+'" title="同上" type="button">同</button></div>';
         const payerCell=shareCellRecordHtml(r);
