@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>麗卉每月帳款｜V221 歸屬鎖定負擔比例</title>
+  <title>麗卉每月帳款｜V229 EXCEL小計整列底色</title>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
   <style>
@@ -7711,7 +7711,7 @@ function openCardPasteWindow(){
           <div><label>備註</label><input id="itemRuleNote" placeholder="可空白"></div>
           <div class="item-rule-actions"><button id="itemRuleAddBtn" class="btn blue" type="button">新增/更新</button><button id="itemRuleApplyMonthBtn" class="btn green" type="button">更新本月未選</button></div>
         </div>
-        <div class="item-rule-help">。</div>
+        <div class="item-rule-help">先記錄「項目關鍵字、歸屬誰、麗卉/志偉比例」。關鍵字比對會自動忽略全形/半形差異（例如 09818 可對到 ０９８１８＊＊＊５３ TWD）。勾「不帶入」時，銀行列表仍保留、信用卡總額仍計算，但帶入每月帳務與當月試算會排除；已在銀行列表選過歸屬誰的舊資料不會被新增、修改、刪除規則影響。</div>
         <div id="itemRuleList" class="item-rule-list"></div>
       </details>
     </div>
@@ -7724,11 +7724,12 @@ function openCardPasteWindow(){
       <div class="resulttop"><b>信用卡刷卡紀錄總欄</b></div>
       <div class="search-card">
         <div class="search-topline">
-          <span class="search-scope">搜尋範圍:<select id="searchScope"><option value="all" selected>全部年月</option><option value="month">目前年月</option></select></span>
+          <span class="search-scope">搜尋範圍:<select id="searchScope"><option value="month" selected>目前年月</option><option value="all">全部年月</option></select></span>
           <div id="searchSummary" class="search-summary"></div>
           <div class="search-actions">
             <button id="runSearchBtn" class="btn main" type="button">搜尋</button>
             <button id="clearSearchBtn" class="btn gray" type="button">清除</button>
+            <button id="downloadFilteredExcelBtn" class="btn green" type="button">下載EXCEL</button>
             <button id="copyFilteredBtn" class="btn blue" type="button">複製篩選結果</button>
           </div>
         </div>
@@ -7751,7 +7752,7 @@ function openCardPasteWindow(){
   w.document.open();
   w.document.write(html);
   w.document.close();
-  refreshCardPasteCloudStatus('另開視窗已開啟；項目比對全形數字修正 V223');
+  refreshCardPasteCloudStatus('另開視窗已開啟；EXCEL金額數字與移除請款狀態 V227');
 
   const doc=w.document;
   const defaultOwnerOptions=['','麗卉個人','志偉個人','小孩','家庭支出','志偉公司','公司環姐','大社','其他人','-'];
@@ -8658,33 +8659,187 @@ function openCardPasteWindow(){
   }
   function rowToTsv(r){return [ownerDisplay(r),burdenDisplay(r),bankCell(r),fullCardDate(r.postDate,r.payDate),fullCardDate(r.spendDate,r.payDate),itemDisplay(r),fmt(moneyNum(r.amount)),displayNoteForRow(r)].join('	');}
   function rowsHeader(){return ['歸屬誰','負擔比例','銀行','入帳日期','消費日期','項目','金額','備註'].join('	');}
-  function filteredRowsHeader(){return ['年月','歸屬誰','負擔比例','銀行','入帳日期','消費日期','項目','金額','請款狀態','匯款備註'].join('	');}
-  function rowToFilteredTsv(r){return [rocMonthText(r.belongMonth||''),ownerDisplay(r),burdenDisplay(r),bankCell(r),fullCardDate(r.postDate,r.payDate),fullCardDate(r.spendDate,r.payDate),itemDisplay(r),fmt(moneyNum(r.amount)),rowClaimStatusText(r)||'—',rowClaimNoteText(r)].join('	');}
+  function filteredCopyAmountLabel(){
+    const payer=searchVal('searchPayer');
+    if(payer==='志偉負擔')return '志偉負擔金額';
+    if(payer==='麗卉負擔')return '麗卉負擔金額';
+    return '金額';
+  }
+  function filteredRowsHeader(){return ['年月','歸屬誰','負擔比例','銀行','消費日期','項目',filteredCopyAmountLabel(),'匯款備註'].join('	');}
+  function filteredBurdenDisplay(r){
+    if(isZeroBillRow(r)||shareLockedRow(r))return '';
+    const l=rowLihuiPct(r), z=rowZhiweiPct(r);
+    const parts=[];
+    if(l>0)parts.push('麗卉'+cleanPct(l)+'%');
+    if(z>0)parts.push('志偉'+cleanPct(z)+'%');
+    if(!parts.length)return '';
+    const total=Math.round((l+z)*100)/100;
+    const extra=total!==100?'（合計'+cleanPct(total)+'%）':'';
+    return parts.join(' / ')+extra;
+  }
+  function filteredSpendDate(r){
+    const a=fullCardDate((r&&r.postDate)||'',(r&&r.payDate)||'');
+    const b=fullCardDate((r&&r.spendDate)||'',(r&&r.payDate)||'');
+    const ak=cardDateSortKey(a), bk=cardDateSortKey(b);
+    if(ak&&bk)return ak<=bk?a:b;
+    return b||a||'';
+  }
+  function filteredSpendDateSortKey(r){return cardDateSortKey(filteredSpendDate(r));}
+  function filteredGroupSortRecords(list){
+    const arr=list.slice();
+    arr.sort((a,b)=>filteredSpendDateSortKey(b)-filteredSpendDateSortKey(a) || rowDateSortKey(b)-rowDateSortKey(a) || rowMonthSortKey(b)-rowMonthSortKey(a));
+    return arr;
+  }
+  function rowToFilteredTsv(r){return [rocMonthText(r.belongMonth||''),ownerDisplay(r),filteredBurdenDisplay(r),bankCell(r),filteredSpendDate(r),itemDisplay(r),fmt(filteredSearchAmount(r)),rowClaimNoteText(r)].join('	');}
   function filteredSearchAmount(r){
     const payer=searchVal('searchPayer');
     if(payer==='志偉負擔')return rowShareAmount(r,'zhiwei');
     if(payer==='麗卉負擔')return rowShareAmount(r,'lihui');
     return moneyNum(r.amount);
   }
+  function filteredOwnerCopyOrder(){
+    const payer=searchVal('searchPayer');
+    if(payer==='志偉負擔')return ['家庭支出','志偉個人','志偉公司','小孩','麗卉個人','公司環姐','大社','其他人','-','未選'];
+    if(payer==='麗卉負擔')return ['麗卉個人','家庭支出','小孩','志偉個人','志偉公司','公司環姐','大社','其他人','-','未選'];
+    return ['家庭支出','麗卉個人','志偉個人','志偉公司','小孩','公司環姐','大社','其他人','-','未選'];
+  }
+  function filteredOwnerCopyKey(r){
+    const o=String(ownerDisplay(r)||'').trim();
+    return o||'未選';
+  }
+  function filteredGroupedCopyLines(list){
+    const groups={};
+    list.forEach(r=>{
+      const k=filteredOwnerCopyKey(r);
+      if(!groups[k])groups[k]=[];
+      groups[k].push(r);
+    });
+    const order=filteredOwnerCopyOrder();
+    const keys=Object.keys(groups).sort((a,b)=>{
+      const ia=order.indexOf(a), ib=order.indexOf(b);
+      if(ia!==-1||ib!==-1)return (ia===-1?999:ia)-(ib===-1?999:ib);
+      return a.localeCompare(b,'zh-Hant');
+    });
+    const lines=[filteredRowsHeader()];
+    keys.forEach(owner=>{
+      const glist=filteredGroupSortRecords(groups[owner]);
+      glist.forEach(r=>lines.push(rowToFilteredTsv(r)));
+      const subtotal=glist.reduce((s,r)=>s+filteredSearchAmount(r),0);
+      lines.push(['','','','','',owner+' 小計',fmt(subtotal),''].join('	'));
+    });
+    const total=list.reduce((s,r)=>s+filteredSearchAmount(r),0);
+    lines.push(['','','','','','總計',fmt(total),''].join('	'));
+    return lines;
+  }
   function filteredSubtotalLines(list){
     const total=list.reduce((s,r)=>s+filteredSearchAmount(r),0);
-    const pending=list.filter(r=>rowClaimState(r)==='pending');
-    const pendingTotal=pending.reduce((s,r)=>s+filteredSearchAmount(r),0);
-    const allPending=pending.length>0 && pending.length===list.length;
-    const lines=[];
-    if(allPending){
-      lines.push(['','','','','','','尚未請款小計',fmt(pendingTotal),'',''].join('	'));
-    }else{
-      lines.push(['','','','','','','小計',fmt(total),'共 '+list.length+' 筆',''].join('	'));
-      if(pending.length)lines.push(['','','','','','','尚未請款小計',fmt(pendingTotal),'尚未請款 '+pending.length+' 筆',''].join('	'));
+    return [['','','','','','小計',fmt(total),''].join('	')];
+  }
+  function filteredGroupedExportRows(list){
+    const groups={};
+    list.forEach(r=>{
+      const k=filteredOwnerCopyKey(r);
+      if(!groups[k])groups[k]=[];
+      groups[k].push(r);
+    });
+    const order=filteredOwnerCopyOrder();
+    const keys=Object.keys(groups).sort((a,b)=>{
+      const ia=order.indexOf(a), ib=order.indexOf(b);
+      if(ia!==-1||ib!==-1)return (ia===-1?999:ia)-(ib===-1?999:ib);
+      return a.localeCompare(b,'zh-Hant');
+    });
+    const rows=[];
+    rows.push({type:'title',cells:['信用卡篩選結果']});
+    const scope=searchVal('searchScope')==='month'?'目前年月':'全部年月';
+    const filters=[];
+    const ownersSel=searchOwnerSelectedValues();
+    if(ownersSel.length)filters.push('歸屬誰：'+ownersSel.join('、'));
+    if(searchVal('searchPayer'))filters.push('負擔：'+searchVal('searchPayer'));
+    if(searchVal('searchBank'))filters.push('銀行：'+searchVal('searchBank'));
+    if(searchVal('searchDate'))filters.push('日期：'+searchVal('searchDate'));
+    if(searchVal('searchItem'))filters.push('項目：'+searchVal('searchItem'));
+    if(searchVal('searchAmount'))filters.push('金額：'+searchVal('searchAmount'));
+    if(searchVal('searchNote'))filters.push('備註：'+searchVal('searchNote'));
+    rows.push({type:'info',cells:['搜尋範圍：'+scope+(selectedMonth?'｜目前年月：'+rocMonthText(selectedMonth):'')]});
+    if(filters.length)rows.push({type:'info',cells:['篩選條件：'+filters.join('｜')]});
+    rows.push({type:'blank',cells:[]});
+    rows.push({type:'header',cells:['年月','歸屬誰','負擔比例','銀行','消費日期','項目',filteredCopyAmountLabel(),'匯款備註']});
+    keys.forEach(owner=>{
+      const glist=filteredGroupSortRecords(groups[owner]);
+      glist.forEach(r=>rows.push({type:'data',cells:[rocMonthText(r.belongMonth||''),ownerDisplay(r),filteredBurdenDisplay(r),bankCell(r),filteredSpendDate(r),itemDisplay(r),filteredSearchAmount(r),rowClaimNoteText(r)]}));
+      const subtotal=glist.reduce((s,r)=>s+filteredSearchAmount(r),0);
+      rows.push({type:'subtotal',cells:['','','','','',owner+' 小計',subtotal,'']});
+    });
+    const total=list.reduce((s,r)=>s+filteredSearchAmount(r),0);
+    rows.push({type:'total',cells:['','','','','','總計',total,'']});
+    return rows;
+  }
+  function excelHtmlCell(v,type,idx){
+    const isNum=idx===6 && (type==='data'||type==='subtotal'||type==='total');
+    const isSumLabel=idx===5 && (type==='subtotal'||type==='total');
+    const cls=(isNum?'num ':'')+(isSumLabel?'sumlabel ':'')+(type==='header'?'hdr':type==='subtotal'?'sub':type==='total'?'tot':type==='title'?'ttl':type==='info'?'info':'');
+    const styles=['border:1px solid #cbd5e1','padding:6px 8px','vertical-align:middle'];
+    if(type==='header')styles.push('font-weight:700','background:#e2e8f0','text-align:center');
+    if(type==='subtotal')styles.push('font-weight:700','background:#fef3c7');
+    if(type==='total')styles.push('font-weight:700','background:#bbf7d0','font-size:12pt');
+    if(type==='title')styles.push('font-size:16pt','font-weight:700','background:#dbeafe','text-align:left');
+    if(type==='info')styles.push('background:#f8fafc','color:#334155');
+    if(isSumLabel)styles.push('text-align:right');
+    if(isNum){
+      const n=Math.round(Number(v)||0);
+      styles.push('text-align:right','mso-number-format:&quot;$#,##0&quot;');
+      return '<td class="'+cls+'" x:num="'+n+'" style="'+styles.join(';')+'">'+String(n)+'</td>';
     }
-    return lines;
+    return '<td class="'+cls+'" style="'+styles.join(';')+'">'+esc2(v==null?'':v)+'</td>';
+  }
+  function downloadFilteredExcel(){
+    const list=overviewFilteredList();
+    if(!list.length){w.alert('目前沒有符合篩選的資料可以下載。');return;}
+    if(!confirmUnselected(list))return;
+    const rows=filteredGroupedExportRows(list);
+    const colCount=8;
+    const htmlRows=rows.map(row=>{
+      if(row.type==='blank')return '<tr><td colspan="'+colCount+'" class="blank" style="border:none;height:8px;"></td></tr>';
+      if(row.type==='title')return '<tr><td colspan="'+colCount+'" class="ttl" style="border:1px solid #cbd5e1;padding:6px 8px;font-size:16pt;font-weight:700;background:#dbeafe;text-align:left;">'+esc2(row.cells[0]||'')+'</td></tr>';
+      if(row.type==='info')return '<tr><td colspan="'+colCount+'" class="info" style="border:1px solid #cbd5e1;padding:6px 8px;background:#f8fafc;color:#334155;">'+esc2(row.cells[0]||'')+'</td></tr>';
+      const cells=(row.cells||[]).slice();
+      while(cells.length<colCount)cells.push('');
+      return '<tr>'+cells.map((c,i)=>excelHtmlCell(c,row.type,i)).join('')+'</tr>';
+    }).join('\n');
+    const title='信用卡篩選結果';
+    const excel='<!doctype html><html xmlns:x="urn:schemas-microsoft-com:office:excel"><head><meta charset="utf-8"><style>'+ 
+      'table{border-collapse:collapse;font-family:"Microsoft JhengHei",Arial,sans-serif;font-size:11pt;}'+
+      'td{border:1px solid #cbd5e1;padding:6px 8px;vertical-align:middle;}'+
+      '.ttl{font-size:16pt;font-weight:700;background:#dbeafe;text-align:left;}'+
+      '.info{background:#f8fafc;color:#334155;}'+
+      '.hdr{font-weight:700;background:#e2e8f0;text-align:center;}'+
+      '.sub{font-weight:700;background:#fef3c7;}'+
+      '.tot{font-weight:700;background:#bbf7d0;font-size:12pt;}'+
+      '.num{text-align:right;mso-number-format:"$#,##0";}'+
+      '.sumlabel{text-align:right;}'+
+      '.blank{border:none;height:8px;}'+
+      '</style></head><body><table>'+
+      '<colgroup><col style="width:90px"><col style="width:110px"><col style="width:170px"><col style="width:120px"><col style="width:105px"><col style="width:460px"><col style="width:120px"><col style="width:220px"></colgroup>'+
+      htmlRows+'</table></body></html>';
+    const blob=new Blob(['﻿'+excel],{type:'application/vnd.ms-excel;charset=utf-8'});
+    const payer=searchVal('searchPayer')||'全部負擔';
+    const month=(searchVal('searchScope')==='month'&&selectedMonth)?rocMonthText(selectedMonth):'全部年月';
+    const safe=String(month+'_'+payer+'_篩選結果').replace(/[\/:*?"<>|\s]+/g,'_');
+    const a=doc.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download=safe+'.xls';
+    doc.body.appendChild(a);
+    a.click();
+    setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},300);
+    const total=list.reduce((s,r)=>s+filteredSearchAmount(r),0);
+    setMsg('已下載EXCEL，總計 '+fmt(total)+'。',true);
   }
   function copyOverviewFiltered(){
     const list=overviewFilteredList();
     if(!list.length){w.alert('目前沒有符合篩選的資料可以複製。');return;}
     if(!confirmUnselected(list))return;
-    copyText([filteredRowsHeader(),...list.map(rowToFilteredTsv),...filteredSubtotalLines(list)].join('\n'),'已複製篩選結果：'+list.length+' 筆，已含小計。');
+    const total=list.reduce((s,r)=>s+filteredSearchAmount(r),0);
+    copyText(filteredGroupedCopyLines(list).join('\n'),'已複製篩選結果：'+list.length+' 筆，總計 '+fmt(total)+'。');
   }
   function copyText(text,msg){
     const done=()=>setMsg(msg||'已複製。',true);
@@ -8977,9 +9132,10 @@ function openCardPasteWindow(){
   doc.getElementById('zeroBillBtn').addEventListener('click',addZeroBill);
   ['searchScope','searchOwner','searchPayer','searchClaim','searchBank','searchDate','searchItem','searchAmount','searchNote'].forEach(id=>{const el=doc.getElementById(id);if(el){el.addEventListener('input',renderOverview);el.addEventListener('change',renderOverview);}});
   const runSearchBtn=doc.getElementById('runSearchBtn');if(runSearchBtn)runSearchBtn.addEventListener('click',renderOverview);
+  const downloadFilteredExcelBtn=doc.getElementById('downloadFilteredExcelBtn');if(downloadFilteredExcelBtn)downloadFilteredExcelBtn.addEventListener('click',downloadFilteredExcel);
   const copyFilteredBtn=doc.getElementById('copyFilteredBtn');if(copyFilteredBtn)copyFilteredBtn.addEventListener('click',copyOverviewFiltered);
   const clearSearchBtn=doc.getElementById('clearSearchBtn');
-  if(clearSearchBtn)clearSearchBtn.addEventListener('click',()=>{['searchOwner','searchPayer','searchClaim','searchBank','searchDate','searchItem','searchAmount','searchNote'].forEach(id=>{const el=doc.getElementById(id);if(el){if(id==='searchOwner')clearSearchOwnerSelection();else if(el.multiple)[...el.options].forEach(o=>{o.selected=false;});else el.value='';}});const scope=doc.getElementById('searchScope');if(scope)scope.value='all';renderOverview();});
+  if(clearSearchBtn)clearSearchBtn.addEventListener('click',()=>{['searchOwner','searchPayer','searchClaim','searchBank','searchDate','searchItem','searchAmount','searchNote'].forEach(id=>{const el=doc.getElementById(id);if(el){if(id==='searchOwner')clearSearchOwnerSelection();else if(el.multiple)[...el.options].forEach(o=>{o.selected=false;});else el.value='';}});const scope=doc.getElementById('searchScope');if(scope)scope.value='month';renderOverview();});
   loadStores();
   renderOwnerManager();
   render();
