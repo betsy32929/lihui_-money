@@ -3637,11 +3637,14 @@ function isDateInActiveMonth(s){const p=dateParts(s);return !!p&&p.monthId===sta
 function normalizeItemRecordDateInput(el){
   // 項目紀錄是全域延續資料，日期可輸入任一月份；
   // 只有「從項目紀錄帶入每月帳款」時，才依目前月份篩選。
-  const v=normalizeDateInput(el);
-  if(el?.dataset?.dateInvalid)return v;
-  if(!v)return '';
+  // 項目紀錄也可先登記未來日期，因此只檢查日期格式，不套用全站的未來日期限制。
+  const old=el?.value||'';
+  const r=parseRocDateInput(old);
+  if(r.empty){clearDateFieldError(el);el.value='';return ''}
+  if(r.error){showDateFieldError(el,'日期格式錯誤');return old}
   clearDateFieldError(el);
-  return v;
+  el.value=r.value;
+  return r.value;
 }
 function makeItem(label,dateType,type='expense',opts={}){return {id:cryptoId(),label,dateType,type,amount:'',date:'',note:'',_autoNote:'',isCard:!!opts.isCard,noBill:false,detailsHidden:opts.detailsHidden!==undefined?!!opts.detailsHidden:!!opts.isCard,subItems:[],dueInfo:opts.dueInfo||'',splitMode:opts.splitMode||'none'}}
 
