@@ -4525,7 +4525,7 @@ const HOME_BANK_RULES=[{name:'大姊給款',type:'income',due:8,keys:['大姊給
 const HOME_POST_RULES=[{name:'托育',type:'income',due:null,keys:['托育']},{name:'育兒',type:'income',due:null,keys:['育兒']},{name:'轉到國泰',type:'expense',due:null,keys:['轉到國泰','轉國泰','國泰COCO','轉國泰COCO']}];
 const HOME_PERSONAL_ITEM_RULES=[
   {name:'薪資',type:'每月帳款',section:'收入薪資',match:(label)=>label.includes('收入薪資')||label.includes('薪水')||label.includes('薪資')},
-  {name:'大橋管理費',type:'大橋支出',section:'大橋支出',match:(label)=>label==='管理費'||label.includes('大橋管理費')},
+  {name:'大橋管理費',type:'大橋支出',section:'大橋支出',requireDate:true,match:(label)=>label==='管理費'||label.includes('大橋管理費')},
   {name:'大橋水費',type:'大橋支出',section:'大橋支出',match:(label)=>label.includes('大橋水費')||label.includes('大橋電費')},
   {name:'3027690',type:'大橋支出',section:'大橋支出',match:(label)=>label.includes('3027690')},
   {name:'麗卉手機',type:'大橋支出',section:'大橋支出',match:(label)=>label.includes('麗卉_遠傳')||label.includes('麗卉手機')||label.includes('0982-508-091')},
@@ -4560,14 +4560,21 @@ function personalItemHasInput(monthId,rule){
     // V183：信用卡首頁提醒只看備註欄，備註空白就算缺。
     return cardHomeReminderHasInput(it);
   }
+  if(rule.requireDate)return hasAnyText(it.date);
   return !!(hasAnyText(it.amount)||hasAnyText(it.date)||hasAnyText(it.note));
 }
-function personalHomeItemHasInput(it){
+function personalHomeItemRequiresDate(it,sectionTitle){
+  const label=String(it&&it.label||'').trim();
+  return String(sectionTitle||'').trim()==='大橋支出'&&(label==='管理費'||label.includes('大橋管理費'));
+}
+function personalHomeItemHasInput(it,sectionTitle){
   if(!it)return false;
   if(it.isCard){
     // V183：帶入本月信用卡後小計為列表自動計算，首頁提醒只看備註欄。
     return cardHomeReminderHasInput(it);
   }
+  // 大橋管理費即使已有預設金額或備註，仍須填寫日期才算完成。
+  if(personalHomeItemRequiresDate(it,sectionTitle))return hasAnyText(it.date);
   return !!(hasAnyText(it.amount)||hasAnyText(it.date)||hasAnyText(it.note));
 }
 function buildPersonalItemHomeRows(personalMonths){
@@ -4586,9 +4593,10 @@ function buildPersonalItemHomeRows(personalMonths){
       (sec.items||[]).forEach(it=>{
         const label=String(it&&it.label||'').trim();
         if(!label)return;
-        if(personalHomeItemHasInput(it))return;
+        if(personalHomeItemHasInput(it,secTitle))return;
         const key=secTitle+'｜'+label;
-        if(!map.has(key))map.set(key,{name:label,type:secTitle,missing:[],ruleText:'此月份有列出此項目但尚未填寫'});
+        const ruleText=personalHomeItemRequiresDate(it,secTitle)?'此月份的大橋管理費尚未輸入日期':'此月份有列出此項目但尚未填寫';
+        if(!map.has(key))map.set(key,{name:label,type:secTitle,missing:[],ruleText});
         map.get(key).missing.push(id);
       });
     });
