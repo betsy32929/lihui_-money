@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>麗卉每月帳款｜V233 首頁提醒日期判定修正</title>
+  <title>麗卉每月帳款｜V234 大橋志偉匯款日期</title>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
   <style>
@@ -2290,6 +2290,8 @@
 @media(max-width:980px){
   .fixed-row.normalrow.bridge-share-row{grid-template-columns:1fr 1fr!important}
 }
+.fixed-row.normalrow.bridge-share-row.has-zhiwei-date{grid-template-columns:minmax(210px,1fr) 88px 190px 118px 118px minmax(120px,1fr) 70px!important}
+@media(max-width:980px){.fixed-row.normalrow.bridge-share-row.has-zhiwei-date{grid-template-columns:1fr 1fr!important}}
 
 
 /* V220：大橋支出欄位微調；項目同大社235px，比例/日期縮短，空間給備註 */
@@ -2339,7 +2341,7 @@
   <div class="topbar">
     <div class="top-title top-title-v120">
       <div class="top-main-line">
-        <h1>麗卉每月帳款 <span class="app-version">V233</span></h1>
+        <h1>麗卉每月帳款 <span class="app-version">V234</span></h1>
         <div class="actions action-row action-row-main top-main-actions">
           <button class="act-btn act-add" onclick="addMonth()">＋新增月份</button>
           <button class="act-btn act-copy" onclick="copyCurrentMonth()">複製月份</button>
@@ -4345,6 +4347,7 @@ function switchMonthInput(){const raw=prompt('輸入月份，例如 115/5');if(!
 function clearCopiedItemData(it){
   it.amount='';
   it.date='';
+  it.bridgeZhiweiTransferDate='';
   it.note='';
   it._autoNote='';
   if(it.isCard){
@@ -4362,6 +4365,8 @@ function prepareCopiedMonthData(sourceMonth,fromId,toId){
   // 從 115/03 複製到 115/04 時仍會保留，避免每月重複輸入，也避免零用金重複扣。
   (((copied.personal||{}).sections)||[]).forEach(sec=>{
     (sec.items||[]).forEach(it=>{
+      // 志偉匯款日期屬於當月請款完成紀錄，複製月份時一律清空。
+      it.bridgeZhiweiTransferDate='';
       const dp=dateParts(it.date||'');
       const keepBecauseNotSourceMonth=!!(it.date && dp && dp.monthId!==fromId);
       if(!keepBecauseNotSourceMonth){
@@ -5488,7 +5493,8 @@ function renderBridgeShareFixedRow(it,secIdx,idx){
   const lp=bridgePctValue(it,'lihui'), zp=bridgePctValue(it,'zhiwei');
   const lAmt=bridgeShareAmount(state.activeMonth,it,base,'lihui');
   const zAmt=bridgeShareAmount(state.activeMonth,it,base,'zhiwei');
-  return `<div class="fixed-row normalrow bridge-share-row"><div><div class="tiny">項目${fixedNote}</div><input class="labelcell" value="${esc(it.label)}" oninput="setItem(${secIdx},${idx},'label',this.value)"></div><div><div class="tiny">金額</div><input inputmode="numeric" class="amountinp" value="${esc(it.amount)}" oninput="this.value=moneyOnly(this.value);setItem(${secIdx},${idx},'amount',this.value)" placeholder="0"></div><div><div class="tiny">負擔比例</div><div class="bridge-pct-pack"><div class="bridge-pct-cell"><input inputmode="decimal" value="${esc(bridgeCleanPct(lp))}" onchange="setBridgePct(${secIdx},${idx},'bridgeLihuiPct',this.value)" placeholder="麗卉%"><input inputmode="decimal" value="${esc(bridgeCleanPct(zp))}" onchange="setBridgePct(${secIdx},${idx},'bridgeZhiweiPct',this.value)" placeholder="志偉%"></div><div class="bridge-pct-amounts"><span>麗卉 ${esc(fmt(lAmt,true))}</span><span>志偉 ${esc(fmt(zAmt,true))}</span></div></div></div><div><div class="tiny">${esc(it.dateType)}</div><input value="${esc(it.date)}" onchange="this.value=normalizeDateInput(this);setItem(${secIdx},${idx},'date',this.value)" placeholder="115/6/8"></div><div><div class="tiny">備註</div><input value="${esc(it.note)}" oninput="setItem(${secIdx},${idx},'note',this.value)" placeholder="備註事項"></div><div><div class="tiny">&nbsp;</div><div class="row-actions"><button class="iconbtn keep" onclick="clearPersonalItemData(${secIdx},${idx})">清</button><button class="iconbtn del" onclick="deletePersonalItem(${secIdx},${idx})">刪</button></div></div></div>`
+  const zhiweiDate=zp>0?`<div><div class="tiny">志偉匯款日期</div><input value="${esc(it.bridgeZhiweiTransferDate||'')}" onchange="this.value=normalizeDateInput(this);setItem(${secIdx},${idx},'bridgeZhiweiTransferDate',this.value)" placeholder="115/7/15"></div>`:'';
+  return `<div class="fixed-row normalrow bridge-share-row ${zp>0?'has-zhiwei-date':''}"><div><div class="tiny">項目${fixedNote}</div><input class="labelcell" value="${esc(it.label)}" oninput="setItem(${secIdx},${idx},'label',this.value)"></div><div><div class="tiny">金額</div><input inputmode="numeric" class="amountinp" value="${esc(it.amount)}" oninput="this.value=moneyOnly(this.value);setItem(${secIdx},${idx},'amount',this.value)" placeholder="0"></div><div><div class="tiny">負擔比例</div><div class="bridge-pct-pack"><div class="bridge-pct-cell"><input inputmode="decimal" value="${esc(bridgeCleanPct(lp))}" onchange="setBridgePct(${secIdx},${idx},'bridgeLihuiPct',this.value)" placeholder="麗卉%"><input inputmode="decimal" value="${esc(bridgeCleanPct(zp))}" onchange="setBridgePct(${secIdx},${idx},'bridgeZhiweiPct',this.value)" placeholder="志偉%"></div><div class="bridge-pct-amounts"><span>麗卉 ${esc(fmt(lAmt,true))}</span><span>志偉 ${esc(fmt(zAmt,true))}</span></div></div></div><div><div class="tiny">${esc(it.dateType)}</div><input value="${esc(it.date)}" onchange="this.value=normalizeDateInput(this);setItem(${secIdx},${idx},'date',this.value)" placeholder="115/6/8"></div>${zhiweiDate}<div><div class="tiny">備註</div><input value="${esc(it.note)}" oninput="setItem(${secIdx},${idx},'note',this.value)" placeholder="備註事項"></div><div><div class="tiny">&nbsp;</div><div class="row-actions"><button class="iconbtn keep" onclick="clearPersonalItemData(${secIdx},${idx})">清</button><button class="iconbtn del" onclick="deletePersonalItem(${secIdx},${idx})">刪</button></div></div></div>`
 }
 function extractRocDateFromMainCardText(raw){
   const s=String(raw||'').trim();
@@ -5597,6 +5603,7 @@ function clearPersonalItemData(si,ii){
   const fixed=getFixedDefaultAmount(it.label);
   it.amount=fixed||'';
   it.date='';
+  it.bridgeZhiweiTransferDate='';
   it.note='';
   it._autoNote='';
   if(it.isCard){
@@ -9186,7 +9193,7 @@ function safeWriteLocalJSON(key,val){
 let lastCardPasteRestoreCount=0;
 function buildCardPasteBackup(){
   return {
-    version:'V233',
+    version:'V234',
     exportedAt:new Date().toISOString(),
     records:safeReadLocalJSON('lihui_card_paste_records_v4',[]),
     legacyRecords:safeReadLocalJSON('lihui_card_paste_records_v3',[]),
