@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>麗卉每月帳款｜V234 大橋志偉匯款日期</title>
+  <title>麗卉每月帳款｜V235 志偉匯款日期首頁提醒</title>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
   <style>
@@ -2341,7 +2341,7 @@
   <div class="topbar">
     <div class="top-title top-title-v120">
       <div class="top-main-line">
-        <h1>麗卉每月帳款 <span class="app-version">V234</span></h1>
+        <h1>麗卉每月帳款 <span class="app-version">V235</span></h1>
         <div class="actions action-row action-row-main top-main-actions">
           <button class="act-btn act-add" onclick="addMonth()">＋新增月份</button>
           <button class="act-btn act-copy" onclick="copyCurrentMonth()">複製月份</button>
@@ -4599,6 +4599,11 @@ function buildPersonalItemHomeRows(personalMonths){
       (sec.items||[]).forEach(it=>{
         const label=String(it&&it.label||'').trim();
         if(!label)return;
+        if(secTitle==='大橋支出'&&bridgeShareEnabled(id)&&bridgePctValue(it,'zhiwei')>0&&!hasAnyText(it.bridgeZhiweiTransferDate)){
+          const claimKey=secTitle+'｜'+label+'｜志偉匯款日期';
+          if(!map.has(claimKey))map.set(claimKey,{name:label+'｜志偉匯款',type:secTitle,missing:[],ruleText:'此月份有志偉負擔，尚未輸入志偉匯款日期'});
+          map.get(claimKey).missing.push(id);
+        }
         if(personalHomeItemHasInput(it,secTitle))return;
         const key=secTitle+'｜'+label;
         const ruleText=personalHomeItemRequiresDate(it,secTitle)?'此月份的大橋管理費尚未輸入日期':'此月份有列出此項目但尚未填寫';
@@ -9193,7 +9198,7 @@ function safeWriteLocalJSON(key,val){
 let lastCardPasteRestoreCount=0;
 function buildCardPasteBackup(){
   return {
-    version:'V234',
+    version:'V235',
     exportedAt:new Date().toISOString(),
     records:safeReadLocalJSON('lihui_card_paste_records_v4',[]),
     legacyRecords:safeReadLocalJSON('lihui_card_paste_records_v3',[]),
