@@ -4456,7 +4456,8 @@ function monthsMentionedInDadLivingBankTx(t){
   while((m=multiMonthRe.exec(text))){
     if(!txp)continue;String(m[1]).split(/[、,，.．]/).forEach(x=>{const mm=+String(x).trim();if(mm>=1&&mm<=12)out.add(`${txp.year}-${String(mm).padStart(2,'0')}`);});
   }
-  const rocDateRe=/(\d{2,3})\/(\d{1,2})(?:\/(\d{1,2}))?/g;
+  // 民國年只接受獨立的 2～3 位數，避免把西元 2026/07/15 從中間誤讀成 026/07/15。
+  const rocDateRe=/(?<![\d/])(\d{2,3})\/(\d{1,2})(?:\/(\d{1,2}))?/g;
   while((m=rocDateRe.exec(text))){const id=monthIdFromRoc(m[1],m[2]);if(id)out.add(id);}
   const rocYearMonthRe=/(\d{2,3})\s*年\s*(\d{1,2})\s*月/g;
   while((m=rocYearMonthRe.exec(text))){const id=monthIdFromRoc(m[1],m[2]);if(id)out.add(id);}
