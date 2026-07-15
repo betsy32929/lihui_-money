@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>麗卉每月帳款｜V235 志偉匯款日期首頁提醒</title>
+  <title>麗卉每月帳款｜V236 大橋欄位對齊</title>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
   <style>
@@ -2341,7 +2341,7 @@
   <div class="topbar">
     <div class="top-title top-title-v120">
       <div class="top-main-line">
-        <h1>麗卉每月帳款 <span class="app-version">V235</span></h1>
+        <h1>麗卉每月帳款 <span class="app-version">V236</span></h1>
         <div class="actions action-row action-row-main top-main-actions">
           <button class="act-btn act-add" onclick="addMonth()">＋新增月份</button>
           <button class="act-btn act-copy" onclick="copyCurrentMonth()">複製月份</button>
@@ -4599,7 +4599,8 @@ function buildPersonalItemHomeRows(personalMonths){
       (sec.items||[]).forEach(it=>{
         const label=String(it&&it.label||'').trim();
         if(!label)return;
-        if(secTitle==='大橋支出'&&bridgeShareEnabled(id)&&bridgePctValue(it,'zhiwei')>0&&!hasAnyText(it.bridgeZhiweiTransferDate)){
+        const zhiweiPct=bridgePctValue(it,'zhiwei');
+        if(secTitle==='大橋支出'&&bridgeShareEnabled(id)&&zhiweiPct>0&&zhiweiPct<100&&!hasAnyText(it.bridgeZhiweiTransferDate)){
           const claimKey=secTitle+'｜'+label+'｜志偉匯款日期';
           if(!map.has(claimKey))map.set(claimKey,{name:label+'｜志偉匯款',type:secTitle,missing:[],ruleText:'此月份有志偉負擔，尚未輸入志偉匯款日期'});
           map.get(claimKey).missing.push(id);
@@ -5498,8 +5499,9 @@ function renderBridgeShareFixedRow(it,secIdx,idx){
   const lp=bridgePctValue(it,'lihui'), zp=bridgePctValue(it,'zhiwei');
   const lAmt=bridgeShareAmount(state.activeMonth,it,base,'lihui');
   const zAmt=bridgeShareAmount(state.activeMonth,it,base,'zhiwei');
-  const zhiweiDate=zp>0?`<div><div class="tiny">志偉匯款日期</div><input value="${esc(it.bridgeZhiweiTransferDate||'')}" onchange="this.value=normalizeDateInput(this);setItem(${secIdx},${idx},'bridgeZhiweiTransferDate',this.value)" placeholder="115/7/15"></div>`:'';
-  return `<div class="fixed-row normalrow bridge-share-row ${zp>0?'has-zhiwei-date':''}"><div><div class="tiny">項目${fixedNote}</div><input class="labelcell" value="${esc(it.label)}" oninput="setItem(${secIdx},${idx},'label',this.value)"></div><div><div class="tiny">金額</div><input inputmode="numeric" class="amountinp" value="${esc(it.amount)}" oninput="this.value=moneyOnly(this.value);setItem(${secIdx},${idx},'amount',this.value)" placeholder="0"></div><div><div class="tiny">負擔比例</div><div class="bridge-pct-pack"><div class="bridge-pct-cell"><input inputmode="decimal" value="${esc(bridgeCleanPct(lp))}" onchange="setBridgePct(${secIdx},${idx},'bridgeLihuiPct',this.value)" placeholder="麗卉%"><input inputmode="decimal" value="${esc(bridgeCleanPct(zp))}" onchange="setBridgePct(${secIdx},${idx},'bridgeZhiweiPct',this.value)" placeholder="志偉%"></div><div class="bridge-pct-amounts"><span>麗卉 ${esc(fmt(lAmt,true))}</span><span>志偉 ${esc(fmt(zAmt,true))}</span></div></div></div><div><div class="tiny">${esc(it.dateType)}</div><input value="${esc(it.date)}" onchange="this.value=normalizeDateInput(this);setItem(${secIdx},${idx},'date',this.value)" placeholder="115/6/8"></div>${zhiweiDate}<div><div class="tiny">備註</div><input value="${esc(it.note)}" oninput="setItem(${secIdx},${idx},'note',this.value)" placeholder="備註事項"></div><div><div class="tiny">&nbsp;</div><div class="row-actions"><button class="iconbtn keep" onclick="clearPersonalItemData(${secIdx},${idx})">清</button><button class="iconbtn del" onclick="deletePersonalItem(${secIdx},${idx})">刪</button></div></div></div>`
+  const needsZhiweiTransferDate=zp>0&&zp<100;
+  const zhiweiDate=needsZhiweiTransferDate?`<div><div class="tiny">志偉匯款日期</div><input value="${esc(it.bridgeZhiweiTransferDate||'')}" onchange="this.value=normalizeDateInput(this);setItem(${secIdx},${idx},'bridgeZhiweiTransferDate',this.value)" placeholder="115/7/15"></div>`:'<div class="bridge-zhiwei-date-placeholder" aria-hidden="true"></div>';
+  return `<div class="fixed-row normalrow bridge-share-row has-zhiwei-date"><div><div class="tiny">項目${fixedNote}</div><input class="labelcell" value="${esc(it.label)}" oninput="setItem(${secIdx},${idx},'label',this.value)"></div><div><div class="tiny">金額</div><input inputmode="numeric" class="amountinp" value="${esc(it.amount)}" oninput="this.value=moneyOnly(this.value);setItem(${secIdx},${idx},'amount',this.value)" placeholder="0"></div><div><div class="tiny">負擔比例</div><div class="bridge-pct-pack"><div class="bridge-pct-cell"><input inputmode="decimal" value="${esc(bridgeCleanPct(lp))}" onchange="setBridgePct(${secIdx},${idx},'bridgeLihuiPct',this.value)" placeholder="麗卉%"><input inputmode="decimal" value="${esc(bridgeCleanPct(zp))}" onchange="setBridgePct(${secIdx},${idx},'bridgeZhiweiPct',this.value)" placeholder="志偉%"></div><div class="bridge-pct-amounts"><span>麗卉 ${esc(fmt(lAmt,true))}</span><span>志偉 ${esc(fmt(zAmt,true))}</span></div></div></div><div><div class="tiny">${esc(it.dateType)}</div><input value="${esc(it.date)}" onchange="this.value=normalizeDateInput(this);setItem(${secIdx},${idx},'date',this.value)" placeholder="115/6/8"></div>${zhiweiDate}<div><div class="tiny">備註</div><input value="${esc(it.note)}" oninput="setItem(${secIdx},${idx},'note',this.value)" placeholder="備註事項"></div><div><div class="tiny">&nbsp;</div><div class="row-actions"><button class="iconbtn keep" onclick="clearPersonalItemData(${secIdx},${idx})">清</button><button class="iconbtn del" onclick="deletePersonalItem(${secIdx},${idx})">刪</button></div></div></div>`
 }
 function extractRocDateFromMainCardText(raw){
   const s=String(raw||'').trim();
@@ -9198,7 +9200,7 @@ function safeWriteLocalJSON(key,val){
 let lastCardPasteRestoreCount=0;
 function buildCardPasteBackup(){
   return {
-    version:'V235',
+    version:'V236',
     exportedAt:new Date().toISOString(),
     records:safeReadLocalJSON('lihui_card_paste_records_v4',[]),
     legacyRecords:safeReadLocalJSON('lihui_card_paste_records_v3',[]),
