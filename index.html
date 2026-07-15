@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>麗卉每月帳款｜V236 大橋欄位對齊</title>
+  <title>麗卉每月帳款｜V237 大橋欄寬調整</title>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
   <style>
@@ -2290,7 +2290,7 @@
 @media(max-width:980px){
   .fixed-row.normalrow.bridge-share-row{grid-template-columns:1fr 1fr!important}
 }
-.fixed-row.normalrow.bridge-share-row.has-zhiwei-date{grid-template-columns:minmax(210px,1fr) 88px 190px 118px 118px minmax(120px,1fr) 70px!important}
+.fixed-row.normalrow.bridge-share-row.has-zhiwei-date{grid-template-columns:235px 100px 190px 118px 118px minmax(120px,1fr) 70px!important}
 @media(max-width:980px){.fixed-row.normalrow.bridge-share-row.has-zhiwei-date{grid-template-columns:1fr 1fr!important}}
 
 
@@ -2341,7 +2341,7 @@
   <div class="topbar">
     <div class="top-title top-title-v120">
       <div class="top-main-line">
-        <h1>麗卉每月帳款 <span class="app-version">V236</span></h1>
+        <h1>麗卉每月帳款 <span class="app-version">V237</span></h1>
         <div class="actions action-row action-row-main top-main-actions">
           <button class="act-btn act-add" onclick="addMonth()">＋新增月份</button>
           <button class="act-btn act-copy" onclick="copyCurrentMonth()">複製月份</button>
@@ -9200,7 +9200,7 @@ function safeWriteLocalJSON(key,val){
 let lastCardPasteRestoreCount=0;
 function buildCardPasteBackup(){
   return {
-    version:'V236',
+    version:'V237',
     exportedAt:new Date().toISOString(),
     records:safeReadLocalJSON('lihui_card_paste_records_v4',[]),
     legacyRecords:safeReadLocalJSON('lihui_card_paste_records_v3',[]),
