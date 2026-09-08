@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>麗卉每月帳款｜V240 同日最後一筆優先顯示</title>
+  <title>麗卉每月帳款｜V241 同日最終餘額優先顯示</title>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
   <style>
@@ -2341,7 +2341,7 @@
   <div class="topbar">
     <div class="top-title top-title-v120">
       <div class="top-main-line">
-        <h1>麗卉每月帳款 <span class="app-version">V240</span></h1>
+        <h1>麗卉每月帳款 <span class="app-version">V241</span></h1>
         <div class="actions action-row action-row-main top-main-actions">
           <button class="act-btn act-add" onclick="addMonth()">＋新增月份</button>
           <button class="act-btn act-copy" onclick="copyCurrentMonth()">複製月份</button>
@@ -3619,11 +3619,15 @@ function sortDateNearToFarEntries(list,options={}){
   const sameDateNewestFirst=!!options.sameDateNewestFirst;
   return (list||[]).map((item,index)=>({item,index}))
     .sort((a,b)=>{
-      if(a.item._newTop&&!b.item._newTop)return -1;
-      if(b.item._newTop&&!a.item._newTop)return 1;
       const av=dateValue(a.item.date), bv=dateValue(b.item.date);
       if(av!==bv)return bv-av;
-      return sameDateNewestFirst?b.index-a.index:a.index-b.index;
+      // 有日期且同一天時，以餘額計算使用的原始順序反向顯示，
+      // 確保當日最後計算（最終餘額）那一筆位於最上方。
+      if(av&&sameDateNewestFirst)return b.index-a.index;
+      // _newTop 只處理尚未填日期的暫存列，不得蓋過同日最終餘額排序。
+      if(a.item._newTop&&!b.item._newTop)return -1;
+      if(b.item._newTop&&!a.item._newTop)return 1;
+      return a.index-b.index;
     });
 }
 function sortPettyRowsNearToFar(rows){
@@ -9229,7 +9233,7 @@ function safeWriteLocalJSON(key,val){
 let lastCardPasteRestoreCount=0;
 function buildCardPasteBackup(){
   return {
-    version:'V240',
+    version:'V241',
     exportedAt:new Date().toISOString(),
     records:safeReadLocalJSON('lihui_card_paste_records_v4',[]),
     legacyRecords:safeReadLocalJSON('lihui_card_paste_records_v3',[]),
