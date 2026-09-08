@@ -6,7 +6,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
-  <title>麗卉每月帳款｜V242 同日最終餘額優先顯示</title>
+  <title>麗卉每月帳款｜V243 零用金同日最終餘額優先</title>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
   <style>
@@ -2344,7 +2344,7 @@
   <div class="topbar">
     <div class="top-title top-title-v120">
       <div class="top-main-line">
-        <h1>麗卉每月帳款 <span class="app-version">V242</span></h1>
+        <h1>麗卉每月帳款 <span class="app-version">V243</span></h1>
         <div class="actions action-row action-row-main top-main-actions">
           <button class="act-btn act-add" onclick="addMonth()">＋新增月份</button>
           <button class="act-btn act-copy" onclick="copyCurrentMonth()">複製月份</button>
@@ -3633,15 +3633,17 @@ function sortDateNearToFarEntries(list,options={}){
       return a.index-b.index;
     });
 }
-function sortPettyRowsNearToFar(rows){
-  return (rows||[]).slice().sort((a,b)=>{
-    const av=dateValue(a.date), bv=dateValue(b.date);
+function sortPettyRowsNearToFar(rows,options={}){
+  const sameDateNewestFirst=!!options.sameDateNewestFirst;
+  return (rows||[]).map((item,index)=>({item,index})).sort((a,b)=>{
+    const av=dateValue(a.item.date), bv=dateValue(b.item.date);
     if(av!==bv)return bv-av;
     // 期初餘額沒有日期，固定放最下面，避免卡在最上面。
-    if(a.type==='start'&&b.type!=='start')return 1;
-    if(b.type==='start'&&a.type!=='start')return -1;
-    return 0;
-  });
+    if(a.item.type==='start'&&b.item.type!=='start')return 1;
+    if(b.item.type==='start'&&a.item.type!=='start')return -1;
+    if(av&&sameDateNewestFirst)return b.index-a.index;
+    return a.index-b.index;
+  }).map(entry=>entry.item);
 }
 function dateParts(s){const v=normalizeDate(s,{silent:true});const m=String(v).match(/^(\d{2,4})\/(\d{1,2})\/(\d{1,2})$/);if(!m)return null;let y=+m[1];if(y<300)y+=1911;const mo=+m[2],d=+m[3];return {year:y,month:mo,day:d,monthId:`${y}-${String(mo).padStart(2,'0')}`}}
 function isDateInActiveMonth(s){const p=dateParts(s);return !!p&&p.monthId===state.activeMonth}
@@ -6274,7 +6276,7 @@ function renderPettyPage(){
 }
 function renderPettyInput(who){const prefix=who==='dajie'?'dajie':'erjie';return `<div class="petty-manual-form"><div><div class="tiny">日期</div><input id="${prefix}_date" placeholder="5/3" onchange="this.value=normalizeDateInput(this)"></div><div><div class="tiny">收入</div><input id="${prefix}_income" inputmode="numeric" class="amountinp" placeholder="0" oninput="this.value=moneyOnly(this.value)"></div><div><div class="tiny">支出</div><input id="${prefix}_expense" inputmode="numeric" class="amountinp" placeholder="0" oninput="this.value=moneyOnly(this.value)"></div><div><div class="tiny">備註</div><input id="${prefix}_note" class="petty-note-input" placeholder="備註一列輸入，不換行"></div><button class="softbtn green" onclick="addPettyCashflow('${who}')">新增</button></div>`}
 function renderPettyCard(title,who,rows,end){
-  const displayRows=sortPettyRowsNearToFar(rows);
+  const displayRows=sortPettyRowsNearToFar(rows,{sameDateNewestFirst:true});
   const balances=pettyBalanceMap(who,rows);
   const p=getGlobalData().taiwanBank.petty;
   const startKey=who==='dajie'?'dajieStart':'erjieStart';
@@ -9236,7 +9238,7 @@ function safeWriteLocalJSON(key,val){
 let lastCardPasteRestoreCount=0;
 function buildCardPasteBackup(){
   return {
-    version:'V242',
+    version:'V243',
     exportedAt:new Date().toISOString(),
     records:safeReadLocalJSON('lihui_card_paste_records_v4',[]),
     legacyRecords:safeReadLocalJSON('lihui_card_paste_records_v3',[]),
