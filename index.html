@@ -6,7 +6,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
-  <title>麗卉每月帳款｜V243 零用金同日最終餘額優先</title>
+  <title>麗卉每月帳款｜V244 托育收入提醒截止</title>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
   <style>
@@ -2344,7 +2344,7 @@
   <div class="topbar">
     <div class="top-title top-title-v120">
       <div class="top-main-line">
-        <h1>麗卉每月帳款 <span class="app-version">V243</span></h1>
+        <h1>麗卉每月帳款 <span class="app-version">V244</span></h1>
         <div class="actions action-row action-row-main top-main-actions">
           <button class="act-btn act-add" onclick="addMonth()">＋新增月份</button>
           <button class="act-btn act-copy" onclick="copyCurrentMonth()">複製月份</button>
@@ -4538,7 +4538,7 @@ function hasLedgerMonth(kind,monthId,type,keys){const txs=(getGlobalData()[kind]
 function mobileRecordMonthExists(name,monthId){const nums=(getGlobalData().mobile||{}).numbers||{};const want=normalizeServiceName(name);const wantDigits=String(want).replace(/\D/g,'');const key=Object.keys(nums).find(k=>k===want||normalizeServiceName(k)===want||(wantDigits&&String(k).replace(/\D/g,'')===wantDigits));const records=key?(nums[key].records||[]):[];return records.some(r=>dateParts(r.dueDate)?.monthId===monthId);}
 const HOME_MOBILE_RULES=[{name:'長照',due:10,key:'長照'},{name:'0910-810-529',due:10,key:'0910-810-529'},{name:'0981-834-553',due:25,key:'0981-834-553'},{name:'0982-508-091',due:10,key:'0982-508-091'},{name:'中華電信06-3027690',due:10,key:'中華電信06-3027690'},{name:'中華電信07-3520179',due:15,key:'中華電信07-3520179'}];
 const HOME_BANK_RULES=[{name:'大姊給款',type:'income',due:8,keys:['大姊給款']},{name:'給爸生活費',type:'expense',due:null,keys:[DAD_LIVING_BANK_ITEM_KEY]}];
-const HOME_POST_RULES=[{name:'托育',type:'income',due:null,keys:['托育']},{name:'育兒',type:'income',due:null,keys:['育兒']},{name:'轉到國泰',type:'expense',due:null,keys:['轉到國泰','轉國泰','國泰COCO','轉國泰COCO']}];
+const HOME_POST_RULES=[{name:'托育',type:'income',due:null,keys:['托育'],endMonth:'2026-07'},{name:'育兒',type:'income',due:null,keys:['育兒']},{name:'轉到國泰',type:'expense',due:null,keys:['轉到國泰','轉國泰','國泰COCO','轉國泰COCO']}];
 const HOME_PERSONAL_ITEM_RULES=[
   {name:'薪資',type:'每月帳款',section:'收入薪資',match:(label)=>label.includes('收入薪資')||label.includes('薪水')||label.includes('薪資')},
   {name:'大橋管理費',type:'大橋支出',section:'大橋支出',requireDate:true,match:(label)=>label==='管理費'||label.includes('大橋管理費')},
@@ -4684,7 +4684,7 @@ function buildHomeReminderData(){
   });
   const mgMissing=getLaiyaManagementMissingMonths();
   bankRows.push({name:'麗雅大社管理費',type:'expense',due:null,keys:['麗雅大社半年管理費'],months:mgMissing,missing:mgMissing,ruleText:'臺灣銀行尚未匯款給麗卉帳戶'});
-  const postRows=HOME_POST_RULES.map(r=>{const months=reminderMonthsNoDue();return {...r,months,missing:months.filter(id=>!hasLedgerMonth('postOffice',id,r.type,r.keys))};});
+  const postRows=HOME_POST_RULES.map(r=>{const months=reminderMonthsNoDue().filter(id=>!r.endMonth||id<=r.endMonth);return {...r,months,missing:months.filter(id=>!hasLedgerMonth('postOffice',id,r.type,r.keys))};});
   const cardRows=buildCardPasteHomeRows();
   return {personalMissing,personalItemRows,mobileRows,bankRows,postRows,cardRows};
 }
@@ -9238,7 +9238,7 @@ function safeWriteLocalJSON(key,val){
 let lastCardPasteRestoreCount=0;
 function buildCardPasteBackup(){
   return {
-    version:'V243',
+    version:'V244',
     exportedAt:new Date().toISOString(),
     records:safeReadLocalJSON('lihui_card_paste_records_v4',[]),
     legacyRecords:safeReadLocalJSON('lihui_card_paste_records_v3',[]),
