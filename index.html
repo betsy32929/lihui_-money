@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>麗卉每月帳款｜V239 郵局帳款下載EXCEL</title>
+  <title>麗卉每月帳款｜V240 同日最後一筆優先顯示</title>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
   <style>
@@ -2341,7 +2341,7 @@
   <div class="topbar">
     <div class="top-title top-title-v120">
       <div class="top-main-line">
-        <h1>麗卉每月帳款 <span class="app-version">V239</span></h1>
+        <h1>麗卉每月帳款 <span class="app-version">V240</span></h1>
         <div class="actions action-row action-row-main top-main-actions">
           <button class="act-btn act-add" onclick="addMonth()">＋新增月份</button>
           <button class="act-btn act-copy" onclick="copyCurrentMonth()">複製月份</button>
@@ -3614,15 +3614,16 @@ function normalizeDateInput(el){
   return r.value
 }
 function dateValue(s){s=normalizeDate(s,{silent:true});const m=String(s).match(/^(\d{2,4})\/(\d{1,2})\/(\d{1,2})$/);if(!m)return 0;let y=+m[1];if(y<300)y+=1911;return y*10000+(+m[2])*100+(+m[3])}
-function sortDateNearToFarEntries(list){
-  // 日期近到遠：較新的日期排前面；快速按鈕剛新增的資料固定在第一列方便輸入。
+function sortDateNearToFarEntries(list,options={}){
+  // 日期近到遠；畫面可選擇同日最後輸入的資料排前面，但不改原始陣列與餘額計算順序。
+  const sameDateNewestFirst=!!options.sameDateNewestFirst;
   return (list||[]).map((item,index)=>({item,index}))
     .sort((a,b)=>{
       if(a.item._newTop&&!b.item._newTop)return -1;
       if(b.item._newTop&&!a.item._newTop)return 1;
       const av=dateValue(a.item.date), bv=dateValue(b.item.date);
       if(av!==bv)return bv-av;
-      return a.index-b.index;
+      return sameDateNewestFirst?b.index-a.index:a.index-b.index;
     });
 }
 function sortPettyRowsNearToFar(rows){
@@ -5851,7 +5852,7 @@ function renderLedgerForm(kind,id){
 function renderLedgerTable(kind){
   const txs=getGlobalData()[kind].txs||[];
   if(!txs.length)return '<div class="empty">目前沒有明細</div>';
-  const rows=sortDateNearToFarEntries(txs);
+  const rows=sortDateNearToFarEntries(txs,{sameDateNewestFirst:true});
   const balances=ledgerBalanceMap(txs);
   return `<table class="ledger-table cashflow-table excel-copy-table" data-copy-kind="${kind}">
     <thead><tr><th>日期</th><th>收入</th><th>支出</th><th>餘額</th><th>備註</th><th></th></tr></thead>
@@ -9228,7 +9229,7 @@ function safeWriteLocalJSON(key,val){
 let lastCardPasteRestoreCount=0;
 function buildCardPasteBackup(){
   return {
-    version:'V239',
+    version:'V240',
     exportedAt:new Date().toISOString(),
     records:safeReadLocalJSON('lihui_card_paste_records_v4',[]),
     legacyRecords:safeReadLocalJSON('lihui_card_paste_records_v3',[]),
