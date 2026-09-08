@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>麗卉每月帳款｜V238 大橋比例欄縮短</title>
+  <title>麗卉每月帳款｜V239 郵局帳款下載EXCEL</title>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
   <style>
@@ -2341,7 +2341,7 @@
   <div class="topbar">
     <div class="top-title top-title-v120">
       <div class="top-main-line">
-        <h1>麗卉每月帳款 <span class="app-version">V238</span></h1>
+        <h1>麗卉每月帳款 <span class="app-version">V239</span></h1>
         <div class="actions action-row action-row-main top-main-actions">
           <button class="act-btn act-add" onclick="addMonth()">＋新增月份</button>
           <button class="act-btn act-copy" onclick="copyCurrentMonth()">複製月份</button>
@@ -5840,7 +5840,7 @@ function renderQuickPostButtons(){const list=state.postQuickButtons||[];return `
 
 function renderLedger(kind){
   const isPost=kind==='postOffice';const title=isPost?'郵局帳款':'台灣銀行帳款';const id=isPost?'post':'bank';const txs=getGlobalData()[kind].txs||[];const c=calcLedger(txs);
-  const copyBtn=isPost?'':`<button type="button" class="softbtn blue" onclick="copyLedgerForExcel('taiwanBank',this)">複製EXCEL格式</button>`;
+  const copyBtn=isPost?`<button type="button" class="softbtn green" onclick="downloadLedgerExcel('postOffice',this)">下載EXCEL</button>`:`<button type="button" class="softbtn blue" onclick="copyLedgerForExcel('taiwanBank',this)">複製EXCEL格式</button>`;
   const quickButtons=isPost?renderQuickPostButtons():'';
   document.getElementById('main').innerHTML=`<div class="panel alt"><div class="panel-title"><div><h2>${title}</h2></div><div class="copy-excel-actions">${copyBtn}<span class="tag bal ${c.balance<0?'negative':''}">餘 ${fmt(c.balance,true)}</span></div></div>${quickButtons}${renderLedgerForm(kind,id)}${renderLedgerTable(kind)}</div>`
 }
@@ -6001,6 +6001,34 @@ function ledgerExcelRows(kind){
 }
 function copyLedgerForExcel(kind,btn){
   copyRowsForExcel(ledgerExcelRows(kind),kind==='taiwanBank'?'台灣銀行帳款':'郵局帳款',btn);
+}
+function downloadLedgerExcel(kind,btn){
+  const label=kind==='postOffice'?'郵局帳款':'台灣銀行帳款';
+  const rows=ledgerExcelRows(kind);
+  if(rows.length<=1){alert('目前沒有'+label+'明細可以下載。');return}
+  if(!confirmAction('確定下載「'+label+'」EXCEL？'))return;
+  const now=new Date();
+  const rocToday=`${now.getFullYear()-1911}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+  const fileName=`${label}_${rocToday}.xlsx`;
+  if(window.XLSX){
+    const wb=XLSX.utils.book_new();
+    const ws=XLSX.utils.aoa_to_sheet(rows);
+    ws['!cols']=[{wch:14},{wch:14},{wch:14},{wch:14},{wch:42}];
+    ws['!autofilter']={ref:`A1:E${rows.length}`};
+    XLSX.utils.book_append_sheet(wb,ws,label);
+    XLSX.writeFile(wb,fileName);
+  }else{
+    const csv=rows.map(r=>r.map(c=>'"'+String(c??'').replace(/"/g,'""')+'"').join(',')).join('\n');
+    const blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'});
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download=fileName.replace(/\.xlsx$/i,'.csv');
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+  const st=document.getElementById('saveText');
+  if(st)st.textContent='已下載：'+label+' EXCEL';
+  flashCopyButton(btn,true);
 }
 function copyLedgerRowForExcel(kind,i,btn){
   const txs=getGlobalData()[kind].txs||[];
@@ -9200,7 +9228,7 @@ function safeWriteLocalJSON(key,val){
 let lastCardPasteRestoreCount=0;
 function buildCardPasteBackup(){
   return {
-    version:'V238',
+    version:'V239',
     exportedAt:new Date().toISOString(),
     records:safeReadLocalJSON('lihui_card_paste_records_v4',[]),
     legacyRecords:safeReadLocalJSON('lihui_card_paste_records_v3',[]),
