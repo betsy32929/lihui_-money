@@ -6,7 +6,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
-  <title>麗卉每月帳款｜V245 未來日期到期確認</title>
+  <title>麗卉每月帳款｜V246 信用卡中文日期貼上</title>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
   <style>
@@ -2344,7 +2344,7 @@
   <div class="topbar">
     <div class="top-title top-title-v120">
       <div class="top-main-line">
-        <h1>麗卉每月帳款 <span class="app-version">V245</span></h1>
+        <h1>麗卉每月帳款 <span class="app-version">V246</span></h1>
         <div class="actions action-row action-row-main top-main-actions">
           <button class="act-btn act-add" onclick="addMonth()">＋新增月份</button>
           <button class="act-btn act-copy" onclick="copyCurrentMonth()">複製月份</button>
@@ -8441,7 +8441,8 @@ function openCardPasteWindow(){
   }
   function parseAmount(s){const m=String(s||'').match(/-?\d[\d,，]*$/);return m?m[0].replace(/[，,]/g,''):'';}
   function shortMD(s,payDate){
-    const m=String(s||'').match(/(\d{4})[\/.-](\d{1,2})[\/.-](\d{1,2})|(\d{1,3})[\/.-](\d{1,2})[\/.-](\d{1,2})|(\d{1,2})[\/.-](\d{1,2})/);
+    const normalized=String(s||'').trim().replace(/月/g,'/').replace(/日/g,'');
+    const m=normalized.match(/(\d{4})[\/.-](\d{1,2})[\/.-](\d{1,2})|(\d{1,3})[\/.-](\d{1,2})[\/.-](\d{1,2})|(\d{1,2})[\/.-](\d{1,2})/);
     if(!m)return '';
     if(m[2])return (+m[2])+'/'+(+m[3]);
     if(m[5])return (+m[5])+'/'+(+m[6]);
@@ -8478,10 +8479,10 @@ function openCardPasteWindow(){
   function parseLine(line){
     const ownerInfo=detectOwnerPrefix(line);
     const owner=ownerInfo.owner||'';
-    const clean=String(ownerInfo.line||'').replace(/	+/g,'	').trim();
+    const clean=String(ownerInfo.line||'').replace(/<br\s*\/?\s*>/gi,' ').replace(/^\s*\|\s*|\s*\|\s*$/g,'').replace(/\s*\|\s*/g,'\t').replace(/	+/g,'	').trim();
     if(!clean)return null;
     const parts=clean.split(/	+/).map(x=>x.trim()).filter(x=>x!=='' );
-    const dates=parts.filter(p=>/\d{1,4}[\/. -]\d{1,2}([\/. -]\d{1,2})?/.test(p.replace(/\s+/g,''))||/\d{1,4}[\/.-]\d{1,2}([\/.-]\d{1,2})?/.test(p));
+    const dates=parts.filter(p=>/\d{1,4}[\/. -]\d{1,2}([\/. -]\d{1,2})?/.test(p.replace(/\s+/g,''))||/\d{1,4}[\/.-]\d{1,2}([\/.-]\d{1,2})?/.test(p)||/^\d{1,2}月\d{1,2}日$/.test(p.replace(/\s+/g,'')));
     const nums=parts.filter(p=>/^-?\$?\d[\d,，]*$/.test(p.replace(/\s/g,'')));
     if(dates.length>=2 && nums.length>=1){
       const amount=nums[nums.length-1].replace(/[$,，\s]/g,'');
@@ -8491,7 +8492,8 @@ function openCardPasteWindow(){
       if(!item)item=parts.slice(2,Math.max(2,amountIdx)).join(' ').trim();
       return {owner,postDate:shortMD(dates[0]),spendDate:shortMD(dates[1]),item:item||'未命名項目',amount};
     }
-    const m=clean.match(/(\d{4}[\/.-]\d{1,2}[\/.-]\d{1,2}|\d{1,3}[\/.-]\d{1,2}[\/.-]\d{1,2}|\d{1,2}[\/.-]\d{1,2})\s+(\d{4}[\/.-]\d{1,2}[\/.-]\d{1,2}|\d{1,3}[\/.-]\d{1,2}[\/.-]\d{1,2}|\d{1,2}[\/.-]\d{1,2})\s+(.+?)\s+(-?\d[\d,，]*)$/);
+    const dateToken='(?:\\d{4}[\\/.-]\\d{1,2}[\\/.-]\\d{1,2}|\\d{1,3}[\\/.-]\\d{1,2}[\\/.-]\\d{1,2}|\\d{1,2}[\\/.-]\\d{1,2}|\\d{1,2}月\\d{1,2}日)';
+    const m=clean.match(new RegExp('('+dateToken+')\\s+('+dateToken+')\\s+(.+?)\\s+(-?\\d[\\d,，]*)$'));
     if(m)return {owner,postDate:shortMD(m[1]),spendDate:shortMD(m[2]),item:m[3].trim(),amount:m[4].replace(/[，,]/g,'')};
     return null;
   }
@@ -9277,7 +9279,7 @@ function safeWriteLocalJSON(key,val){
 let lastCardPasteRestoreCount=0;
 function buildCardPasteBackup(){
   return {
-    version:'V245',
+    version:'V246',
     exportedAt:new Date().toISOString(),
     records:safeReadLocalJSON('lihui_card_paste_records_v4',[]),
     legacyRecords:safeReadLocalJSON('lihui_card_paste_records_v3',[]),
