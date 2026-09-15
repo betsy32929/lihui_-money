@@ -6,7 +6,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
-  <title>麗卉每月帳款｜V244 托育收入提醒截止</title>
+  <title>麗卉每月帳款｜V245 未來日期到期確認</title>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
   <style>
@@ -2344,7 +2344,7 @@
   <div class="topbar">
     <div class="top-title top-title-v120">
       <div class="top-main-line">
-        <h1>麗卉每月帳款 <span class="app-version">V244</span></h1>
+        <h1>麗卉每月帳款 <span class="app-version">V245</span></h1>
         <div class="actions action-row action-row-main top-main-actions">
           <button class="act-btn act-add" onclick="addMonth()">＋新增月份</button>
           <button class="act-btn act-copy" onclick="copyCurrentMonth()">複製月份</button>
@@ -3563,6 +3563,40 @@ function clearDateFieldError(el){
   if(holder&&holder.classList&&holder.classList.contains('date-error-msg'))holder.remove();
 }
 
+function futureDateInputLabel(el){
+  const row=el?.closest?.('.fixed-row,.detail-row,tr,.phone-form,.petty-manual-form,.mini-form,.petty-shared-form');
+  const named=row?.querySelector?.('.labelcell');
+  if(named&&String(named.value||'').trim())return String(named.value).trim();
+  const item=row?.querySelector?.('input[id$="_item"],input[placeholder*="項目"]');
+  if(item&&String(item.value||'').trim())return String(item.value).trim();
+  const section=el?.closest?.('.section,.petty-card,.panel');
+  const heading=section?.querySelector?.('h2,h3');
+  const small=el?.previousElementSibling;
+  return [heading?.textContent,small?.textContent].map(v=>String(v||'').trim()).filter(Boolean).join('｜')||'日期欄位';
+}
+function ensureFutureDateChecks(){
+  if(!Array.isArray(state.futureDateChecks))state.futureDateChecks=[];
+  return state.futureDateChecks;
+}
+function registerFutureDateCheck(el,date){
+  const list=ensureFutureDateChecks();
+  const label=futureDateInputLabel(el);
+  const scope=state.activeMonth||'';
+  const key=[scope,label,date].join('｜');
+  if(!list.some(x=>x&&x.key===key&&!x.confirmedAt))list.push({id:cryptoId(),key,label,date,scope,createdAt:new Date().toISOString(),confirmedAt:''});
+}
+function dueFutureDateChecks(){
+  const today=new Date();
+  const cutoff=new Date(today.getFullYear(),today.getMonth(),today.getDate()).getTime();
+  return ensureFutureDateChecks().filter(x=>x&&!x.confirmedAt&&rocDateToAdDate(x.date)?.getTime()<=cutoff);
+}
+function confirmFutureDateCheck(id){
+  const item=ensureFutureDateChecks().find(x=>x&&x.id===id);
+  if(!item)return;
+  item.confirmedAt=new Date().toISOString();
+  save();render();
+}
+
 function showAmountFieldError(el,msg){
   if(!el)return;
   el.classList.add('amount-error');
@@ -3608,7 +3642,14 @@ function normalizeDateInput(el){
   if(r.empty){clearDateFieldError(el);el.value='';return ''}
   if(r.error){showDateFieldError(el,'日期錯誤');return old}
   if(isFutureRocDate(r.value)){
-    showDateFieldError(el,'不能輸入未來日期');
+    if(el.dataset.futureAccepted!==r.value&&!confirm(`你輸入的是未來日期 ${r.value}。\n確定先登記嗎？\n日期到達後，首頁會提醒你確認是否生效。`)){
+      showDateFieldError(el,'已取消未來日期');
+      el.value='';
+      return '';
+    }
+    el.dataset.futureAccepted=r.value;
+    registerFutureDateCheck(el,r.value);
+    clearDateFieldError(el);
     el.value=r.value;
     return r.value;
   }
@@ -3650,14 +3691,8 @@ function isDateInActiveMonth(s){const p=dateParts(s);return !!p&&p.monthId===sta
 function normalizeItemRecordDateInput(el){
   // 項目紀錄是全域延續資料，日期可輸入任一月份；
   // 只有「從項目紀錄帶入每月帳款」時，才依目前月份篩選。
-  // 項目紀錄也可先登記未來日期，因此只檢查日期格式，不套用全站的未來日期限制。
-  const old=el?.value||'';
-  const r=parseRocDateInput(old);
-  if(r.empty){clearDateFieldError(el);el.value='';return ''}
-  if(r.error){showDateFieldError(el,'日期格式錯誤');return old}
-  clearDateFieldError(el);
-  el.value=r.value;
-  return r.value;
+  // 未來日期可先登記，並套用到期後回首頁確認生效的共同規則。
+  return normalizeDateInput(el);
 }
 function makeItem(label,dateType,type='expense',opts={}){return {id:cryptoId(),label,dateType,type,amount:'',date:'',note:'',_autoNote:'',isCard:!!opts.isCard,noBill:false,detailsHidden:opts.detailsHidden!==undefined?!!opts.detailsHidden:!!opts.isCard,subItems:[],dueInfo:opts.dueInfo||'',splitMode:opts.splitMode||'none'}}
 
@@ -4686,9 +4721,10 @@ function buildHomeReminderData(){
   bankRows.push({name:'麗雅大社管理費',type:'expense',due:null,keys:['麗雅大社半年管理費'],months:mgMissing,missing:mgMissing,ruleText:'臺灣銀行尚未匯款給麗卉帳戶'});
   const postRows=HOME_POST_RULES.map(r=>{const months=reminderMonthsNoDue().filter(id=>!r.endMonth||id<=r.endMonth);return {...r,months,missing:months.filter(id=>!hasLedgerMonth('postOffice',id,r.type,r.keys))};});
   const cardRows=buildCardPasteHomeRows();
-  return {personalMissing,personalItemRows,mobileRows,bankRows,postRows,cardRows};
+  const futureDateRows=dueFutureDateChecks();
+  return {personalMissing,personalItemRows,mobileRows,bankRows,postRows,cardRows,futureDateRows};
 }
-function calcHomeReminderTotal(){try{const d=buildHomeReminderData();const personalCount=(d.personalItemRows&&d.personalItemRows.length)?d.personalItemRows.reduce((s,r)=>s+r.missing.length,0):d.personalMissing.length;return personalCount+d.mobileRows.reduce((s,r)=>s+r.missing.length,0)+d.bankRows.reduce((s,r)=>s+r.missing.length,0)+d.postRows.reduce((s,r)=>s+r.missing.length,0)+(d.cardRows||[]).reduce((s,r)=>s+r.missing.length,0);}catch(e){return 0}}
+function calcHomeReminderTotal(){try{const d=buildHomeReminderData();const personalCount=(d.personalItemRows&&d.personalItemRows.length)?d.personalItemRows.reduce((s,r)=>s+r.missing.length,0):d.personalMissing.length;return personalCount+d.mobileRows.reduce((s,r)=>s+r.missing.length,0)+d.bankRows.reduce((s,r)=>s+r.missing.length,0)+d.postRows.reduce((s,r)=>s+r.missing.length,0)+(d.cardRows||[]).reduce((s,r)=>s+r.missing.length,0)+(d.futureDateRows||[]).length;}catch(e){return 0}}
 function homeStatusHtml(missing){return (missing&&missing.length)?`<span class="home-reminder-status missing">缺 ${esc(reminderMonthText(missing))}</span>`:`<span class="home-reminder-status ok">已完成</span>`;}
 function dueText(due){return due?`每月${due}日前`:'每月要有輸入'}
 function homeReminderRow(name,rule,status,goHtml){return `<div class="home-check-row"><div class="home-check-name">${esc(name)}</div><div class="home-check-rule">${esc(rule)}</div><div>${status}</div><div>${goHtml||''}</div></div>`}
@@ -4821,10 +4857,11 @@ function renderHome(){
   const bankMiss=data.bankRows.reduce((s,r)=>s+r.missing.length,0);
   const postMiss=data.postRows.reduce((s,r)=>s+r.missing.length,0);
   const cardMiss=(data.cardRows||[]).reduce((s,r)=>s+r.missing.length,0);
+  const futureDateMiss=(data.futureDateRows||[]).length;
   const checkMonths=reminderMonthsNoDue().map(rocMonthLabel).join('、');
-  function row(name,type,months,rule,action){
+  function row(name,type,months,rule,action,buttonText='前往'){
     const mtxt=homeMonthListText(months);
-    return `<div class="home-clean-row"><div class="home-clean-item">${esc(name)}${type?`<span class="home-clean-type">${esc(type)}</span>`:''}</div><div class="home-clean-months">${esc(mtxt)}</div><div class="home-clean-rule">${esc(rule)}</div><div><button class="home-clean-go" onclick='${action}'>前往</button></div></div>`;
+    return `<div class="home-clean-row"><div class="home-clean-item">${esc(name)}${type?`<span class="home-clean-type">${esc(type)}</span>`:''}</div><div class="home-clean-months">${esc(mtxt)}</div><div class="home-clean-rule">${esc(rule)}</div><div><button class="home-clean-go" onclick='${action}'>${esc(buttonText)}</button></div></div>`;
   }
   function section(title,cls,count,rows){
     const secClass=cls||'personal';
@@ -4835,6 +4872,7 @@ function renderHome(){
   const bankRows=data.bankRows.filter(r=>r.missing.length).map(r=>row(r.name,r.type==='income'?'收入':'支出',r.missing,r.ruleText||dueText(r.due),'showTab("bank")'));
   const postRows=data.postRows.filter(r=>r.missing.length).map(r=>row(r.name,r.type==='income'?'收入':'支出',r.missing,dueText(r.due),'showTab("post")'));
   const cardRows=(data.cardRows||[]).filter(r=>r.missing.length).map(r=>row(r.name,r.type||'',r.missing,r.ruleText||'信用卡刷卡紀錄總欄','openCardPasteWindow()'));
+  const futureDateRows=(data.futureDateRows||[]).map(r=>`<div class="home-clean-row"><div class="home-clean-item">${esc(r.label)}<span class="home-clean-type">日期確認</span></div><div class="home-clean-months">${esc(r.date)}</div><div class="home-clean-rule">日期已到，請確認此日期是否生效</div><div><label class="home-clean-go"><input type="checkbox" onchange='if(this.checked)confirmFutureDateCheck(${jsStr(r.id)})'> 確認生效</label></div></div>`);
   const personalMiss=(data.personalItemRows&&data.personalItemRows.length)?data.personalItemRows.reduce((s,r)=>s+r.missing.length,0):data.personalMissing.length;
   document.getElementById('main').innerHTML=`<div class="panel home-reminder-panel">
     <div class="home-clean-top">
@@ -4847,6 +4885,7 @@ function renderHome(){
     <div class="home-clean-info"><span>今天：${esc(todayText)}</span><span>檢查月份：${esc(checkMonths)}</span><span>缺資料才顯示</span></div>
     ${renderHomeBulletinBoard()}
     ${total?`<div class="home-clean-stack">
+      ${futureDateMiss?section('未來日期到期確認','post',futureDateMiss,futureDateRows):''}
       ${section('麗卉每月帳款','',personalMiss,personalRows)}
       ${section('信用卡刷卡紀錄總欄','card',cardMiss,cardRows)}
       ${section('項目紀錄','mobile',mobileMiss,mobileRows)}
@@ -9238,7 +9277,7 @@ function safeWriteLocalJSON(key,val){
 let lastCardPasteRestoreCount=0;
 function buildCardPasteBackup(){
   return {
-    version:'V244',
+    version:'V245',
     exportedAt:new Date().toISOString(),
     records:safeReadLocalJSON('lihui_card_paste_records_v4',[]),
     legacyRecords:safeReadLocalJSON('lihui_card_paste_records_v3',[]),
