@@ -6,7 +6,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
-  <title>麗卉每月帳款｜V253 志偉分類篩選</title>
+  <title>麗卉每月帳款｜V254 取消項目歸屬記憶</title>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
   <style>
@@ -2344,7 +2344,7 @@
   <div class="topbar">
     <div class="top-title top-title-v120">
       <div class="top-main-line">
-        <h1>麗卉每月帳款 <span class="app-version">V253</span></h1>
+        <h1>麗卉每月帳款 <span class="app-version">V254</span></h1>
         <div class="actions action-row action-row-main top-main-actions">
           <button class="act-btn act-add" onclick="addMonth()">＋新增月份</button>
           <button class="act-btn act-copy" onclick="copyCurrentMonth()">複製月份</button>
@@ -7304,7 +7304,7 @@ function openCardPasteWindow(){
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>信用卡刷卡紀錄整理｜V253</title>
+<title>信用卡刷卡紀錄整理｜V254</title>
 <style>
   *{box-sizing:border-box}
   body{margin:0;background:linear-gradient(145deg,#fff7ed 0%,#f0f9ff 48%,#f5f3ff 100%);font-family:"Microsoft JhengHei","Noto Sans TC",Arial,sans-serif;color:#1f2937;font-size:14px;}
@@ -7814,7 +7814,7 @@ function openCardPasteWindow(){
 </head>
 <body>
   <div class="wrap">
-    <div class="head"><h1>信用卡刷卡紀錄整理 <span class="badge">V253</span></h1><div class="cloud-sync-box"><span id="cardPasteCloudPill" class="cloud-pill off">雲端狀態確認中</span><div id="cardPasteCloudDetail" class="cloud-detail">另開視窗資料會先同步主畫面</div></div></div>
+    <div class="head"><h1>信用卡刷卡紀錄整理 <span class="badge">V254</span></h1><div class="cloud-sync-box"><span id="cardPasteCloudPill" class="cloud-pill off">雲端狀態確認中</span><div id="cardPasteCloudDetail" class="cloud-detail">另開視窗資料會先同步主畫面</div></div></div>
     <div class="panel">
       <div class="controls">
         <div class="field"><label>歸屬年月</label><input id="belongMonth" placeholder="115/5"><div id="belongMonthErr" class="err"></div></div>
@@ -7836,7 +7836,7 @@ function openCardPasteWindow(){
         </div>
         <div id="ownerChipList" class="owner-chip-list"></div>
       </details>
-      <details class="item-rule-manager">
+      <details class="item-rule-manager" hidden>
         <summary>項目歸屬／負擔比例記憶</summary>
         <div class="item-rule-form">
           <div class="wide"><label>項目關鍵字</label><input id="itemRuleKeyword" placeholder="例如：WORLDGYM / 托嬰 / 好市多"></div>
@@ -8665,8 +8665,8 @@ function openCardPasteWindow(){
       if(draftChanged)writeJson(DRAFT_KEY,Object.assign({},draft,{rows}));
     }
     owners=normalizeOwnerList(readJson(OWNER_KEY,defaultOwnerOptions));
-    shareRules=readJson(SHARE_RULE_KEY,[]);
-    if(!Array.isArray(shareRules))shareRules=[];
+    // V254 起不再依項目記憶或自動套用歸屬與負擔比例。
+    shareRules=[];
     zhiweiCategories=readJson(ZHIWEI_CATEGORY_KEY,{});
     if(!zhiweiCategories||typeof zhiweiCategories!=='object'||Array.isArray(zhiweiCategories))zhiweiCategories={};
   }
@@ -8717,7 +8717,7 @@ function openCardPasteWindow(){
     if(!text.trim()){w.alert('請先貼上信用卡刷卡紀錄。');return;}
     if(!warnIfBankAlreadyExists(belongMonth,bank))return;
     const parsed=[];
-    text.split(/\r?\n/).forEach(line=>{const r=parseLine(line);if(r){const obj=Object.assign({id:uid(),bank,payDate,belongMonth,note:'',payer:'',lihuiPct:'',zhiweiPct:'',shareVersion:'V213',saved:false,createdAt:new Date().toISOString()},r);applyItemRuleToRow(obj,false);applyDefaultShareForOwner(obj);parsed.push(obj);}});
+    text.split(/\r?\n/).forEach(line=>{const r=parseLine(line);if(r){const obj=Object.assign({id:uid(),bank,payDate,belongMonth,note:'',payer:'',lihuiPct:'',zhiweiPct:'',shareVersion:'V213',saved:false,createdAt:new Date().toISOString()},r);applyDefaultShareForOwner(obj);parsed.push(obj);}});
     if(!parsed.length){w.alert('沒有抓到可整理的刷卡資料。請確認每列有入帳日期、消費日期、項目、金額。');return;}
     if(!warnIfDuplicateParsed(parsed))return;
     rows=parsed;
@@ -8820,11 +8820,7 @@ function openCardPasteWindow(){
     if(k==='amount')rows[i][k]=String(v).replace(/[，,\s$]/g,'');
     if(k==='lihuiPct'||k==='zhiweiPct')normalizeSharePair(rows[i],k);
     if(k==='owner'){rows[i].shareVersion='V213';if(shareLockedRow(rows[i]))clearShareForLockedOwner(rows[i]);else applyDefaultShareForOwner(rows[i]);}
-    if(k==='item'){
-      rows[i][k]=cleanCardPasteItemValue(rows[i][k],rows[i]);
-      applyItemRuleToRow(rows[i],false);
-    }
-    if(['owner','lihuiPct','zhiweiPct','item'].includes(k))rememberRuleFromRow(rows[i]);
+    if(k==='item')rows[i][k]=cleanCardPasteItemValue(rows[i][k],rows[i]);
     if(rows[i].saved)upsertRows([rows[i]]);else saveDraft();
     render();
   }
@@ -9221,11 +9217,7 @@ function openCardPasteWindow(){
     if(k==='claimNote')rec[k]=String(v||'').trim();
     if(k==='lihuiPct'||k==='zhiweiPct')normalizeSharePair(rec,k);
     if(k==='owner'){rec.shareVersion='V213';if(shareLockedRow(rec))clearShareForLockedOwner(rec);else applyDefaultShareForOwner(rec);}
-    if(k==='item'){
-      rec[k]=cleanCardPasteItemValue(rec[k],rec);
-      applyItemRuleToRow(rec,false);
-    }
-    if(['owner','lihuiPct','zhiweiPct','item'].includes(k))rememberRuleFromRow(rec);
+    if(k==='item')rec[k]=cleanCardPasteItemValue(rec[k],rec);
     rec.updatedAt=new Date().toISOString();
     const draft=rows.find(r=>r.id===id);
     if(draft){
@@ -9418,7 +9410,7 @@ function safeWriteLocalJSON(key,val){
 let lastCardPasteRestoreCount=0;
 function buildCardPasteBackup(){
   return {
-    version:'V253',
+    version:'V254',
     exportedAt:new Date().toISOString(),
     records:safeReadLocalJSON('lihui_card_paste_records_v4',[]),
     legacyRecords:safeReadLocalJSON('lihui_card_paste_records_v3',[]),
