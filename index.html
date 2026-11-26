@@ -6,7 +6,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
-  <title>麗卉每月帳款｜V288 小孩學費分帳</title>
+  <title>麗卉每月帳款｜V289 小孩學費精簡列</title>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
@@ -2280,6 +2280,15 @@
 .child-tuition-funding{display:grid;grid-template-columns:1.35fr 1fr 1fr 1fr;gap:8px;margin-top:8px;padding:8px;border-radius:12px;background:#ecfdf5}.child-tuition-funding>div{display:grid;gap:2px;padding:6px 8px;border-radius:9px;background:#fff;color:#065f46}.child-tuition-funding span{font-size:10.5px;font-weight:950}.child-tuition-funding strong{text-align:right;font-size:14px}.child-tuition-funding small{font-size:9.5px;color:#557565}.child-tuition-funded{background:#d1fae5!important}
 .child-tuition-dates{display:grid;grid-template-columns:118px 118px 118px minmax(160px,1fr) 70px;gap:7px;align-items:end;margin-top:8px}.child-tuition-dates .row-actions{justify-content:flex-end;flex-wrap:nowrap}
 @media(max-width:980px){.child-tuition-top,.child-tuition-fees,.child-tuition-funding,.child-tuition-dates{grid-template-columns:1fr 1fr}.child-tuition-school,.child-tuition-note{grid-column:1/-1}.child-tuition-dates .row-actions{justify-content:flex-start}}
+.child-tuition-row.child-tuition-compact{display:grid;grid-template-columns:235px minmax(310px,1.35fr) 145px 128px 118px minmax(150px,1fr) 70px;gap:6px;align-items:end;padding:8px 10px}
+.child-tuition-compact>div,.child-tuition-compact>label{min-width:0}.child-tuition-compact input{height:32px!important;padding:5px 7px!important}.child-compact-item input{height:34px!important}
+.child-compact-fees,.child-compact-shares,.child-compact-transfer-dates{display:grid;gap:4px}.child-compact-fee-line{display:grid;grid-template-columns:minmax(95px,1fr) 76px;gap:4px;align-items:end}.child-compact-fee-line:has(.child-compact-registration){grid-template-columns:minmax(90px,1fr) 72px minmax(90px,1fr)}
+.child-compact-fee-line label,.child-compact-transfer-dates label,.child-compact-school-date,.child-compact-note,.child-compact-registration{display:grid;gap:2px}.child-compact-fee-line span,.child-compact-transfer-dates span,.child-compact-school-date span,.child-compact-note span,.child-compact-shares span{font-size:10px;font-weight:950;white-space:nowrap}.child-compact-fee-line input,.child-compact-registration input{text-align:right;font-weight:950;color:#2563eb}
+.child-compact-subsidy{display:grid;gap:2px}.child-compact-subsidy span{color:#64748b}.child-compact-subsidy b{display:flex;align-items:center;justify-content:flex-end;height:32px;padding:5px 7px;border:1px solid #bbf7d0;border-radius:9px;background:#ecfdf5;color:#047857;font-size:12px;white-space:nowrap}
+.child-compact-shares>div{display:grid;grid-template-columns:1fr auto;align-items:center;gap:4px;height:32px;padding:4px 7px;border:1px solid #bfdbfe;border-radius:9px;background:#eff6ff}.child-compact-shares strong{font-size:12px;color:#1d4ed8;text-align:right;white-space:nowrap}.child-compact-shares>div:last-child{border-color:#c4b5fd;background:#f5f3ff}.child-compact-shares>div:last-child strong{color:#6d28d9}
+.child-tuition-compact .row-actions{justify-content:flex-end;flex-wrap:nowrap}.child-tuition-compact .iconbtn{padding:6px 7px!important}
+@media(max-width:1200px){.child-tuition-row.child-tuition-compact{grid-template-columns:235px 1fr 145px 128px}.child-compact-school-date,.child-compact-note{grid-column:span 2}.child-tuition-compact .row-actions{justify-content:flex-start}}
+@media(max-width:760px){.child-tuition-row.child-tuition-compact{grid-template-columns:1fr 1fr}.child-compact-item,.child-compact-fees,.child-compact-note{grid-column:1/-1}.child-compact-fee-line:has(.child-compact-registration){grid-template-columns:1fr 76px 1fr}}
 @media(max-width:980px){.bridge-share-row{grid-template-columns:1fr 1fr!important}.bridge-share-row .row-actions{justify-content:flex-start!important}}
 
 
@@ -2353,7 +2362,7 @@
   <div class="topbar">
     <div class="top-title top-title-v120">
       <div class="top-main-line">
-        <h1>麗卉每月帳款 <span class="app-version">V288</span></h1>
+        <h1>麗卉每月帳款 <span class="app-version">V289</span></h1>
         <div class="actions action-row action-row-main top-main-actions">
           <button class="act-btn act-add" onclick="addMonth()">＋新增月份</button>
           <button class="act-btn act-copy" onclick="copyCurrentMonth()">複製月份</button>
@@ -5603,8 +5612,9 @@ function setChildTuitionField(si,ii,field,val){
 }
 function renderChildTuitionFixedRow(it,secIdx,idx){
   const c=childTuitionCalculation(it,state.activeMonth);
-  const registration=c.showRegistration?`<div class="child-tuition-registration"><div class="child-tuition-subtitle">半年註冊費｜每年1月、7月</div><label><span>析楓註冊費</span><input inputmode="numeric" value="${esc(hasAnyText(it.childXifengRegistration)?it.childXifengRegistration:(it.zhiweiChildRegistration||''))}" onchange="setChildTuitionField(${secIdx},${idx},'childXifengRegistration',this.value)" placeholder="0"></label><label><span>佶睦註冊費</span><input inputmode="numeric" value="${esc(it.childJimuRegistration||'')}" onchange="setChildTuitionField(${secIdx},${idx},'childJimuRegistration',this.value)" placeholder="0"></label></div>`:'';
-  return `<div class="child-tuition-row"><div class="child-tuition-top"><div><div class="tiny">項目｜115年8月起</div><input class="labelcell" value="${esc(it.label)}" oninput="setItem(${secIdx},${idx},'label',this.value)"></div><div class="child-tuition-school"><span>實際繳給學校</span><strong>${esc(fmt(c.schoolTotal,true))}</strong><small>照全額繳款</small></div></div><div class="child-tuition-fees"><label><span>析楓學費</span><input inputmode="numeric" value="${esc(hasAnyText(it.childXifengTuition)?it.childXifengTuition:(it.zhiweiChildTuition||''))}" onchange="setChildTuitionField(${secIdx},${idx},'childXifengTuition',this.value)" placeholder="0"></label><label><span>佶睦學費</span><input inputmode="numeric" value="${esc(hasAnyText(it.childJimuTuition)?it.childJimuTuition:(c.jimuTuition||''))}" onchange="setChildTuitionField(${secIdx},${idx},'childJimuTuition',this.value)" placeholder="0"></label>${registration}</div><div class="child-tuition-funding"><div><span>育兒補助入帳</span><strong>${esc(fmt(c.subsidy,true))}</strong><small>析楓 $5,000＋佶睦 $6,000</small></div><div><span>麗卉匯入 40%</span><strong>${esc(fmt(c.lihui,true))}</strong></div><div><span>志偉匯入 60%</span><strong>${esc(fmt(c.zhiwei,true))}</strong></div><div class="child-tuition-funded"><span>帳戶資金合計</span><strong>${esc(fmt(c.subsidy+c.lihui+c.zhiwei,true))}</strong></div></div><div class="child-tuition-dates"><label><span>麗卉匯款日期</span><input value="${esc(it.bridgeLihuiTransferDate||'')}" onchange="this.value=normalizeDateInput(this);setItem(${secIdx},${idx},'bridgeLihuiTransferDate',this.value)" placeholder="115/8/10"></label><label><span>志偉匯款日期</span><input value="${esc(it.bridgeZhiweiTransferDate||'')}" onchange="this.value=normalizeDateInput(this);setItem(${secIdx},${idx},'bridgeZhiweiTransferDate',this.value)" placeholder="115/8/10"></label><label><span>匯款學費日期</span><input value="${esc(it.date||'')}" onchange="this.value=normalizeDateInput(this);setItem(${secIdx},${idx},'date',this.value)" placeholder="115/8/15"></label><label class="child-tuition-note"><span>備註</span><input value="${esc(it.note||'')}" oninput="setItem(${secIdx},${idx},'note',this.value)" placeholder="備註事項"></label><div class="row-actions"><button class="iconbtn keep" onclick="clearPersonalItemData(${secIdx},${idx})">清</button><button class="iconbtn del" onclick="deletePersonalItem(${secIdx},${idx})">刪</button></div></div></div>`;
+  const xRegistration=c.showRegistration?`<label class="child-compact-registration"><span>析楓半年註冊費</span><input inputmode="numeric" value="${esc(hasAnyText(it.childXifengRegistration)?it.childXifengRegistration:(it.zhiweiChildRegistration||''))}" onchange="setChildTuitionField(${secIdx},${idx},'childXifengRegistration',this.value)" placeholder="0"></label>`:'';
+  const jRegistration=c.showRegistration?`<label class="child-compact-registration"><span>佶睦半年註冊費</span><input inputmode="numeric" value="${esc(it.childJimuRegistration||'')}" onchange="setChildTuitionField(${secIdx},${idx},'childJimuRegistration',this.value)" placeholder="0"></label>`:'';
+  return `<div class="child-tuition-row child-tuition-compact"><div class="child-compact-item"><div class="tiny">項目｜115年8月起</div><input class="labelcell" value="${esc(it.label)}" oninput="setItem(${secIdx},${idx},'label',this.value)"></div><div class="child-compact-fees"><div class="child-compact-fee-line"><label><span>析楓學費</span><input inputmode="numeric" value="${esc(hasAnyText(it.childXifengTuition)?it.childXifengTuition:(it.zhiweiChildTuition||''))}" onchange="setChildTuitionField(${secIdx},${idx},'childXifengTuition',this.value)" placeholder="0"></label><div class="child-compact-subsidy"><span>育兒補助</span><b>$5,000</b></div>${xRegistration}</div><div class="child-compact-fee-line"><label><span>佶睦學費</span><input inputmode="numeric" value="${esc(hasAnyText(it.childJimuTuition)?it.childJimuTuition:(c.jimuTuition||''))}" onchange="setChildTuitionField(${secIdx},${idx},'childJimuTuition',this.value)" placeholder="0"></label><div class="child-compact-subsidy"><span>育兒補助</span><b>$6,000</b></div>${jRegistration}</div></div><div class="child-compact-shares"><div><span>麗卉負擔40%</span><strong>${esc(fmt(c.lihui,true))}</strong></div><div><span>志偉負擔60%</span><strong>${esc(fmt(c.zhiwei,true))}</strong></div></div><div class="child-compact-transfer-dates"><label><span>麗卉匯款國泰</span><input value="${esc(it.bridgeLihuiTransferDate||'')}" onchange="this.value=normalizeDateInput(this);setItem(${secIdx},${idx},'bridgeLihuiTransferDate',this.value)" placeholder="115/8/10"></label><label><span>志偉匯款國泰</span><input value="${esc(it.bridgeZhiweiTransferDate||'')}" onchange="this.value=normalizeDateInput(this);setItem(${secIdx},${idx},'bridgeZhiweiTransferDate',this.value)" placeholder="115/8/10"></label></div><label class="child-compact-school-date"><span>匯款學費日期</span><input value="${esc(it.date||'')}" onchange="this.value=normalizeDateInput(this);setItem(${secIdx},${idx},'date',this.value)" placeholder="115/8/15"></label><label class="child-compact-note"><span>備註</span><input value="${esc(it.note||'')}" oninput="setItem(${secIdx},${idx},'note',this.value)" placeholder="備註事項"></label><div class="row-actions"><button class="iconbtn keep" onclick="clearPersonalItemData(${secIdx},${idx})">清</button><button class="iconbtn del" onclick="deletePersonalItem(${secIdx},${idx})">刪</button></div></div>`;
 }
 function extractRocDateFromMainCardText(raw){
   const s=String(raw||'').trim();
@@ -7352,7 +7362,7 @@ function openCardPasteWindow(){
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>信用卡刷卡紀錄整理｜V288</title>
+<title>信用卡刷卡紀錄整理｜V289</title>
 <style>
   *{box-sizing:border-box}
   body{margin:0;background:linear-gradient(145deg,#fff7ed 0%,#f0f9ff 48%,#f5f3ff 100%);font-family:"Microsoft JhengHei","Noto Sans TC",Arial,sans-serif;color:#1f2937;font-size:14px;}
@@ -7882,7 +7892,7 @@ function openCardPasteWindow(){
 </head>
 <body>
   <div class="wrap">
-    <div class="head"><h1>信用卡刷卡紀錄整理 <span class="badge">V288</span></h1><div class="cloud-sync-box"><span id="cardPasteCloudPill" class="cloud-pill off">雲端狀態確認中</span><div id="cardPasteCloudDetail" class="cloud-detail">另開視窗資料會先同步主畫面</div></div></div>
+    <div class="head"><h1>信用卡刷卡紀錄整理 <span class="badge">V289</span></h1><div class="cloud-sync-box"><span id="cardPasteCloudPill" class="cloud-pill off">雲端狀態確認中</span><div id="cardPasteCloudDetail" class="cloud-detail">另開視窗資料會先同步主畫面</div></div></div>
     <div class="panel">
       <div class="controls">
         <div class="field"><label>歸屬年月</label><input id="belongMonth" placeholder="115/5"><div id="belongMonthErr" class="err"></div></div>
@@ -9678,7 +9688,7 @@ function safeWriteLocalJSON(key,val){
 let lastCardPasteRestoreCount=0;
 function buildCardPasteBackup(){
   return {
-    version:'V288',
+    version:'V289',
     exportedAt:new Date().toISOString(),
     records:safeReadLocalJSON('lihui_card_paste_records_v4',[]),
     legacyRecords:safeReadLocalJSON('lihui_card_paste_records_v3',[]),
