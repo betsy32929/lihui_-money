@@ -6,7 +6,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
-  <title>麗卉每月帳款｜V265 分類後自動隱藏</title>
+  <title>麗卉每月帳款｜V266 志偉逐筆分類</title>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
   <style>
@@ -2344,7 +2344,7 @@
   <div class="topbar">
     <div class="top-title top-title-v120">
       <div class="top-main-line">
-        <h1>麗卉每月帳款 <span class="app-version">V265</span></h1>
+        <h1>麗卉每月帳款 <span class="app-version">V266</span></h1>
         <div class="actions action-row action-row-main top-main-actions">
           <button class="act-btn act-add" onclick="addMonth()">＋新增月份</button>
           <button class="act-btn act-copy" onclick="copyCurrentMonth()">複製月份</button>
@@ -7304,7 +7304,7 @@ function openCardPasteWindow(){
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>信用卡刷卡紀錄整理｜V265</title>
+<title>信用卡刷卡紀錄整理｜V266</title>
 <style>
   *{box-sizing:border-box}
   body{margin:0;background:linear-gradient(145deg,#fff7ed 0%,#f0f9ff 48%,#f5f3ff 100%);font-family:"Microsoft JhengHei","Noto Sans TC",Arial,sans-serif;color:#1f2937;font-size:14px;}
@@ -7580,6 +7580,9 @@ function openCardPasteWindow(){
 .zhiwei-setting-table th:nth-child(4),.zhiwei-setting-table td:nth-child(4){padding-right:3px!important}
 .zhiwei-owner-group td{background:#eef6ff!important;color:#075985;font-weight:950;padding:7px 9px!important;border-top:2px solid #bae6fd}
 .zhiwei-owner-heading{margin:9px 0 6px;padding:6px 9px;border-left:5px solid #38bdf8;border-radius:8px;background:#eef8ff;color:#075985;font-size:13px;font-weight:950}
+/* V266：相同項目也逐筆分類，不再以明細筆數合併 */
+.zhiwei-setting-table th:nth-child(2),.zhiwei-setting-table td:nth-child(2){width:62px!important;padding-left:3px!important;padding-right:3px!important}
+.zhiwei-setting-table th:nth-child(3),.zhiwei-setting-table td:nth-child(3){width:220px!important;padding-left:0!important;padding-right:3px!important;overflow:visible!important}
 @media(max-width:980px){.item-rule-form{grid-template-columns:1fr 1fr}.item-rule-form .wide{grid-column:1/-1}.bridge-share-row{grid-template-columns:1fr 1fr!important}.bridge-share-row .row-actions{justify-content:flex-start!important}.zhiwei-grid{grid-template-columns:1fr}.zhiwei-summary{grid-template-columns:repeat(2,1fr)}}
 
 /* V202：銀行列表備註欄加寬，項目欄縮短一點；歸屬誰新增志偉公司 */
@@ -7829,7 +7832,7 @@ function openCardPasteWindow(){
 </head>
 <body>
   <div class="wrap">
-    <div class="head"><h1>信用卡刷卡紀錄整理 <span class="badge">V265</span></h1><div class="cloud-sync-box"><span id="cardPasteCloudPill" class="cloud-pill off">雲端狀態確認中</span><div id="cardPasteCloudDetail" class="cloud-detail">另開視窗資料會先同步主畫面</div></div></div>
+    <div class="head"><h1>信用卡刷卡紀錄整理 <span class="badge">V266</span></h1><div class="cloud-sync-box"><span id="cardPasteCloudPill" class="cloud-pill off">雲端狀態確認中</span><div id="cardPasteCloudDetail" class="cloud-detail">另開視窗資料會先同步主畫面</div></div></div>
     <div class="panel">
       <div class="controls">
         <div class="field"><label>歸屬年月</label><input id="belongMonth" placeholder="115/5"><div id="belongMonthErr" class="err"></div></div>
@@ -8267,7 +8270,8 @@ function openCardPasteWindow(){
   function zhiweiOwnerLabel(v){v=String(v||'').trim();return v==='小孩'?'小孩部分':(['家庭支出','志偉個人'].includes(v)?v:'');}
   function zhiweiRowOwnerLabel(r){return zhiweiOwnerLabel(r&&r.owner)||(r&&r.sourceType==='monthly'?'每月帳款':'');}
   function saveZhiweiCategories(){writeJson(ZHIWEI_CATEGORY_KEY,zhiweiCategories);}
-  function zhiweiCategoryForItem(item){const r=zhiweiCategories[ruleKey(item)];return r&&r.category?r.category:'';}
+  function zhiweiRowCategoryKey(r){return 'row|'+String(r&&r.sourceType||'')+'|'+String(r&&r.id||'');}
+  function zhiweiCategoryForRow(r,item,legacyKeys){const key=zhiweiRowCategoryKey(r),saved=zhiweiCategories[key];if(saved&&saved.category)return saved.category;const oldKey=ruleKey(item),old=zhiweiCategories[oldKey];if(old&&old.category){zhiweiCategories[key]={item:String(item||'').trim(),category:old.category,updatedAt:new Date().toISOString()};if(legacyKeys)legacyKeys.add(oldKey);return old.category;}return '';}
   function setZhiweiCategory(key,item,category){
     if(!key)return;
     if(category)zhiweiCategories[key]={item:String(item||'').trim(),category,updatedAt:new Date().toISOString()};
@@ -8278,6 +8282,7 @@ function openCardPasteWindow(){
   function zhiweiMonthFromId(id){const m=String(id||'').match(/^(\d{4})-(\d{2})$/);return m?(+m[1]-1911)+'/'+(+m[2]):'';}
   function allZhiweiAutoRows(){
     const out=[];
+    const migratedLegacyKeys=new Set();
     records.forEach(r=>{
       if(!r||isZeroBillRow(r))return;
       if(!['家庭支出','小孩','志偉個人'].includes(String(r.owner||'').trim()))return;
@@ -8288,7 +8293,7 @@ function openCardPasteWindow(){
       const monthValue=spend.ok?(spend.y+'/'+spend.m):(billMonth.ok?billMonth.value:'');
       if(!monthValue||pct<=0||!amount)return;
       const item=itemDisplay(r)||'未命名項目';
-      out.push({id:r.id,sourceType:'card',month:monthValue,billMonth:billMonth.ok?billMonth.value:monthValue,item,category:zhiweiCategoryForItem(item),source:'信用卡',bank:String(r.bank||''),date:spendDate,amount,pct,zhiwei:Math.round(amount*pct/100),note:String(r.note||''),owner:String(r.owner||'')});
+      const row={id:r.id,sourceType:'card',month:monthValue,billMonth:billMonth.ok?billMonth.value:monthValue,item,source:'信用卡',bank:String(r.bank||''),date:spendDate,amount,pct,zhiwei:Math.round(amount*pct/100),note:String(r.note||''),owner:String(r.owner||'')};row.category=zhiweiCategoryForRow(row,item,migratedLegacyKeys);out.push(row);
     });
     Object.entries((state&&state.months)||{}).forEach(([mid,m])=>{
       const pageMonth=zhiweiMonthFromId(mid);if(!pageMonth)return;
@@ -8298,13 +8303,14 @@ function openCardPasteWindow(){
         const item=String(it.label||'未命名項目').trim();
         const expenseDate=normalizeRocDateValue(it.date||'','');
         const month=expenseDate.ok?(expenseDate.y+'/'+expenseDate.m):pageMonth;
-        out.push({id:'monthly_'+mid+'_'+String(it.id||ruleKey(item)),sourceType:'monthly',month,billMonth:pageMonth,item,category:zhiweiCategoryForItem(item),source:String(sec.title||'每月帳款'),bank:'每月帳款',date:String(it.date||''),amount,pct,zhiwei:Math.round(amount*pct/100),note:String(it.note||''),owner:'志偉負擔'});
+        const row={id:'monthly_'+mid+'_'+String(it.id||ruleKey(item)),sourceType:'monthly',month,billMonth:pageMonth,item,source:String(sec.title||'每月帳款'),bank:'每月帳款',date:String(it.date||''),amount,pct,zhiwei:Math.round(amount*pct/100),note:String(it.note||''),owner:'志偉負擔'};row.category=zhiweiCategoryForRow(row,item,migratedLegacyKeys);out.push(row);
       }));
     });
+    if(migratedLegacyKeys.size){migratedLegacyKeys.forEach(key=>delete zhiweiCategories[key]);saveZhiweiCategories();}
     return out.filter(r=>r.zhiwei!==0);
   }
-  function zhiweiCategoryPillsHtml(item){
-    const key=ruleKey(item),value=zhiweiCategoryForItem(item);
+  function zhiweiCategoryPillsHtml(row){
+    const item=row.item,key=zhiweiRowCategoryKey(row),value=row.category||'';
     return '<div class="zhiwei-category-pills">'+ZHIWEI_CATEGORY_OPTIONS.map(o=>'<button type="button" class="zhiwei-category-pill '+(value===o.value?'active':'')+'" title="'+o.label+'" data-zhiwei-category="'+esc2(key)+'" data-zhiwei-item="'+esc2(item)+'" data-zhiwei-value="'+o.value+'">'+o.label+'</button>').join('')+'</div>';
   }
   function zhiweiFilterPillsHtml(){
@@ -8318,21 +8324,19 @@ function openCardPasteWindow(){
     if(!zhiweiSelectedMonth||!months.includes(zhiweiSelectedMonth))zhiweiSelectedMonth=(inputMonth.ok&&months.includes(inputMonth.value)?inputMonth.value:(months[0]||''));
     const list=all.filter(r=>r.month===zhiweiSelectedMonth);
     const settingRows=all.filter(r=>r.billMonth===zhiweiSelectedMonth);
-    const itemMap=new Map();
-    settingRows.forEach(r=>{const k=ruleKey(r.item);if(!itemMap.has(k))itemMap.set(k,{key:k,item:r.item,count:0,total:0,jump:r,owners:new Set()});const x=itemMap.get(k);if(x.jump.sourceType!=='card'&&r.sourceType==='card')x.jump=r;x.count++;x.total+=r.zhiwei;const ownerLabel=zhiweiRowOwnerLabel(r);if(ownerLabel)x.owners.add(ownerLabel);});
-    const allItems=[...itemMap.values()].sort((a,b)=>a.item.localeCompare(b.item,'zh-Hant'));
-    const items=zhiweiCategoryFilter==='unclassified'?allItems.filter(x=>!zhiweiCategoryForItem(x.item)):(zhiweiCategoryFilter?allItems.filter(x=>zhiweiCategoryForItem(x.item)===zhiweiCategoryFilter):allItems);
-    const unclassifiedItemCount=allItems.filter(x=>!zhiweiCategoryForItem(x.item)).length;
+    const allItems=settingRows.slice().sort((a,b)=>a.item.localeCompare(b.item,'zh-Hant')||String(a.date||'').localeCompare(String(b.date||'')));
+    const items=zhiweiCategoryFilter==='unclassified'?allItems.filter(x=>!x.category):(zhiweiCategoryFilter?allItems.filter(x=>x.category===zhiweiCategoryFilter):allItems);
+    const unclassifiedItemCount=allItems.filter(x=>!x.category).length;
     const categoryOrder=['necessary','need','needWant','want','none',''];
     const summary=categoryOrder.map(cat=>{const rows=list.filter(r=>(r.category||'')===cat);return {cat,label:zhiweiCategoryLabel(cat),count:rows.length,total:rows.reduce((s,r)=>s+r.zhiwei,0)};});
     const ownerOrder=['家庭支出','小孩部分','志偉個人','每月帳款'];
-    const settingBody=items.length?ownerOrder.map(owner=>{const ownerItems=items.filter(x=>x.owners.has(owner));if(!ownerItems.length)return '';return '<tr class="zhiwei-owner-group"><td colspan="4">'+owner+'</td></tr>'+ownerItems.map(x=>'<tr><td><button type="button" class="zhiwei-item-link" title="跳到該帳" data-zhiwei-jump="'+esc2(x.jump.id)+'" data-zhiwei-jump-type="'+esc2(x.jump.sourceType)+'" data-zhiwei-jump-month="'+esc2(x.jump.billMonth)+'">'+esc2(x.item)+'</button></td><td>'+x.count+' 筆</td><td>'+esc2(fmt(x.total))+'</td><td>'+zhiweiCategoryPillsHtml(x.item)+'</td></tr>').join('');}).join(''):'<tr><td colspan="4" class="empty">'+(zhiweiCategoryFilter?'此分類目前沒有項目':'這個月份沒有志偉負擔項目')+'</td></tr>';
-    const settingsHtml='<table class="zhiwei-setting-table"><thead><tr><th>項目</th><th>明細</th><th>志偉負擔</th><th>'+zhiweiFilterPillsHtml()+'</th></tr></thead><tbody>'+settingBody+'</tbody></table>';
+    const settingBody=items.length?ownerOrder.map(owner=>{const ownerItems=items.filter(x=>zhiweiRowOwnerLabel(x)===owner);if(!ownerItems.length)return '';return '<tr class="zhiwei-owner-group"><td colspan="3">'+owner+'</td></tr>'+ownerItems.map(x=>'<tr><td><button type="button" class="zhiwei-item-link" title="跳到該帳" data-zhiwei-jump="'+esc2(x.id)+'" data-zhiwei-jump-type="'+esc2(x.sourceType)+'" data-zhiwei-jump-month="'+esc2(x.billMonth)+'">'+esc2(x.item)+'</button></td><td>'+esc2(fmt(x.zhiwei))+'</td><td>'+zhiweiCategoryPillsHtml(x)+'</td></tr>').join('');}).join(''):'<tr><td colspan="3" class="empty">'+(zhiweiCategoryFilter?'此分類目前沒有項目':'這個月份沒有志偉負擔項目')+'</td></tr>';
+    const settingsHtml='<table class="zhiwei-setting-table"><thead><tr><th>項目</th><th>志偉負擔</th><th>'+zhiweiFilterPillsHtml()+'</th></tr></thead><tbody>'+settingBody+'</tbody></table>';
     const categoriesHtml=ownerOrder.map(owner=>{
       const ownerRows=list.filter(r=>zhiweiRowOwnerLabel(r)===owner);if(!ownerRows.length)return '';
-      const categoryHtml=categoryOrder.filter(cat=>cat!=='').map(cat=>{const catRows=ownerRows.filter(r=>(r.category||'')===cat);if(!catRows.length)return '';const grouped=new Map();catRows.forEach(r=>{const k=ruleKey(r.item);if(!grouped.has(k))grouped.set(k,{item:r.item,rows:[],total:0});const g=grouped.get(k);g.rows.push(r);g.total+=r.zhiwei;});const itemHtml=[...grouped.values()].map(g=>'<details class="zhiwei-item"><summary><span>'+esc2(g.item)+'｜'+g.rows.length+'筆</span><span>'+esc2(fmt(g.total))+'</span></summary><table class="zhiwei-detail-table"><thead><tr><th>日期</th><th>來源／銀行</th><th>原金額</th><th>比例</th><th>志偉負擔</th><th>備註</th></tr></thead><tbody>'+g.rows.map(r=>'<tr><td>'+esc2(r.date||'')+'</td><td>'+esc2([r.source,r.bank].filter((v,i,a)=>v&&a.indexOf(v)===i).join('｜'))+'</td><td class="num">'+esc2(fmt(r.amount))+'</td><td class="num">'+esc2(cleanPct(r.pct))+'%</td><td class="num">'+esc2(fmt(r.zhiwei))+'</td><td>'+esc2(r.note||'')+'</td></tr>').join('')+'</tbody></table></details>').join('');return '<h3>'+zhiweiCategoryLabel(cat)+'｜'+catRows.length+'筆｜'+fmt(catRows.reduce((s,r)=>s+r.zhiwei,0))+'</h3>'+itemHtml;}).join('');
+      const categoryHtml=categoryOrder.filter(cat=>cat!=='').map(cat=>{const catRows=ownerRows.filter(r=>(r.category||'')===cat);if(!catRows.length)return '';const itemHtml=catRows.map(r=>'<details class="zhiwei-item"><summary><span>'+esc2(r.item)+'</span><span>'+esc2(fmt(r.zhiwei))+'</span></summary><table class="zhiwei-detail-table"><thead><tr><th>日期</th><th>來源／銀行</th><th>原金額</th><th>比例</th><th>志偉負擔</th><th>備註</th></tr></thead><tbody><tr><td>'+esc2(r.date||'')+'</td><td>'+esc2([r.source,r.bank].filter((v,i,a)=>v&&a.indexOf(v)===i).join('｜'))+'</td><td class="num">'+esc2(fmt(r.amount))+'</td><td class="num">'+esc2(cleanPct(r.pct))+'%</td><td class="num">'+esc2(fmt(r.zhiwei))+'</td><td>'+esc2(r.note||'')+'</td></tr></tbody></table></details>').join('');return '<h3>'+zhiweiCategoryLabel(cat)+'｜'+fmt(catRows.reduce((s,r)=>s+r.zhiwei,0))+'</h3>'+itemHtml;}).join('');
       if(!categoryHtml)return '';
-      return '<div class="zhiwei-category"><div class="zhiwei-owner-heading">'+owner+'｜'+ownerRows.length+'筆｜'+fmt(ownerRows.reduce((s,r)=>s+r.zhiwei,0))+'</div>'+categoryHtml+'</div>';
+      return '<div class="zhiwei-category"><div class="zhiwei-owner-heading">'+owner+'｜'+fmt(ownerRows.reduce((s,r)=>s+r.zhiwei,0))+'</div>'+categoryHtml+'</div>';
     }).join('');
     const total=list.reduce((s,r)=>s+r.zhiwei,0);
     panel.innerHTML='<div class="zhiwei-head"><div><h2>志偉負擔自動列表</h2><div class="muted">左邊依帳單歸屬年月列出全部項目供分類；右邊依消費日期歸入月份。選錯直接點另一個，再點一次目前分類可取消。</div></div><div class="zhiwei-head-actions"><span class="zhiwei-total">'+esc2(zhiweiSelectedMonth||'')+'｜'+list.length+'筆｜'+esc2(fmt(total))+'</span><button id="closeZhiweiPanel" class="btn gray" type="button">關閉</button></div></div><div class="zhiwei-months">'+months.map(m=>'<button class="month-chip '+(m===zhiweiSelectedMonth?'active':'')+'" data-zhiwei-month="'+esc2(m)+'" type="button">'+esc2(m)+'</button>').join('')+'</div><div class="zhiwei-grid"><div class="zhiwei-box"><div class="zhiwei-box-title"><span>項目分類設定｜帳單歸屬 '+esc2(zhiweiSelectedMonth||'')+'</span><span class="'+(unclassifiedItemCount?'warnhint':'okhint')+'">未分類 '+unclassifiedItemCount+' 項</span></div><div class="zhiwei-setting-scroll">'+settingsHtml+'</div></div><div class="zhiwei-box"><div class="zhiwei-box-title"><span>月份自動列表｜消費日期 '+esc2(zhiweiSelectedMonth||'')+'</span><span>合計 '+esc2(fmt(total))+'</span></div><div class="zhiwei-summary">'+summary.map(x=>'<div class="zhiwei-summary-card"><b>'+x.label+'｜'+x.count+'筆</b><span>'+esc2(fmt(x.total))+'</span></div>').join('')+'</div><div class="zhiwei-auto-scroll">'+(categoriesHtml||'<div class="empty">沒有資料</div>')+'</div></div></div>';
@@ -9432,7 +9436,7 @@ function safeWriteLocalJSON(key,val){
 let lastCardPasteRestoreCount=0;
 function buildCardPasteBackup(){
   return {
-    version:'V265',
+    version:'V266',
     exportedAt:new Date().toISOString(),
     records:safeReadLocalJSON('lihui_card_paste_records_v4',[]),
     legacyRecords:safeReadLocalJSON('lihui_card_paste_records_v3',[]),
