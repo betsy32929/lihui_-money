@@ -6,7 +6,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
-  <title>麗卉每月帳款｜V284 Excel單頁列印</title>
+  <title>麗卉每月帳款｜V285 Excel列高15</title>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
@@ -2346,7 +2346,7 @@
   <div class="topbar">
     <div class="top-title top-title-v120">
       <div class="top-main-line">
-        <h1>麗卉每月帳款 <span class="app-version">V284</span></h1>
+        <h1>麗卉每月帳款 <span class="app-version">V285</span></h1>
         <div class="actions action-row action-row-main top-main-actions">
           <button class="act-btn act-add" onclick="addMonth()">＋新增月份</button>
           <button class="act-btn act-copy" onclick="copyCurrentMonth()">複製月份</button>
@@ -7307,7 +7307,7 @@ function openCardPasteWindow(){
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>信用卡刷卡紀錄整理｜V284</title>
+<title>信用卡刷卡紀錄整理｜V285</title>
 <style>
   *{box-sizing:border-box}
   body{margin:0;background:linear-gradient(145deg,#fff7ed 0%,#f0f9ff 48%,#f5f3ff 100%);font-family:"Microsoft JhengHei","Noto Sans TC",Arial,sans-serif;color:#1f2937;font-size:14px;}
@@ -7837,7 +7837,7 @@ function openCardPasteWindow(){
 </head>
 <body>
   <div class="wrap">
-    <div class="head"><h1>信用卡刷卡紀錄整理 <span class="badge">V284</span></h1><div class="cloud-sync-box"><span id="cardPasteCloudPill" class="cloud-pill off">雲端狀態確認中</span><div id="cardPasteCloudDetail" class="cloud-detail">另開視窗資料會先同步主畫面</div></div></div>
+    <div class="head"><h1>信用卡刷卡紀錄整理 <span class="badge">V285</span></h1><div class="cloud-sync-box"><span id="cardPasteCloudPill" class="cloud-pill off">雲端狀態確認中</span><div id="cardPasteCloudDetail" class="cloud-detail">另開視窗資料會先同步主畫面</div></div></div>
     <div class="panel">
       <div class="controls">
         <div class="field"><label>歸屬年月</label><input id="belongMonth" placeholder="115/5"><div id="belongMonthErr" class="err"></div></div>
@@ -9184,7 +9184,7 @@ function openCardPasteWindow(){
         let headerRow=0,dataIndex=0;
         rowDefs.forEach(def=>{
           const vals=(def.cells||[]).map(c=>(c&&typeof c==='object'&&c.formula)?{formula:String(c.formula).replace(/^=/,'')}:c);
-          const row=ws.addRow(vals);row.height=23;row.eachCell({includeEmpty:true},baseCell);
+          const row=ws.addRow(vals);row.height=15;row.eachCell({includeEmpty:true},baseCell);
           if(def.type==='title'){
             ws.mergeCells(row.number,1,row.number,8);row.height=34;row.getCell(1).font={name:fontName,bold:true,size:17,color:{argb:'FFFFFFFF'}};row.getCell(1).fill=solid('FF1D4ED8');row.getCell(1).alignment={vertical:'middle',horizontal:'left'};
           }else if(def.type==='info'){
@@ -9212,7 +9212,7 @@ function openCardPasteWindow(){
         sheet.columns=[{width:58},{width:20}];
         const monthRows=zhiweiMonthExcelRows(month);
         monthRows.forEach((vals,i)=>{
-          const row=sheet.addRow(vals);row.height=23;row.eachCell({includeEmpty:true},baseCell);
+          const row=sheet.addRow(vals);row.height=15;row.eachCell({includeEmpty:true},baseCell);
           const label=String(vals[0]||'');
           if(i===0){
             sheet.mergeCells(row.number,1,row.number,2);row.height=34;row.getCell(1).font={name:fontName,bold:true,size:16,color:{argb:'FFFFFFFF'}};row.getCell(1).fill=solid('FF0284C7');
@@ -9626,7 +9626,7 @@ function safeWriteLocalJSON(key,val){
 let lastCardPasteRestoreCount=0;
 function buildCardPasteBackup(){
   return {
-    version:'V284',
+    version:'V285',
     exportedAt:new Date().toISOString(),
     records:safeReadLocalJSON('lihui_card_paste_records_v4',[]),
     legacyRecords:safeReadLocalJSON('lihui_card_paste_records_v3',[]),
