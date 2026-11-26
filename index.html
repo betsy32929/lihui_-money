@@ -6,7 +6,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
-  <title>麗卉每月帳款｜V271 志偉分類單一設定</title>
+  <title>麗卉每月帳款｜V272 志偉固定支出分攤</title>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
   <style>
@@ -2271,6 +2271,7 @@
 .bridge-pct-amounts span{display:block;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .bridge-pct-amounts span:first-child{color:#2563eb}
 .bridge-pct-amounts span:last-child{color:#0369a1}
+.child-fee-split{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-top:5px;padding:5px;border:1px solid #f9a8d4;border-radius:9px;background:#fff7fb}.child-fee-split label{font-size:10px;font-weight:950;color:#9d174d}.child-fee-split input{margin-top:2px!important;height:28px!important;padding:3px 5px!important;text-align:right}
 @media(max-width:980px){.bridge-share-row{grid-template-columns:1fr 1fr!important}.bridge-share-row .row-actions{justify-content:flex-start!important}}
 
 
@@ -2344,7 +2345,7 @@
   <div class="topbar">
     <div class="top-title top-title-v120">
       <div class="top-main-line">
-        <h1>麗卉每月帳款 <span class="app-version">V271</span></h1>
+        <h1>麗卉每月帳款 <span class="app-version">V272</span></h1>
         <div class="actions action-row action-row-main top-main-actions">
           <button class="act-btn act-add" onclick="addMonth()">＋新增月份</button>
           <button class="act-btn act-copy" onclick="copyCurrentMonth()">複製月份</button>
@@ -5563,7 +5564,8 @@ function renderBridgeShareFixedRow(it,secIdx,idx){
   const zAmt=bridgeShareAmount(state.activeMonth,it,base,'zhiwei');
   const needsZhiweiTransferDate=zp>0&&zp<100;
   const zhiweiDate=needsZhiweiTransferDate?`<div><div class="tiny">志偉匯款日期</div><input value="${esc(it.bridgeZhiweiTransferDate||'')}" onchange="this.value=normalizeDateInput(this);setItem(${secIdx},${idx},'bridgeZhiweiTransferDate',this.value)" placeholder="115/7/15"></div>`:'<div class="bridge-zhiwei-date-placeholder" aria-hidden="true"></div>';
-  return `<div class="fixed-row normalrow bridge-share-row has-zhiwei-date"><div><div class="tiny">項目${fixedNote}</div><input class="labelcell" value="${esc(it.label)}" oninput="setItem(${secIdx},${idx},'label',this.value)"></div><div><div class="tiny">金額</div><input inputmode="numeric" class="amountinp" value="${esc(it.amount)}" oninput="this.value=moneyOnly(this.value);setItem(${secIdx},${idx},'amount',this.value)" placeholder="0"></div><div><div class="tiny">負擔比例</div><div class="bridge-pct-pack"><div class="bridge-pct-cell"><input inputmode="decimal" value="${esc(bridgeCleanPct(lp))}" onchange="setBridgePct(${secIdx},${idx},'bridgeLihuiPct',this.value)" placeholder="麗卉%"><input inputmode="decimal" value="${esc(bridgeCleanPct(zp))}" onchange="setBridgePct(${secIdx},${idx},'bridgeZhiweiPct',this.value)" placeholder="志偉%"></div><div class="bridge-pct-amounts"><span>麗卉 ${esc(fmt(lAmt,true))}</span><span>志偉 ${esc(fmt(zAmt,true))}</span></div></div></div><div><div class="tiny">${esc(it.dateType)}</div><input value="${esc(it.date)}" onchange="this.value=normalizeDateInput(this);setItem(${secIdx},${idx},'date',this.value)" placeholder="115/6/8"></div>${zhiweiDate}<div><div class="tiny">備註</div><input value="${esc(it.note)}" oninput="setItem(${secIdx},${idx},'note',this.value)" placeholder="備註事項"></div><div><div class="tiny">&nbsp;</div><div class="row-actions"><button class="iconbtn keep" onclick="clearPersonalItemData(${secIdx},${idx})">清</button><button class="iconbtn del" onclick="deletePersonalItem(${secIdx},${idx})">刪</button></div></div></div>`
+  const childSplit=String(it.label||'').includes('小孩月費')?`<div class="child-fee-split"><label>單月學費<input inputmode="numeric" value="${esc(it.zhiweiChildTuition||'')}" oninput="this.value=moneyOnly(this.value);setItem(${secIdx},${idx},'zhiweiChildTuition',this.value)" placeholder="0"></label><label>半年註冊費<input inputmode="numeric" value="${esc(it.zhiweiChildRegistration||'')}" oninput="this.value=moneyOnly(this.value);setItem(${secIdx},${idx},'zhiweiChildRegistration',this.value)" placeholder="0"></label></div>`:'';
+  return `<div class="fixed-row normalrow bridge-share-row has-zhiwei-date"><div><div class="tiny">項目${fixedNote}</div><input class="labelcell" value="${esc(it.label)}" oninput="setItem(${secIdx},${idx},'label',this.value)">${childSplit}</div><div><div class="tiny">金額</div><input inputmode="numeric" class="amountinp" value="${esc(it.amount)}" oninput="this.value=moneyOnly(this.value);setItem(${secIdx},${idx},'amount',this.value)" placeholder="0"></div><div><div class="tiny">負擔比例</div><div class="bridge-pct-pack"><div class="bridge-pct-cell"><input inputmode="decimal" value="${esc(bridgeCleanPct(lp))}" onchange="setBridgePct(${secIdx},${idx},'bridgeLihuiPct',this.value)" placeholder="麗卉%"><input inputmode="decimal" value="${esc(bridgeCleanPct(zp))}" onchange="setBridgePct(${secIdx},${idx},'bridgeZhiweiPct',this.value)" placeholder="志偉%"></div><div class="bridge-pct-amounts"><span>麗卉 ${esc(fmt(lAmt,true))}</span><span>志偉 ${esc(fmt(zAmt,true))}</span></div></div></div><div><div class="tiny">${esc(it.dateType)}</div><input value="${esc(it.date)}" onchange="this.value=normalizeDateInput(this);setItem(${secIdx},${idx},'date',this.value)" placeholder="115/6/8"></div>${zhiweiDate}<div><div class="tiny">備註</div><input value="${esc(it.note)}" oninput="setItem(${secIdx},${idx},'note',this.value)" placeholder="備註事項"></div><div><div class="tiny">&nbsp;</div><div class="row-actions"><button class="iconbtn keep" onclick="clearPersonalItemData(${secIdx},${idx})">清</button><button class="iconbtn del" onclick="deletePersonalItem(${secIdx},${idx})">刪</button></div></div></div>`
 }
 function extractRocDateFromMainCardText(raw){
   const s=String(raw||'').trim();
@@ -7304,7 +7306,7 @@ function openCardPasteWindow(){
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>信用卡刷卡紀錄整理｜V271</title>
+<title>信用卡刷卡紀錄整理｜V272</title>
 <style>
   *{box-sizing:border-box}
   body{margin:0;background:linear-gradient(145deg,#fff7ed 0%,#f0f9ff 48%,#f5f3ff 100%);font-family:"Microsoft JhengHei","Noto Sans TC",Arial,sans-serif;color:#1f2937;font-size:14px;}
@@ -7834,7 +7836,7 @@ function openCardPasteWindow(){
 </head>
 <body>
   <div class="wrap">
-    <div class="head"><h1>信用卡刷卡紀錄整理 <span class="badge">V271</span></h1><div class="cloud-sync-box"><span id="cardPasteCloudPill" class="cloud-pill off">雲端狀態確認中</span><div id="cardPasteCloudDetail" class="cloud-detail">另開視窗資料會先同步主畫面</div></div></div>
+    <div class="head"><h1>信用卡刷卡紀錄整理 <span class="badge">V272</span></h1><div class="cloud-sync-box"><span id="cardPasteCloudPill" class="cloud-pill off">雲端狀態確認中</span><div id="cardPasteCloudDetail" class="cloud-detail">另開視窗資料會先同步主畫面</div></div></div>
     <div class="panel">
       <div class="controls">
         <div class="field"><label>歸屬年月</label><input id="belongMonth" placeholder="115/5"><div id="belongMonthErr" class="err"></div></div>
@@ -8318,7 +8320,7 @@ function openCardPasteWindow(){
         const item=String(it.label||'未命名項目').trim();
         const expenseDate=normalizeRocDateValue(it.date||'','');
         const month=expenseDate.ok?(expenseDate.y+'/'+expenseDate.m):pageMonth;
-        const row={id:'monthly_'+mid+'_'+String(it.id||ruleKey(item)),sourceType:'monthly',month,billMonth:pageMonth,item,source:String(sec.title||'每月帳款'),bank:'每月帳款',date:String(it.date||''),amount,pct,zhiwei:Math.round(amount*pct/100),note:String(it.note||''),owner:'志偉負擔'};row.category=zhiweiCategoryForRow(row,item,migratedLegacyKeys);out.push(row);
+        const row={id:'monthly_'+mid+'_'+String(it.id||ruleKey(item)),sourceType:'monthly',month,billMonth:pageMonth,item,source:String(sec.title||'每月帳款'),bank:'每月帳款',date:String(it.date||''),amount,pct,zhiwei:Math.round(amount*pct/100),note:String(it.note||''),owner:'志偉負擔',childTuition:moneyNum(it.zhiweiChildTuition),childRegistration:moneyNum(it.zhiweiChildRegistration)};row.category=zhiweiCategoryForRow(row,item,migratedLegacyKeys);out.push(row);
       }));
     });
     if(migratedLegacyKeys.size){migratedLegacyKeys.forEach(key=>delete zhiweiCategories[key]);saveZhiweiCategories();}
@@ -8337,7 +8339,11 @@ function openCardPasteWindow(){
     const fallbackYear=raw.map(r=>String(r.month||'').split('/')[0]).filter(Boolean).sort((a,b)=>Number(b)-Number(a))[0]||String(new Date().getFullYear()-1911);
     const year=selected.ok?String(selected.y):fallbackYear;
     const allocated=[];
-    raw.forEach(r=>{if(r.sourceType==='monthly'){allocated.push(Object.assign({},r));return;}if(!r.category)return;const p=zhiweiPeriods[zhiweiRowCategoryKey(r)];if(!p||!p.mode)return;const parts=String(r.month||'').split('/'),sy=Number(parts[0]),sm=Number(parts[1]);if(!sy||!sm)return;const count=p.mode==='annual'?12:(p.mode==='custom'?Math.max(1,Math.min(36,Number(p.months)||1)):1),share=r.zhiwei/count;for(let i=0;i<count;i++){const idx=(sm-1)+i,ty=sy+Math.floor(idx/12),tm=(idx%12)+1;allocated.push(Object.assign({},r,{month:ty+'/'+tm,zhiwei:share}));}});
+    const addSpread=(r,count,label,amount)=>{const parts=String(r.month||'').split('/'),sy=Number(parts[0]),sm=Number(parts[1]);if(!sy||!sm)return;const share=amount/count;for(let i=0;i<count;i++){const idx=(sm-1)+i,ty=sy+Math.floor(idx/12),tm=(idx%12)+1;allocated.push(Object.assign({},r,{item:label||r.item,month:ty+'/'+tm,zhiwei:share}));}};
+    raw.forEach(r=>{if(r.sourceType==='monthly'){const label=String(r.item||'');if(label==='管理費'||label.includes('大橋管理費')||label.includes('志偉_台灣大哥大'))return;if(label.includes('雙月天然氣')){addSpread(r,2,label,r.zhiwei);return;}if(label.includes('小孩月費')&&(r.childTuition||r.childRegistration)){const pct=Number(r.pct||0)/100;if(r.childTuition)addSpread(r,1,label+'｜單月學費',r.childTuition*pct);if(r.childRegistration)addSpread(r,6,label+'｜半年註冊費',r.childRegistration*pct);return;}allocated.push(Object.assign({},r));return;}if(!r.category)return;const p=zhiweiPeriods[zhiweiRowCategoryKey(r)];if(!p||!p.mode)return;const count=p.mode==='annual'?12:(p.mode==='custom'?Math.max(1,Math.min(36,Number(p.months)||1)):1);addSpread(r,count,r.item,r.zhiwei);});
+    const recurringTemplate=(match,startMonth,fixedAmount)=>{const candidates=raw.filter(r=>r.sourceType==='monthly'&&match(String(r.item||''))&&r.zhiwei>0).sort((a,b)=>compareMonthDesc(a.billMonth,b.billMonth));const sample=candidates[0];if(!sample||Number(year)<115)return;const first=Number(year)===115?startMonth:1,amount=fixedAmount||sample.zhiwei;for(let m=first;m<=12;m++)allocated.push(Object.assign({},sample,{month:year+'/'+m,billMonth:year+'/'+m,zhiwei:amount}));};
+    recurringTemplate(label=>label==='管理費'||label.includes('大橋管理費'),6,1150);
+    recurringTemplate(label=>label.includes('志偉_台灣大哥大'),7,0);
     const yearRows=allocated.filter(r=>String(r.month||'').split('/')[0]===year);
     const months=Array.from({length:12},(_,i)=>year+'/'+(i+1));
     const valuesFor=rows=>months.map(month=>rows.filter(r=>r.month===month).reduce((s,r)=>s+r.zhiwei,0));
@@ -9488,7 +9494,7 @@ function safeWriteLocalJSON(key,val){
 let lastCardPasteRestoreCount=0;
 function buildCardPasteBackup(){
   return {
-    version:'V271',
+    version:'V272',
     exportedAt:new Date().toISOString(),
     records:safeReadLocalJSON('lihui_card_paste_records_v4',[]),
     legacyRecords:safeReadLocalJSON('lihui_card_paste_records_v3',[]),
