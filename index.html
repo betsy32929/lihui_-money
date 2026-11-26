@@ -6,7 +6,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
-  <title>麗卉每月帳款｜V298 尚未請款月份修正</title>
+  <title>麗卉每月帳款｜V299 負擔功能起始月份</title>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
@@ -2373,7 +2373,7 @@
   <div class="topbar">
     <div class="top-title top-title-v120">
       <div class="top-main-line">
-        <h1>麗卉每月帳款 <span class="app-version">V298</span></h1>
+        <h1>麗卉每月帳款 <span class="app-version">V299</span></h1>
         <div class="actions action-row action-row-main top-main-actions">
           <button class="act-btn act-add" onclick="addMonth()">＋新增月份</button>
           <button class="act-btn act-copy" onclick="copyCurrentMonth()">複製月份</button>
@@ -7400,7 +7400,7 @@ function openCardPasteWindow(){
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>信用卡刷卡紀錄整理｜V298</title>
+<title>信用卡刷卡紀錄整理｜V299</title>
 <style>
   *{box-sizing:border-box}
   body{margin:0;background:linear-gradient(145deg,#fff7ed 0%,#f0f9ff 48%,#f5f3ff 100%);font-family:"Microsoft JhengHei","Noto Sans TC",Arial,sans-serif;color:#1f2937;font-size:14px;}
@@ -7930,7 +7930,7 @@ function openCardPasteWindow(){
 </head>
 <body>
   <div class="wrap">
-    <div class="head"><h1>信用卡刷卡紀錄整理 <span class="badge">V298</span></h1><div class="cloud-sync-box"><span id="cardPasteCloudPill" class="cloud-pill off">雲端狀態確認中</span><div id="cardPasteCloudDetail" class="cloud-detail">另開視窗資料會先同步主畫面</div></div></div>
+    <div class="head"><h1>信用卡刷卡紀錄整理 <span class="badge">V299</span></h1><div class="cloud-sync-box"><span id="cardPasteCloudPill" class="cloud-pill off">雲端狀態確認中</span><div id="cardPasteCloudDetail" class="cloud-detail">另開視窗資料會先同步主畫面</div></div></div>
     <div class="panel">
       <div class="controls">
         <div class="field"><label>歸屬年月</label><input id="belongMonth" placeholder="115/5"><div id="belongMonthErr" class="err"></div></div>
@@ -8841,6 +8841,17 @@ function openCardPasteWindow(){
     if(m)return {owner,postDate:shortMD(m[1]),spendDate:shortMD(m[2]),item:m[3].trim(),amount:m[4].replace(/[，,]/g,'')};
     return null;
   }
+  function isBeforeShareFeatureMonth(value){
+    const m=normalizeRocMonthValue(value||'');
+    return !!(m.ok&&m.y===115&&m.m>=1&&m.m<=5);
+  }
+  function applyPreShareZeroDefaults(obj){
+    if(!obj||!isBeforeShareFeatureMonth(obj.belongMonth))return false;
+    const changed=String(obj.lihuiPct??'')!=='0'||String(obj.zhiweiPct??'')!=='0';
+    obj.lihuiPct='0';
+    obj.zhiweiPct='0';
+    return changed;
+  }
   function loadStores(){
     claimStatus=readJson(CLAIM_KEY,{});if(!claimStatus||typeof claimStatus!=='object')claimStatus={};
     records=readJson(STORE_KEY,null);
@@ -8850,6 +8861,7 @@ function openCardPasteWindow(){
       const obj=Object.assign({id:uid(),note:'',owner:'',payer:'',saved:true},r,{saved:true});
       const cleaned=cleanCardPasteItemValue(obj.item,obj);
       if(cleaned!==String(obj.item||'').trim()){obj.item=cleaned;recordsChanged=true;}
+      if(applyPreShareZeroDefaults(obj))recordsChanged=true;
       return obj;
     });
     if(recordsChanged)saveRecords();
@@ -8860,6 +8872,7 @@ function openCardPasteWindow(){
         const obj=Object.assign({payer:''},r);
         const cleaned=cleanCardPasteItemValue(obj.item,obj);
         if(cleaned!==String(obj.item||'').trim()){obj.item=cleaned;draftChanged=true;}
+        if(applyPreShareZeroDefaults(obj))draftChanged=true;
         return obj;
       });
       doc.getElementById('belongMonth').value=draft.belongMonth||'';
@@ -9730,7 +9743,7 @@ function safeWriteLocalJSON(key,val){
 let lastCardPasteRestoreCount=0;
 function buildCardPasteBackup(){
   return {
-    version:'V298',
+    version:'V299',
     exportedAt:new Date().toISOString(),
     records:safeReadLocalJSON('lihui_card_paste_records_v4',[]),
     legacyRecords:safeReadLocalJSON('lihui_card_paste_records_v3',[]),
