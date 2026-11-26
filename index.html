@@ -6,7 +6,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
-  <title>麗卉每月帳款｜V296 移除學費起始文字</title>
+  <title>麗卉每月帳款｜V297 大橋電費雙月</title>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
@@ -2373,7 +2373,7 @@
   <div class="topbar">
     <div class="top-title top-title-v120">
       <div class="top-main-line">
-        <h1>麗卉每月帳款 <span class="app-version">V296</span></h1>
+        <h1>麗卉每月帳款 <span class="app-version">V297</span></h1>
         <div class="actions action-row action-row-main top-main-actions">
           <button class="act-btn act-add" onclick="addMonth()">＋新增月份</button>
           <button class="act-btn act-copy" onclick="copyCurrentMonth()">複製月份</button>
@@ -7400,7 +7400,7 @@ function openCardPasteWindow(){
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>信用卡刷卡紀錄整理｜V296</title>
+<title>信用卡刷卡紀錄整理｜V297</title>
 <style>
   *{box-sizing:border-box}
   body{margin:0;background:linear-gradient(145deg,#fff7ed 0%,#f0f9ff 48%,#f5f3ff 100%);font-family:"Microsoft JhengHei","Noto Sans TC",Arial,sans-serif;color:#1f2937;font-size:14px;}
@@ -7930,7 +7930,7 @@ function openCardPasteWindow(){
 </head>
 <body>
   <div class="wrap">
-    <div class="head"><h1>信用卡刷卡紀錄整理 <span class="badge">V296</span></h1><div class="cloud-sync-box"><span id="cardPasteCloudPill" class="cloud-pill off">雲端狀態確認中</span><div id="cardPasteCloudDetail" class="cloud-detail">另開視窗資料會先同步主畫面</div></div></div>
+    <div class="head"><h1>信用卡刷卡紀錄整理 <span class="badge">V297</span></h1><div class="cloud-sync-box"><span id="cardPasteCloudPill" class="cloud-pill off">雲端狀態確認中</span><div id="cardPasteCloudDetail" class="cloud-detail">另開視窗資料會先同步主畫面</div></div></div>
     <div class="panel">
       <div class="controls">
         <div class="field"><label>歸屬年月</label><input id="belongMonth" placeholder="115/5"><div id="belongMonthErr" class="err"></div></div>
@@ -8436,7 +8436,7 @@ function openCardPasteWindow(){
     const year=selected.ok?String(selected.y):fallbackYear;
     const allocated=[];
     const addSpread=(r,count,label,amount)=>{const parts=String(r.month||'').split('/'),sy=Number(parts[0]),sm=Number(parts[1]);if(!sy||!sm)return;const share=amount/count;for(let i=0;i<count;i++){const idx=(sm-1)+i,ty=sy+Math.floor(idx/12),tm=(idx%12)+1;allocated.push(Object.assign({},r,{item:label||r.item,month:ty+'/'+tm,zhiwei:share}));}};
-    raw.forEach(r=>{if(r.sourceType==='monthly'){const label=String(r.item||'');if(label==='管理費'||label.includes('大橋管理費')||label.includes('志偉_台灣大哥大')||label.includes('大橋房貸'))return;if(r.childNewMode){allocated.push(Object.assign({},r));return;}if(label.includes('雙月天然氣')){addSpread(r,2,label,r.zhiwei);return;}if(label.includes('小孩月費')&&(r.childTuition||r.childRegistration)){const pct=Number(r.pct||0)/100;if(r.childTuition)addSpread(r,1,label+'｜單月學費',r.childTuition*pct);if(r.childRegistration)addSpread(r,6,label+'｜半年註冊費',r.childRegistration*pct);return;}allocated.push(Object.assign({},r));return;}if(!r.category)return;const p=zhiweiPeriods[zhiweiRowCategoryKey(r)];if(!p||!p.mode)return;const count=p.mode==='annual'?12:(p.mode==='custom'?Math.max(1,Math.min(36,Number(p.months)||1)):1);addSpread(r,count,r.item,r.zhiwei);});
+    raw.forEach(r=>{if(r.sourceType==='monthly'){const label=String(r.item||'');if(label==='管理費'||label.includes('大橋管理費')||label.includes('志偉_台灣大哥大')||label.includes('大橋房貸'))return;if(r.childNewMode){allocated.push(Object.assign({},r));return;}if(label.includes('雙月天然氣')||label.includes('大橋電費')){addSpread(r,2,label,r.zhiwei);return;}if(label.includes('小孩月費')&&(r.childTuition||r.childRegistration)){const pct=Number(r.pct||0)/100;if(r.childTuition)addSpread(r,1,label+'｜單月學費',r.childTuition*pct);if(r.childRegistration)addSpread(r,6,label+'｜半年註冊費',r.childRegistration*pct);return;}allocated.push(Object.assign({},r));return;}if(!r.category)return;const p=zhiweiPeriods[zhiweiRowCategoryKey(r)];if(!p||!p.mode)return;const count=p.mode==='annual'?12:(p.mode==='custom'?Math.max(1,Math.min(36,Number(p.months)||1)):1);addSpread(r,count,r.item,r.zhiwei);});
     const recurringTemplate=(match,startMonth,fixedAmount)=>{const candidates=raw.filter(r=>r.sourceType==='monthly'&&match(String(r.item||''))&&r.zhiwei>0).sort((a,b)=>compareMonthDesc(a.billMonth,b.billMonth));const sample=candidates[0];if(!sample||Number(year)<115)return;const first=Number(year)===115?startMonth:1,amount=fixedAmount||sample.zhiwei;for(let m=first;m<=12;m++)allocated.push(Object.assign({},sample,{month:year+'/'+m,billMonth:year+'/'+m,zhiwei:amount}));};
     recurringTemplate(label=>label==='管理費'||label.includes('大橋管理費'),6,1150);
     recurringTemplate(label=>label.includes('志偉_台灣大哥大'),7,0);
@@ -8470,7 +8470,7 @@ function openCardPasteWindow(){
     const target=normalizeRocMonthValue(targetMonth||'');if(!target.ok)return [];
     const raw=allZhiweiAutoRows(),allocated=[];
     const addSpread=(r,count,label,amount)=>{const p=normalizeRocMonthValue(r.month||'');if(!p.ok)return;const share=amount/count;for(let i=0;i<count;i++){const idx=(p.m-1)+i,ty=p.y+Math.floor(idx/12),tm=(idx%12)+1;allocated.push(Object.assign({},r,{item:label||r.item,month:ty+'/'+tm,zhiwei:share}));}};
-    raw.forEach(r=>{if(r.sourceType==='monthly'){const label=String(r.item||'');if(label==='管理費'||label.includes('大橋管理費')||label.includes('志偉_台灣大哥大')||label.includes('大橋房貸'))return;if(r.childNewMode){allocated.push(Object.assign({},r));return;}if(label.includes('雙月天然氣')){addSpread(r,2,label,r.zhiwei);return;}if(label.includes('小孩月費')&&(r.childTuition||r.childRegistration)){const pct=Number(r.pct||0)/100;if(r.childTuition)addSpread(r,1,label+'｜單月學費',r.childTuition*pct);if(r.childRegistration)addSpread(r,6,label+'｜半年註冊費',r.childRegistration*pct);return;}allocated.push(Object.assign({},r));return;}if(!r.category)return;const period=zhiweiPeriods[zhiweiRowCategoryKey(r)];if(!period||!period.mode)return;const count=period.mode==='annual'?12:(period.mode==='custom'?Math.max(1,Math.min(36,Number(period.months)||1)):1);addSpread(r,count,r.item,r.zhiwei);});
+    raw.forEach(r=>{if(r.sourceType==='monthly'){const label=String(r.item||'');if(label==='管理費'||label.includes('大橋管理費')||label.includes('志偉_台灣大哥大')||label.includes('大橋房貸'))return;if(r.childNewMode){allocated.push(Object.assign({},r));return;}if(label.includes('雙月天然氣')||label.includes('大橋電費')){addSpread(r,2,label,r.zhiwei);return;}if(label.includes('小孩月費')&&(r.childTuition||r.childRegistration)){const pct=Number(r.pct||0)/100;if(r.childTuition)addSpread(r,1,label+'｜單月學費',r.childTuition*pct);if(r.childRegistration)addSpread(r,6,label+'｜半年註冊費',r.childRegistration*pct);return;}allocated.push(Object.assign({},r));return;}if(!r.category)return;const period=zhiweiPeriods[zhiweiRowCategoryKey(r)];if(!period||!period.mode)return;const count=period.mode==='annual'?12:(period.mode==='custom'?Math.max(1,Math.min(36,Number(period.months)||1)):1);addSpread(r,count,r.item,r.zhiwei);});
     const recurring=(match,startMonth,fixedAmount)=>{if(target.y<115||(target.y===115&&target.m<startMonth))return;const candidates=raw.filter(r=>r.sourceType==='monthly'&&match(String(r.item||''))&&r.zhiwei>0).sort((a,b)=>compareMonthDesc(a.billMonth,b.billMonth));const sample=candidates[0];if(sample)allocated.push(Object.assign({},sample,{month:target.value,billMonth:target.value,zhiwei:fixedAmount||sample.zhiwei}));};
     recurring(label=>label==='管理費'||label.includes('大橋管理費'),6,1150);
     recurring(label=>label.includes('志偉_台灣大哥大'),7,0);
@@ -8479,7 +8479,7 @@ function openCardPasteWindow(){
   }
   function zhiweiMonthExcelRows(month){
     const list=zhiweiRowsForTargetMonth(month),rows=[],sum=x=>x.reduce((s,r)=>s+r.zhiwei,0);
-    const periodLabel=r=>{if(r.sourceType==='card'){const p=zhiweiPeriods[zhiweiRowCategoryKey(r)];if(!p||!p.mode)return '';if(p.mode==='annual')return '年';if(p.mode==='custom')return Math.max(1,Number(p.months)||1)+'個月';return '單月';}const label=String(r.item||'');if(label.includes('雙月天然氣'))return '雙月';if(label.includes('半年註冊費'))return '6個月';return '單月';};
+    const periodLabel=r=>{if(r.sourceType==='card'){const p=zhiweiPeriods[zhiweiRowCategoryKey(r)];if(!p||!p.mode)return '';if(p.mode==='annual')return '年平均';if(p.mode==='custom'){const n=Math.max(1,Number(p.months)||1);return n===1?'單月':(n===2?'雙月平均':n+'個月平均');}return '單月';}const label=String(r.item||'');if(label.includes('雙月天然氣')||label.includes('大橋電費'))return '雙月平均';if(label.includes('半年註冊費'))return '6個月平均';return '單月';};
     const groupItems=x=>{const map=new Map();x.forEach(r=>{const period=periodLabel(r),k=ruleKey(r.item)+'|'+period;if(!map.has(k))map.set(k,{item:r.item,total:0,period});map.get(k).total+=r.zhiwei;});return [...map.values()].sort((a,b)=>a.item.localeCompare(b.item,'zh-Hant')||a.period.localeCompare(b.period,'zh-Hant'));};
     rows.push(['志偉負擔月份自動列表｜'+rocMonthText(month)]);
     rows.push(['志偉負擔每月總計',sum(list)]);
@@ -9726,7 +9726,7 @@ function safeWriteLocalJSON(key,val){
 let lastCardPasteRestoreCount=0;
 function buildCardPasteBackup(){
   return {
-    version:'V296',
+    version:'V297',
     exportedAt:new Date().toISOString(),
     records:safeReadLocalJSON('lihui_card_paste_records_v4',[]),
     legacyRecords:safeReadLocalJSON('lihui_card_paste_records_v3',[]),
