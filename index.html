@@ -6,7 +6,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
-  <title>麗卉每月帳款｜V295 學費框縮窄</title>
+  <title>麗卉每月帳款｜V296 移除學費起始文字</title>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
@@ -2373,7 +2373,7 @@
   <div class="topbar">
     <div class="top-title top-title-v120">
       <div class="top-main-line">
-        <h1>麗卉每月帳款 <span class="app-version">V295</span></h1>
+        <h1>麗卉每月帳款 <span class="app-version">V296</span></h1>
         <div class="actions action-row action-row-main top-main-actions">
           <button class="act-btn act-add" onclick="addMonth()">＋新增月份</button>
           <button class="act-btn act-copy" onclick="copyCurrentMonth()">複製月份</button>
@@ -5634,7 +5634,7 @@ function renderChildTuitionFixedRow(it,secIdx,idx){
   const lihuiTransfer=hasAnyText(it.childLihuiTransferAmount)?it.childLihuiTransferAmount:String(c.lihui||'');
   const zhiweiTransfer=hasAnyText(it.childZhiweiTransferAmount)?it.childZhiweiTransferAmount:String(c.zhiwei||'');
   return `<div class="child-tuition-row child-tuition-compact">
-    <div class="child-compact-item"><div class="tiny">項目｜115年8月起</div><input class="labelcell" value="${esc(it.label)}" oninput="setItem(${secIdx},${idx},'label',this.value)"></div>
+    <div class="child-compact-item"><div class="tiny">項目</div><input class="labelcell" value="${esc(it.label)}" oninput="setItem(${secIdx},${idx},'label',this.value)"></div>
     <div class="child-compact-fees">
       <div class="child-compact-fee-line"><label><span>析楓學費</span><input inputmode="numeric" value="${esc(hasAnyText(it.childXifengTuition)?it.childXifengTuition:(it.zhiweiChildTuition||''))}" onchange="setChildTuitionField(${secIdx},${idx},'childXifengTuition',this.value)" placeholder="0"></label>${xRegistration}</div>
       <div class="child-compact-fee-line"><label><span>佶睦學費</span><input inputmode="numeric" value="${esc(hasAnyText(it.childJimuTuition)?it.childJimuTuition:(c.jimuTuition||''))}" onchange="setChildTuitionField(${secIdx},${idx},'childJimuTuition',this.value)" placeholder="0"></label>${jRegistration}</div>
@@ -7400,7 +7400,7 @@ function openCardPasteWindow(){
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>信用卡刷卡紀錄整理｜V295</title>
+<title>信用卡刷卡紀錄整理｜V296</title>
 <style>
   *{box-sizing:border-box}
   body{margin:0;background:linear-gradient(145deg,#fff7ed 0%,#f0f9ff 48%,#f5f3ff 100%);font-family:"Microsoft JhengHei","Noto Sans TC",Arial,sans-serif;color:#1f2937;font-size:14px;}
@@ -7930,7 +7930,7 @@ function openCardPasteWindow(){
 </head>
 <body>
   <div class="wrap">
-    <div class="head"><h1>信用卡刷卡紀錄整理 <span class="badge">V295</span></h1><div class="cloud-sync-box"><span id="cardPasteCloudPill" class="cloud-pill off">雲端狀態確認中</span><div id="cardPasteCloudDetail" class="cloud-detail">另開視窗資料會先同步主畫面</div></div></div>
+    <div class="head"><h1>信用卡刷卡紀錄整理 <span class="badge">V296</span></h1><div class="cloud-sync-box"><span id="cardPasteCloudPill" class="cloud-pill off">雲端狀態確認中</span><div id="cardPasteCloudDetail" class="cloud-detail">另開視窗資料會先同步主畫面</div></div></div>
     <div class="panel">
       <div class="controls">
         <div class="field"><label>歸屬年月</label><input id="belongMonth" placeholder="115/5"><div id="belongMonthErr" class="err"></div></div>
@@ -9726,7 +9726,7 @@ function safeWriteLocalJSON(key,val){
 let lastCardPasteRestoreCount=0;
 function buildCardPasteBackup(){
   return {
-    version:'V295',
+    version:'V296',
     exportedAt:new Date().toISOString(),
     records:safeReadLocalJSON('lihui_card_paste_records_v4',[]),
     legacyRecords:safeReadLocalJSON('lihui_card_paste_records_v3',[]),
