@@ -6,7 +6,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
-  <title>麗卉每月帳款｜V274 Excel自動加總公式</title>
+  <title>麗卉每月帳款｜V275 年度列表移除平均</title>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
   <style>
@@ -2345,7 +2345,7 @@
   <div class="topbar">
     <div class="top-title top-title-v120">
       <div class="top-main-line">
-        <h1>麗卉每月帳款 <span class="app-version">V274</span></h1>
+        <h1>麗卉每月帳款 <span class="app-version">V275</span></h1>
         <div class="actions action-row action-row-main top-main-actions">
           <button class="act-btn act-add" onclick="addMonth()">＋新增月份</button>
           <button class="act-btn act-copy" onclick="copyCurrentMonth()">複製月份</button>
@@ -7306,7 +7306,7 @@ function openCardPasteWindow(){
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>信用卡刷卡紀錄整理｜V274</title>
+<title>信用卡刷卡紀錄整理｜V275</title>
 <style>
   *{box-sizing:border-box}
   body{margin:0;background:linear-gradient(145deg,#fff7ed 0%,#f0f9ff 48%,#f5f3ff 100%);font-family:"Microsoft JhengHei","Noto Sans TC",Arial,sans-serif;color:#1f2937;font-size:14px;}
@@ -7836,7 +7836,7 @@ function openCardPasteWindow(){
 </head>
 <body>
   <div class="wrap">
-    <div class="head"><h1>信用卡刷卡紀錄整理 <span class="badge">V274</span></h1><div class="cloud-sync-box"><span id="cardPasteCloudPill" class="cloud-pill off">雲端狀態確認中</span><div id="cardPasteCloudDetail" class="cloud-detail">另開視窗資料會先同步主畫面</div></div></div>
+    <div class="head"><h1>信用卡刷卡紀錄整理 <span class="badge">V275</span></h1><div class="cloud-sync-box"><span id="cardPasteCloudPill" class="cloud-pill off">雲端狀態確認中</span><div id="cardPasteCloudDetail" class="cloud-detail">另開視窗資料會先同步主畫面</div></div></div>
     <div class="panel">
       <div class="controls">
         <div class="field"><label>歸屬年月</label><input id="belongMonth" placeholder="115/5"><div id="belongMonthErr" class="err"></div></div>
@@ -8347,21 +8347,22 @@ function openCardPasteWindow(){
     const yearRows=allocated.filter(r=>String(r.month||'').split('/')[0]===year);
     const months=Array.from({length:12},(_,i)=>year+'/'+(i+1));
     const valuesFor=rows=>months.map(month=>rows.filter(r=>r.month===month).reduce((s,r)=>s+r.zhiwei,0));
-    const detailRow=(label,rows,section,key)=>{const values=valuesFor(rows),total=values.reduce((s,v)=>s+v,0);return '<tr class="detail-row" data-section="'+esc2(section)+'"><th>'+esc2(label)+'</th>'+values.map(v=>'<td>'+(v?esc2(fmt(v)):'')+'</td>').join('')+'<td class="avg" data-total="'+total+'">'+esc2(fmt(total/12))+'</td></tr>';};
-    const subtotalRow=(label,rows,section)=>{const values=valuesFor(rows),total=values.reduce((s,v)=>s+v,0);return '<tr class="subtotal" data-subtotal="'+esc2(section)+'"><th>'+esc2(label)+'</th>'+values.map(v=>'<td>'+(v?esc2(fmt(v)):'')+'</td>').join('')+'<td class="subtotal-avg">'+esc2(fmt(total/12))+'</td></tr>';};
+    const detailRow=(label,rows,section,key)=>{const values=valuesFor(rows);return '<tr class="detail-row" data-section="'+esc2(section)+'"><th>'+esc2(label)+'</th>'+values.map(v=>'<td>'+(v?esc2(fmt(v)):'')+'</td>').join('')+'</tr>';};
+    const subtotalRow=(label,rows,section)=>{const values=valuesFor(rows);return '<tr class="subtotal" data-subtotal="'+esc2(section)+'"><th>'+esc2(label)+'</th>'+values.map(v=>'<td>'+(v?esc2(fmt(v)):'')+'</td>').join('')+'</tr>';};
     const groupedDetails=(rows,section)=>{const map=new Map();rows.forEach(r=>{const key=ruleKey(r.item);if(!map.has(key))map.set(key,{item:r.item,rows:[]});map.get(key).rows.push(r);});return [...map.entries()].sort((a,b)=>a[1].item.localeCompare(b[1].item,'zh-Hant')).map(([key,g])=>detailRow(g.item,g.rows,section,year+'|'+section+'|'+key)).join('');};
     let tableRows='';
     const fixedRows=yearRows.filter(r=>r.sourceType==='monthly');
-    if(fixedRows.length){tableRows+='<tr class="section"><th colspan="14">固定支出｜每月帳款的志偉負擔</th></tr>'+groupedDetails(fixedRows,'fixed')+subtotalRow('固定支出小計',fixedRows,'fixed');}
+    if(fixedRows.length){tableRows+='<tr class="section"><th colspan="13">固定支出｜每月帳款的志偉負擔</th></tr>'+groupedDetails(fixedRows,'fixed')+subtotalRow('固定支出小計',fixedRows,'fixed');}
     const cardRows=yearRows.filter(r=>r.sourceType==='card');
-    ['necessary','need','needWant','want','none'].forEach(cat=>{const catRows=cardRows.filter(r=>r.category===cat);const section='cat_'+cat;tableRows+='<tr class="section"><th colspan="14">'+esc2(zhiweiCategoryLabel(cat))+'</th></tr>';['家庭支出','小孩部分','志偉個人'].forEach(owner=>{const ownerItems=catRows.filter(r=>zhiweiRowOwnerLabel(r)===owner);if(ownerItems.length)tableRows+='<tr class="owner"><th colspan="14">'+owner+'</th></tr>'+groupedDetails(ownerItems,section);});tableRows+=subtotalRow(zhiweiCategoryLabel(cat)+'小計',catRows,section);});
+    ['necessary','need','needWant','want','none'].forEach(cat=>{const catRows=cardRows.filter(r=>r.category===cat);const section='cat_'+cat;tableRows+='<tr class="section"><th colspan="13">'+esc2(zhiweiCategoryLabel(cat))+'</th></tr>';['家庭支出','小孩部分','志偉個人'].forEach(owner=>{const ownerItems=catRows.filter(r=>zhiweiRowOwnerLabel(r)===owner);if(ownerItems.length)tableRows+='<tr class="owner"><th colspan="13">'+owner+'</th></tr>'+groupedDetails(ownerItems,section);});tableRows+=subtotalRow(zhiweiCategoryLabel(cat)+'小計',catRows,section);});
     const grandRows=fixedRows.concat(cardRows.filter(r=>r.category));
     const grandValues=valuesFor(grandRows);
-    const grandAverage=grandValues.reduce((s,v)=>s+v,0)/12;
-    tableRows+='<tr class="grand-total"><th>志偉負擔每月總計</th>'+grandValues.map(v=>'<td>'+(v?esc2(fmt(v)):'')+'</td>').join('')+'<td class="grand-avg">'+esc2(fmt(grandAverage))+'</td></tr>';
+    tableRows+='<tr class="grand-total"><th>志偉負擔每月總計</th>'+grandValues.map(v=>'<td>'+(v?esc2(fmt(v)):'')+'</td>').join('')+'</tr>';
     const popup=w.open('','zhiweiAnnualAutoList','width=1500,height=850,resizable=yes,scrollbars=yes');
     if(!popup){w.alert('瀏覽器阻擋另開視窗，請允許此網站開啟彈出式視窗。');return;}
     popup.document.open();
+    popup.document.write('<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><title>志偉負擔年度自動列表 '+esc2(year)+'</title><style>body{font-family:"Microsoft JhengHei",sans-serif;margin:18px;color:#172033;background:#f8fbff}h1{margin:0 0 12px;font-size:24px;color:#075985}.tools{display:flex;align-items:center;gap:10px;margin-bottom:12px;font-weight:900}.wrap{overflow:auto;background:#fff;border:1px solid #cbd5e1;border-radius:14px}table{border-collapse:collapse;min-width:1380px;width:100%;font-size:14px}th,td{border:1px solid #cbd5e1;padding:8px;text-align:right;white-space:nowrap}thead th{background:#eaf4ff;text-align:center;position:sticky;top:0;z-index:3}tbody th{background:#f8fafc;text-align:left;position:sticky;left:0;min-width:210px;z-index:2}.section th{position:static;background:#dbeafe;color:#075985;font-size:16px;border-top:3px solid #38bdf8}.owner th{position:static;background:#f0f9ff;color:#0369a1;padding-left:22px}.detail-row th{padding-left:38px}.subtotal th,.subtotal td{background:#fef3c7;font-weight:950;border-top:2px solid #f59e0b}.grand-total th,.grand-total td{background:#d1fae5;color:#065f46;font-size:16px;font-weight:950;border-top:3px solid #10b981}.note{margin-top:10px;color:#64748b;font-size:13px}@media print{.tools button{display:none}.wrap{overflow:visible}body{margin:4px}table{font-size:10px;min-width:0}}</style></head><body><h1>志偉負擔年度自動列表｜'+esc2(year)+'年</h1><div class="tools"><button onclick="window.print()">列印</button><span>本表只顯示各月份分攤結果與每月總計。</span></div><div class="wrap"><table><thead><tr><th>分類／歸屬／項目明細</th>'+months.map(m=>'<th>'+esc2(m)+'</th>').join('')+'</tr></thead><tbody>'+tableRows+'</tbody></table></div><div class="note">單月只計入消費當月；全年與自訂月份從消費月份起連續分攤。每月總計＝固定支出＋已完成設定的信用卡支出。</div></body></html>');
+    popup.document.close();popup.focus();return;
     popup.document.write('<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><title>志偉負擔年度自動列表 '+esc2(year)+'</title><style>body{font-family:"Microsoft JhengHei",sans-serif;margin:18px;color:#172033;background:#f8fbff}h1{margin:0 0 12px;font-size:24px;color:#075985}.tools{display:flex;align-items:center;gap:10px;margin-bottom:12px;font-weight:900}.main-result{display:inline-flex;align-items:center;gap:12px;margin:0 0 14px;padding:12px 18px;border:2px solid #38bdf8;border-radius:16px;background:#e0f2fe;color:#075985;font-size:18px;font-weight:950}.main-result b{font-size:26px;color:#c2410c}.wrap{overflow:auto;background:#fff;border:1px solid #cbd5e1;border-radius:14px}table{border-collapse:collapse;min-width:1500px;width:100%;font-size:14px}th,td{border:1px solid #cbd5e1;padding:8px;text-align:right;white-space:nowrap}thead th{background:#eaf4ff;text-align:center;position:sticky;top:0;z-index:3}tbody th{background:#f8fafc;text-align:left;position:sticky;left:0;min-width:210px;z-index:2}.section th{position:static;background:#dbeafe;color:#075985;font-size:16px;border-top:3px solid #38bdf8}.owner th{position:static;background:#f0f9ff;color:#0369a1;padding-left:22px}.detail-row th{padding-left:38px}.avg{background:#fff7ed;color:#c2410c;font-weight:950}.subtotal th,.subtotal td{background:#fef3c7;font-weight:950;border-top:2px solid #f59e0b}.grand-total th,.grand-total td{background:#d1fae5;color:#065f46;font-size:16px;font-weight:950;border-top:3px solid #10b981}.grand-avg{color:#c2410c!important}.note{margin-top:10px;color:#64748b;font-size:13px}@media print{.tools button{display:none}.wrap{overflow:visible}body{margin:4px}table{font-size:10px;min-width:0}}</style></head><body><h1>志偉負擔年度自動列表｜'+esc2(year)+'年</h1><div class="main-result">志偉平均每月總支出 <b>'+esc2(fmt(grandAverage))+'</b></div><div class="tools"><button onclick="window.print()">列印</button><span>分類與費用期間均由信用卡列表設定；本表只呈現自動結果。</span></div><div class="wrap"><table><thead><tr><th>分類／歸屬／項目明細</th>'+months.map(m=>'<th>'+esc2(m)+'</th>').join('')+'<th>平均每月</th></tr></thead><tbody>'+tableRows+'</tbody></table></div><div class="note">單月只計入消費當月；全年與自訂月份從消費月份起連續分攤。每月總計＝固定支出＋已完成設定的信用卡支出。</div></body></html>');
     popup.document.close();popup.focus();return;
     popup.document.write('<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><title>志偉負擔年度自動列表 '+esc2(year)+'</title><style>body{font-family:"Microsoft JhengHei",sans-serif;margin:18px;color:#172033;background:#f8fbff}h1{margin:0 0 12px;font-size:24px;color:#075985}.tools{display:flex;align-items:center;gap:10px;margin-bottom:12px;font-weight:900}.main-result{display:inline-flex;align-items:center;gap:12px;margin:0 0 14px;padding:12px 18px;border:2px solid #38bdf8;border-radius:16px;background:#e0f2fe;color:#075985;font-size:18px;font-weight:950}.main-result b{font-size:26px;color:#c2410c}.wrap{overflow:auto;background:#fff;border:1px solid #cbd5e1;border-radius:14px}table{border-collapse:collapse;min-width:1580px;width:100%;font-size:14px}th,td{border:1px solid #cbd5e1;padding:8px;text-align:right;white-space:nowrap}thead th{background:#eaf4ff;text-align:center;position:sticky;top:0;z-index:3}tbody th{background:#f8fafc;text-align:left;position:sticky;left:0;min-width:210px;z-index:2}.section th{position:static;background:#dbeafe;color:#075985;font-size:16px;border-top:3px solid #38bdf8}.owner th{position:static;background:#f0f9ff;color:#0369a1;padding-left:22px}.detail-row th{padding-left:38px}.divisor-cell{text-align:center;background:#f8fafc}.row-divisor{width:54px;padding:5px;border:1px solid #94a3b8;border-radius:8px;text-align:center}.avg{background:#fff7ed;color:#c2410c;font-weight:950}.subtotal th,.subtotal td{background:#fef3c7;font-weight:950;border-top:2px solid #f59e0b}.subtotal-avg{color:#c2410c}.grand-total th,.grand-total td{background:#d1fae5;color:#065f46;font-size:16px;font-weight:950;border-top:3px solid #10b981}.grand-avg{color:#c2410c!important}.note{margin-top:10px;color:#64748b;font-size:13px}@media print{.tools button{display:none}.wrap{overflow:visible}body{margin:4px}table{font-size:10px;min-width:0}}</style></head><body><h1>志偉負擔年度自動列表｜'+esc2(year)+'年</h1><div class="main-result">志偉平均每月總支出 <b id="grandAverageTop"></b></div><div class="tools"><button onclick="window.print()">列印</button><span>每個項目可自行設定年平均要除以幾個月。</span></div><div class="wrap"><table><thead><tr><th>分類／歸屬／項目明細</th>'+months.map(m=>'<th>'+esc2(m)+'</th>').join('')+'<th>除以月數</th><th>目前年平均</th></tr></thead><tbody>'+tableRows+'</tbody></table></div><div class="note">每月總計＝固定支出＋已分類信用卡支出。平均每月總支出＝各明細依自己指定月數算出的平均合計。</div><script>var STORE="'+divisorKey+'";function money(v){return v?"$"+Math.round(v).toLocaleString("en-US"):"$0";}function updateAvg(){document.querySelectorAll("tr.detail-row").forEach(function(tr){var input=tr.querySelector(".row-divisor"),d=Math.max(1,Math.min(12,Number(input.value)||1)),avg=Number(tr.querySelector("td.avg").dataset.total||0)/d;tr.querySelector("td.avg").dataset.avgRaw=avg;tr.querySelector("td.avg").textContent=money(avg);});document.querySelectorAll("tr.subtotal").forEach(function(tr){var section=tr.dataset.subtotal,total=0;document.querySelectorAll("tr.detail-row[data-section=\""+section+"\"] td.avg").forEach(function(td){total+=Number(td.dataset.avgRaw||0);});tr.querySelector(".subtotal-avg").textContent=money(total);});var grand=0;document.querySelectorAll("tr.detail-row td.avg").forEach(function(td){grand+=Number(td.dataset.avgRaw||0);});document.querySelector(".grand-avg").textContent=money(grand);document.getElementById("grandAverageTop").textContent=money(grand);}function saveDivisors(){var data={};try{data=JSON.parse(window.opener.localStorage.getItem(STORE)||"{}");}catch(e){}document.querySelectorAll(".row-divisor").forEach(function(input){data[input.dataset.key]=Math.max(1,Math.min(12,Number(input.value)||1));});try{window.opener.localStorage.setItem(STORE,JSON.stringify(data));}catch(e){}}document.querySelectorAll(".row-divisor").forEach(function(input){input.addEventListener("input",function(){saveDivisors();updateAvg();});});updateAvg();<\/script></body></html>');
@@ -9520,7 +9521,7 @@ function safeWriteLocalJSON(key,val){
 let lastCardPasteRestoreCount=0;
 function buildCardPasteBackup(){
   return {
-    version:'V274',
+    version:'V275',
     exportedAt:new Date().toISOString(),
     records:safeReadLocalJSON('lihui_card_paste_records_v4',[]),
     legacyRecords:safeReadLocalJSON('lihui_card_paste_records_v3',[]),
