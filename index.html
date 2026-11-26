@@ -6,7 +6,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
-  <title>麗卉每月帳款｜V281 尚未請款Excel整合</title>
+  <title>麗卉每月帳款｜V282 大橋房貸固定支出</title>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
@@ -2346,7 +2346,7 @@
   <div class="topbar">
     <div class="top-title top-title-v120">
       <div class="top-main-line">
-        <h1>麗卉每月帳款 <span class="app-version">V281</span></h1>
+        <h1>麗卉每月帳款 <span class="app-version">V282</span></h1>
         <div class="actions action-row action-row-main top-main-actions">
           <button class="act-btn act-add" onclick="addMonth()">＋新增月份</button>
           <button class="act-btn act-copy" onclick="copyCurrentMonth()">複製月份</button>
@@ -7307,7 +7307,7 @@ function openCardPasteWindow(){
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>信用卡刷卡紀錄整理｜V281</title>
+<title>信用卡刷卡紀錄整理｜V282</title>
 <style>
   *{box-sizing:border-box}
   body{margin:0;background:linear-gradient(145deg,#fff7ed 0%,#f0f9ff 48%,#f5f3ff 100%);font-family:"Microsoft JhengHei","Noto Sans TC",Arial,sans-serif;color:#1f2937;font-size:14px;}
@@ -7837,7 +7837,7 @@ function openCardPasteWindow(){
 </head>
 <body>
   <div class="wrap">
-    <div class="head"><h1>信用卡刷卡紀錄整理 <span class="badge">V281</span></h1><div class="cloud-sync-box"><span id="cardPasteCloudPill" class="cloud-pill off">雲端狀態確認中</span><div id="cardPasteCloudDetail" class="cloud-detail">另開視窗資料會先同步主畫面</div></div></div>
+    <div class="head"><h1>信用卡刷卡紀錄整理 <span class="badge">V282</span></h1><div class="cloud-sync-box"><span id="cardPasteCloudPill" class="cloud-pill off">雲端狀態確認中</span><div id="cardPasteCloudDetail" class="cloud-detail">另開視窗資料會先同步主畫面</div></div></div>
     <div class="panel">
       <div class="controls">
         <div class="field"><label>歸屬年月</label><input id="belongMonth" placeholder="115/5"><div id="belongMonthErr" class="err"></div></div>
@@ -8341,10 +8341,11 @@ function openCardPasteWindow(){
     const year=selected.ok?String(selected.y):fallbackYear;
     const allocated=[];
     const addSpread=(r,count,label,amount)=>{const parts=String(r.month||'').split('/'),sy=Number(parts[0]),sm=Number(parts[1]);if(!sy||!sm)return;const share=amount/count;for(let i=0;i<count;i++){const idx=(sm-1)+i,ty=sy+Math.floor(idx/12),tm=(idx%12)+1;allocated.push(Object.assign({},r,{item:label||r.item,month:ty+'/'+tm,zhiwei:share}));}};
-    raw.forEach(r=>{if(r.sourceType==='monthly'){const label=String(r.item||'');if(label==='管理費'||label.includes('大橋管理費')||label.includes('志偉_台灣大哥大'))return;if(label.includes('雙月天然氣')){addSpread(r,2,label,r.zhiwei);return;}if(label.includes('小孩月費')&&(r.childTuition||r.childRegistration)){const pct=Number(r.pct||0)/100;if(r.childTuition)addSpread(r,1,label+'｜單月學費',r.childTuition*pct);if(r.childRegistration)addSpread(r,6,label+'｜半年註冊費',r.childRegistration*pct);return;}allocated.push(Object.assign({},r));return;}if(!r.category)return;const p=zhiweiPeriods[zhiweiRowCategoryKey(r)];if(!p||!p.mode)return;const count=p.mode==='annual'?12:(p.mode==='custom'?Math.max(1,Math.min(36,Number(p.months)||1)):1);addSpread(r,count,r.item,r.zhiwei);});
+    raw.forEach(r=>{if(r.sourceType==='monthly'){const label=String(r.item||'');if(label==='管理費'||label.includes('大橋管理費')||label.includes('志偉_台灣大哥大')||label.includes('大橋房貸'))return;if(label.includes('雙月天然氣')){addSpread(r,2,label,r.zhiwei);return;}if(label.includes('小孩月費')&&(r.childTuition||r.childRegistration)){const pct=Number(r.pct||0)/100;if(r.childTuition)addSpread(r,1,label+'｜單月學費',r.childTuition*pct);if(r.childRegistration)addSpread(r,6,label+'｜半年註冊費',r.childRegistration*pct);return;}allocated.push(Object.assign({},r));return;}if(!r.category)return;const p=zhiweiPeriods[zhiweiRowCategoryKey(r)];if(!p||!p.mode)return;const count=p.mode==='annual'?12:(p.mode==='custom'?Math.max(1,Math.min(36,Number(p.months)||1)):1);addSpread(r,count,r.item,r.zhiwei);});
     const recurringTemplate=(match,startMonth,fixedAmount)=>{const candidates=raw.filter(r=>r.sourceType==='monthly'&&match(String(r.item||''))&&r.zhiwei>0).sort((a,b)=>compareMonthDesc(a.billMonth,b.billMonth));const sample=candidates[0];if(!sample||Number(year)<115)return;const first=Number(year)===115?startMonth:1,amount=fixedAmount||sample.zhiwei;for(let m=first;m<=12;m++)allocated.push(Object.assign({},sample,{month:year+'/'+m,billMonth:year+'/'+m,zhiwei:amount}));};
     recurringTemplate(label=>label==='管理費'||label.includes('大橋管理費'),6,1150);
     recurringTemplate(label=>label.includes('志偉_台灣大哥大'),7,0);
+    if(Number(year)>=115){for(let m=1;m<=12;m++)allocated.push({id:'fixed_bridge_mortgage_'+year+'_'+m,sourceType:'monthly',month:year+'/'+m,billMonth:year+'/'+m,item:'大橋房貸',source:'固定支出',bank:'每月帳款',date:'',amount:15000,pct:100,zhiwei:15000,note:'每月固定支出',owner:'志偉負擔'});}
     const yearRows=allocated.filter(r=>String(r.month||'').split('/')[0]===year);
     const months=Array.from({length:12},(_,i)=>year+'/'+(i+1));
     const valuesFor=rows=>months.map(month=>rows.filter(r=>r.month===month).reduce((s,r)=>s+r.zhiwei,0));
@@ -8374,10 +8375,11 @@ function openCardPasteWindow(){
     const target=normalizeRocMonthValue(targetMonth||'');if(!target.ok)return [];
     const raw=allZhiweiAutoRows(),allocated=[];
     const addSpread=(r,count,label,amount)=>{const p=normalizeRocMonthValue(r.month||'');if(!p.ok)return;const share=amount/count;for(let i=0;i<count;i++){const idx=(p.m-1)+i,ty=p.y+Math.floor(idx/12),tm=(idx%12)+1;allocated.push(Object.assign({},r,{item:label||r.item,month:ty+'/'+tm,zhiwei:share}));}};
-    raw.forEach(r=>{if(r.sourceType==='monthly'){const label=String(r.item||'');if(label==='管理費'||label.includes('大橋管理費')||label.includes('志偉_台灣大哥大'))return;if(label.includes('雙月天然氣')){addSpread(r,2,label,r.zhiwei);return;}if(label.includes('小孩月費')&&(r.childTuition||r.childRegistration)){const pct=Number(r.pct||0)/100;if(r.childTuition)addSpread(r,1,label+'｜單月學費',r.childTuition*pct);if(r.childRegistration)addSpread(r,6,label+'｜半年註冊費',r.childRegistration*pct);return;}allocated.push(Object.assign({},r));return;}if(!r.category)return;const period=zhiweiPeriods[zhiweiRowCategoryKey(r)];if(!period||!period.mode)return;const count=period.mode==='annual'?12:(period.mode==='custom'?Math.max(1,Math.min(36,Number(period.months)||1)):1);addSpread(r,count,r.item,r.zhiwei);});
+    raw.forEach(r=>{if(r.sourceType==='monthly'){const label=String(r.item||'');if(label==='管理費'||label.includes('大橋管理費')||label.includes('志偉_台灣大哥大')||label.includes('大橋房貸'))return;if(label.includes('雙月天然氣')){addSpread(r,2,label,r.zhiwei);return;}if(label.includes('小孩月費')&&(r.childTuition||r.childRegistration)){const pct=Number(r.pct||0)/100;if(r.childTuition)addSpread(r,1,label+'｜單月學費',r.childTuition*pct);if(r.childRegistration)addSpread(r,6,label+'｜半年註冊費',r.childRegistration*pct);return;}allocated.push(Object.assign({},r));return;}if(!r.category)return;const period=zhiweiPeriods[zhiweiRowCategoryKey(r)];if(!period||!period.mode)return;const count=period.mode==='annual'?12:(period.mode==='custom'?Math.max(1,Math.min(36,Number(period.months)||1)):1);addSpread(r,count,r.item,r.zhiwei);});
     const recurring=(match,startMonth,fixedAmount)=>{if(target.y<115||(target.y===115&&target.m<startMonth))return;const candidates=raw.filter(r=>r.sourceType==='monthly'&&match(String(r.item||''))&&r.zhiwei>0).sort((a,b)=>compareMonthDesc(a.billMonth,b.billMonth));const sample=candidates[0];if(sample)allocated.push(Object.assign({},sample,{month:target.value,billMonth:target.value,zhiwei:fixedAmount||sample.zhiwei}));};
     recurring(label=>label==='管理費'||label.includes('大橋管理費'),6,1150);
     recurring(label=>label.includes('志偉_台灣大哥大'),7,0);
+    if(target.y>=115)allocated.push({id:'fixed_bridge_mortgage_'+target.y+'_'+target.m,sourceType:'monthly',month:target.value,billMonth:target.value,item:'大橋房貸',source:'固定支出',bank:'每月帳款',date:'',amount:15000,pct:100,zhiwei:15000,note:'每月固定支出',owner:'志偉負擔'});
     return allocated.filter(r=>r.month===target.value&&r.zhiwei!==0);
   }
   function zhiweiMonthExcelRows(month){
@@ -9568,7 +9570,7 @@ function safeWriteLocalJSON(key,val){
 let lastCardPasteRestoreCount=0;
 function buildCardPasteBackup(){
   return {
-    version:'V281',
+    version:'V282',
     exportedAt:new Date().toISOString(),
     records:safeReadLocalJSON('lihui_card_paste_records_v4',[]),
     legacyRecords:safeReadLocalJSON('lihui_card_paste_records_v3',[]),
