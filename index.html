@@ -6,7 +6,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
-  <title>麗卉每月帳款｜V261 志偉項目依歸屬分組</title>
+  <title>麗卉每月帳款｜V262 志偉分類按鈕簡寫</title>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
   <style>
@@ -2344,7 +2344,7 @@
   <div class="topbar">
     <div class="top-title top-title-v120">
       <div class="top-main-line">
-        <h1>麗卉每月帳款 <span class="app-version">V261</span></h1>
+        <h1>麗卉每月帳款 <span class="app-version">V262</span></h1>
         <div class="actions action-row action-row-main top-main-actions">
           <button class="act-btn act-add" onclick="addMonth()">＋新增月份</button>
           <button class="act-btn act-copy" onclick="copyCurrentMonth()">複製月份</button>
@@ -7304,7 +7304,7 @@ function openCardPasteWindow(){
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>信用卡刷卡紀錄整理｜V261</title>
+<title>信用卡刷卡紀錄整理｜V262</title>
 <style>
   *{box-sizing:border-box}
   body{margin:0;background:linear-gradient(145deg,#fff7ed 0%,#f0f9ff 48%,#f5f3ff 100%);font-family:"Microsoft JhengHei","Noto Sans TC",Arial,sans-serif;color:#1f2937;font-size:14px;}
@@ -7829,7 +7829,7 @@ function openCardPasteWindow(){
 </head>
 <body>
   <div class="wrap">
-    <div class="head"><h1>信用卡刷卡紀錄整理 <span class="badge">V261</span></h1><div class="cloud-sync-box"><span id="cardPasteCloudPill" class="cloud-pill off">雲端狀態確認中</span><div id="cardPasteCloudDetail" class="cloud-detail">另開視窗資料會先同步主畫面</div></div></div>
+    <div class="head"><h1>信用卡刷卡紀錄整理 <span class="badge">V262</span></h1><div class="cloud-sync-box"><span id="cardPasteCloudPill" class="cloud-pill off">雲端狀態確認中</span><div id="cardPasteCloudDetail" class="cloud-detail">另開視窗資料會先同步主畫面</div></div></div>
     <div class="panel">
       <div class="controls">
         <div class="field"><label>歸屬年月</label><input id="belongMonth" placeholder="115/5"><div id="belongMonthErr" class="err"></div></div>
@@ -8263,6 +8263,7 @@ function openCardPasteWindow(){
     {value:'none',label:'無'}
   ];
   function zhiweiCategoryLabel(v){const found=ZHIWEI_CATEGORY_OPTIONS.find(x=>x.value===v);return found?found.label:'未分類';}
+  function zhiweiCategoryShortLabel(v){return {necessary:'必',need:'需',needWant:'需+想',want:'想',none:'無'}[v]||'';}
   function zhiweiOwnerLabel(v){v=String(v||'').trim();return v==='小孩'?'小孩部分':(['家庭支出','志偉個人'].includes(v)?v:'');}
   function zhiweiRowOwnerLabel(r){return zhiweiOwnerLabel(r&&r.owner)||(r&&r.sourceType==='monthly'?'每月帳款':'');}
   function saveZhiweiCategories(){writeJson(ZHIWEI_CATEGORY_KEY,zhiweiCategories);}
@@ -8303,10 +8304,10 @@ function openCardPasteWindow(){
   }
   function zhiweiCategoryPillsHtml(item){
     const key=ruleKey(item),value=zhiweiCategoryForItem(item);
-    return '<div class="zhiwei-category-pills">'+ZHIWEI_CATEGORY_OPTIONS.map(o=>'<button type="button" class="zhiwei-category-pill '+(value===o.value?'active':'')+'" data-zhiwei-category="'+esc2(key)+'" data-zhiwei-item="'+esc2(item)+'" data-zhiwei-value="'+o.value+'">'+o.label+'</button>').join('')+'</div>';
+    return '<div class="zhiwei-category-pills">'+ZHIWEI_CATEGORY_OPTIONS.map(o=>'<button type="button" class="zhiwei-category-pill '+(value===o.value?'active':'')+'" title="'+o.label+'" data-zhiwei-category="'+esc2(key)+'" data-zhiwei-item="'+esc2(item)+'" data-zhiwei-value="'+o.value+'">'+zhiweiCategoryShortLabel(o.value)+'</button>').join('')+'</div>';
   }
   function zhiweiFilterPillsHtml(){
-    return '<div class="zhiwei-filter-pills">'+ZHIWEI_CATEGORY_OPTIONS.map(o=>'<button type="button" class="zhiwei-filter-pill '+(zhiweiCategoryFilter===o.value?'active':'')+'" data-zhiwei-filter="'+o.value+'">'+o.label+'</button>').join('')+'<button type="button" class="zhiwei-filter-pill unclassified '+(zhiweiCategoryFilter==='unclassified'?'active':'')+'" data-zhiwei-filter="unclassified">未</button><button type="button" class="zhiwei-filter-pill clear" data-zhiwei-filter="">清</button></div>';
+    return '<div class="zhiwei-filter-pills">'+ZHIWEI_CATEGORY_OPTIONS.map(o=>'<button type="button" class="zhiwei-filter-pill '+(zhiweiCategoryFilter===o.value?'active':'')+'" title="'+o.label+'" data-zhiwei-filter="'+o.value+'">'+zhiweiCategoryShortLabel(o.value)+'</button>').join('')+'<button type="button" class="zhiwei-filter-pill unclassified '+(zhiweiCategoryFilter==='unclassified'?'active':'')+'" title="未分類" data-zhiwei-filter="unclassified">未</button><button type="button" class="zhiwei-filter-pill clear" title="清除篩選" data-zhiwei-filter="">清</button></div>';
   }
   function renderZhiweiPanel(){
     const panel=doc.getElementById('zhiweiAutoPanel');if(!panel||panel.classList.contains('hidden'))return;
@@ -9429,7 +9430,7 @@ function safeWriteLocalJSON(key,val){
 let lastCardPasteRestoreCount=0;
 function buildCardPasteBackup(){
   return {
-    version:'V261',
+    version:'V262',
     exportedAt:new Date().toISOString(),
     records:safeReadLocalJSON('lihui_card_paste_records_v4',[]),
     legacyRecords:safeReadLocalJSON('lihui_card_paste_records_v3',[]),
