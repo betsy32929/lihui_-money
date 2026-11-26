@@ -6,7 +6,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
-  <title>麗卉每月帳款｜V302 月平均獨立切換</title>
+  <title>麗卉每月帳款｜V303 一七月學費新模式</title>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
@@ -2373,7 +2373,7 @@
   <div class="topbar">
     <div class="top-title top-title-v120">
       <div class="top-main-line">
-        <h1>麗卉每月帳款 <span class="app-version">V302</span></h1>
+        <h1>麗卉每月帳款 <span class="app-version">V303</span></h1>
         <div class="actions action-row action-row-main top-main-actions">
           <button class="act-btn act-add" onclick="addMonth()">＋新增月份</button>
           <button class="act-btn act-copy" onclick="copyCurrentMonth()">複製月份</button>
@@ -5589,13 +5589,16 @@ function renderSection(sec,secIdx){
 }
 function renderFixedRow(it,secIdx,idx){
   const sec=getMonth().personal.sections[secIdx];
-  if(sec&&String(sec.title||'').includes('大橋')&&bridgeShareEnabled(state.activeMonth))return renderBridgeShareFixedRow(it,secIdx,idx);
+  if(sec&&String(sec.title||'').includes('大橋')&&(bridgeShareEnabled(state.activeMonth)||(String(it.label||'').includes('小孩月費')&&childTuitionNewModeEnabled(state.activeMonth))))return renderBridgeShareFixedRow(it,secIdx,idx);
   const split=!isDadLivingItemLabel(it.label)&&!String(it.label||'').includes('高雄翠屏路大樓管理費')&&(it.label.includes('大社')||it.label.includes('爸爸')||it.label.includes('翠屏')||it.label.includes('長照'));
   const fixedAmt=getFixedDefaultAmount(it.label);
   return `<div class="fixed-row normalrow"><div><div class="tiny">項目${fixedAmt?`｜固定預設${fmt(fixedAmt,true)}`:''}</div><input class="labelcell" value="${esc(it.label)}" oninput="setItem(${secIdx},${idx},'label',this.value)"></div><div><div class="tiny">金額</div><input inputmode="numeric" class="amountinp" value="${esc(it.amount)}" oninput="this.value=moneyOnly(this.value);setItem(${secIdx},${idx},'amount',this.value)" placeholder="0"></div><div><div class="tiny">${esc(it.dateType)}</div><input value="${esc(it.date)}" onchange="this.value=normalizeDateInput(this);setItem(${secIdx},${idx},'date',this.value)" placeholder="115/5/8"></div><div><div class="tiny">備註</div><input value="${esc(it.note)}" oninput="setItem(${secIdx},${idx},'note',this.value)" placeholder="備註事項"></div><div>${split?`<div class="tiny">零用金</div><select onchange="setItem(${secIdx},${idx},'splitMode',this.value)"><option value="none" ${it.splitMode==='none'?'selected':''}>不扣</option><option value="2" ${it.splitMode==='2'?'selected':''}>/2</option><option value="3" ${it.splitMode==='3'?'selected':''}>/3</option><option value="dadLiving" ${it.splitMode==='dadLiving'?'selected':''}>爸生活費規則</option></select>`:'<div class="tiny">&nbsp;</div><div class="compact-empty"></div>'}</div><div><div class="tiny">&nbsp;</div><div class="row-actions"><button class="iconbtn keep" onclick="clearPersonalItemData(${secIdx},${idx})">清</button><button class="iconbtn del" onclick="deletePersonalItem(${secIdx},${idx})">刪</button></div></div></div>`
 }
+function childTuitionNewModeEnabled(monthId){
+  return compareMonthId(monthId,'2026-08')>=0||monthId==='2026-01'||monthId==='2026-07';
+}
 function renderBridgeShareFixedRow(it,secIdx,idx){
-  if(String(it.label||'').includes('小孩月費')&&compareMonthId(state.activeMonth,'2026-08')>=0)return renderChildTuitionFixedRow(it,secIdx,idx);
+  if(String(it.label||'').includes('小孩月費')&&childTuitionNewModeEnabled(state.activeMonth))return renderChildTuitionFixedRow(it,secIdx,idx);
   const base=bridgeItemBaseAmount(state.activeMonth,it);
   const fixedNote=(String(it.label||'')==='管理費'||String(it.label||'').includes('大橋管理費'))&&!itemSignedAmount(it)?`｜預設${fmt(calcBridgeManagementDefault(state.activeMonth),true)}`:'';
   const lp=bridgePctValue(it,'lihui'), zp=bridgePctValue(it,'zhiwei');
@@ -7400,7 +7403,7 @@ function openCardPasteWindow(){
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>信用卡刷卡紀錄整理｜V302</title>
+<title>信用卡刷卡紀錄整理｜V303</title>
 <style>
   *{box-sizing:border-box}
   body{margin:0;background:linear-gradient(145deg,#fff7ed 0%,#f0f9ff 48%,#f5f3ff 100%);font-family:"Microsoft JhengHei","Noto Sans TC",Arial,sans-serif;color:#1f2937;font-size:14px;}
@@ -7930,7 +7933,7 @@ function openCardPasteWindow(){
 </head>
 <body>
   <div class="wrap">
-    <div class="head"><h1>信用卡刷卡紀錄整理 <span class="badge">V302</span></h1><div class="cloud-sync-box"><span id="cardPasteCloudPill" class="cloud-pill off">雲端狀態確認中</span><div id="cardPasteCloudDetail" class="cloud-detail">另開視窗資料會先同步主畫面</div></div></div>
+    <div class="head"><h1>信用卡刷卡紀錄整理 <span class="badge">V303</span></h1><div class="cloud-sync-box"><span id="cardPasteCloudPill" class="cloud-pill off">雲端狀態確認中</span><div id="cardPasteCloudDetail" class="cloud-detail">另開視窗資料會先同步主畫面</div></div></div>
     <div class="panel">
       <div class="controls">
         <div class="field"><label>歸屬年月</label><input id="belongMonth" placeholder="115/5"><div id="belongMonthErr" class="err"></div></div>
@@ -8411,7 +8414,7 @@ function openCardPasteWindow(){
       const pageMonth=zhiweiMonthFromId(mid);if(!pageMonth)return;
       ((((m||{}).personal||{}).sections)||[]).forEach(sec=>(sec.items||[]).forEach(it=>{
         const item=String(it.label||'未命名項目').trim();
-        const childNewMode=item.includes('小孩月費')&&compareMonthId(mid,'2026-08')>=0;
+        const childNewMode=item.includes('小孩月費')&&childTuitionNewModeEnabled(mid);
         const childCalc=childNewMode?(()=>{const monthNo=Number(String(mid).slice(5,7)),showRegistration=monthNo===1||monthNo===7,legacyTotal=moneyNum(it.amount),legacyTuition=moneyNum(it.zhiweiChildTuition),xifeng=String(it.childXifengTuition||'').trim()?moneyNum(it.childXifengTuition):legacyTuition,jimu=String(it.childJimuTuition||'').trim()?moneyNum(it.childJimuTuition):Math.max(0,legacyTotal-xifeng),xReg=showRegistration?(String(it.childXifengRegistration||'').trim()?moneyNum(it.childXifengRegistration):moneyNum(it.zhiweiChildRegistration)):0,jReg=showRegistration?moneyNum(it.childJimuRegistration):0,schoolTotal=xifeng+jimu+xReg+jReg,parentTotal=Math.max(0,schoolTotal-11000),lihuiAuto=Math.round(parentTotal*.4),zhiweiAuto=parentTotal-lihuiAuto,zhiwei=String(it.childZhiweiTransferAmount||'').trim()?moneyNum(it.childZhiweiTransferAmount):zhiweiAuto;return {parentTotal,zhiwei};})():null;
         const pct=childNewMode?60:pctValue(it.bridgeZhiweiPct),amount=childNewMode?childCalc.parentTotal:moneyNum(it.amount);
         if(pct<=0||!amount)return;
@@ -9798,7 +9801,7 @@ function safeWriteLocalJSON(key,val){
 let lastCardPasteRestoreCount=0;
 function buildCardPasteBackup(){
   return {
-    version:'V302',
+    version:'V303',
     exportedAt:new Date().toISOString(),
     records:safeReadLocalJSON('lihui_card_paste_records_v4',[]),
     legacyRecords:safeReadLocalJSON('lihui_card_paste_records_v3',[]),
