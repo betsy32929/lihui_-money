@@ -6,7 +6,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
-  <title>麗卉每月帳款｜V293 學費欄位防重疊</title>
+  <title>麗卉每月帳款｜V294 學費金額欄對齊</title>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
@@ -2297,7 +2297,7 @@
 .child-tuition-compact .child-compact-fees,.child-tuition-compact .child-compact-subsidy-burdens,.child-tuition-compact .child-compact-shares,.child-tuition-compact .child-compact-transfer-dates{display:grid;gap:4px}.child-tuition-compact .child-compact-fee-line,.child-tuition-compact .child-compact-fee-line:has(.child-compact-registration){display:grid;grid-template-columns:1fr;gap:4px;align-items:start}.child-tuition-compact .child-compact-fee-line label{min-width:0}
 .child-compact-subsidy-burdens{align-self:start}.child-compact-pair{display:grid;grid-template-columns:76px 80px;gap:4px}.child-compact-burden{display:grid;grid-template-rows:auto 32px;gap:2px}.child-compact-burden span{font-size:10px;font-weight:950;white-space:nowrap}.child-compact-burden strong{display:flex;align-items:center;justify-content:flex-end;height:32px;padding:5px 5px;border:1px solid #bfdbfe;border-radius:9px;background:#eff6ff;color:#1d4ed8;font-size:11px;white-space:nowrap}.child-compact-pair:last-child .child-compact-burden strong{color:#6d28d9;border-color:#c4b5fd;background:#f5f3ff}
 .child-tuition-compact .child-compact-note{align-self:start;height:92px}.child-tuition-compact .child-compact-note textarea{min-height:72px!important}.child-tuition-compact>.row-actions{align-self:end}
-.child-tuition-compact .child-compact-fees{position:relative;left:-5px}.child-tuition-compact .child-compact-subsidy span{font-size:10px!important;font-weight:950!important;line-height:1.1!important;white-space:nowrap!important;color:#475569!important}.child-tuition-compact .child-compact-subsidy b{font-size:11px!important}
+.child-tuition-compact .child-compact-fees{position:relative;left:0}.child-tuition-compact .child-compact-subsidy span{font-size:10px!important;font-weight:950!important;line-height:1.1!important;white-space:nowrap!important;color:#475569!important}.child-tuition-compact .child-compact-subsidy b{font-size:11px!important}
 @media(max-width:1150px){.child-tuition-row.child-tuition-compact,.child-tuition-row.child-tuition-compact:has(.child-compact-registration){grid-template-columns:235px 100px 160px 118px}.child-compact-transfer-dates{grid-column:auto}.child-compact-note{grid-column:1/-2!important}.child-tuition-compact>.row-actions{grid-column:-2/-1}}
 @media(max-width:980px){.bridge-share-row{grid-template-columns:1fr 1fr!important}.bridge-share-row .row-actions{justify-content:flex-start!important}}
 
@@ -2372,7 +2372,7 @@
   <div class="topbar">
     <div class="top-title top-title-v120">
       <div class="top-main-line">
-        <h1>麗卉每月帳款 <span class="app-version">V293</span></h1>
+        <h1>麗卉每月帳款 <span class="app-version">V294</span></h1>
         <div class="actions action-row action-row-main top-main-actions">
           <button class="act-btn act-add" onclick="addMonth()">＋新增月份</button>
           <button class="act-btn act-copy" onclick="copyCurrentMonth()">複製月份</button>
@@ -7399,7 +7399,7 @@ function openCardPasteWindow(){
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>信用卡刷卡紀錄整理｜V293</title>
+<title>信用卡刷卡紀錄整理｜V294</title>
 <style>
   *{box-sizing:border-box}
   body{margin:0;background:linear-gradient(145deg,#fff7ed 0%,#f0f9ff 48%,#f5f3ff 100%);font-family:"Microsoft JhengHei","Noto Sans TC",Arial,sans-serif;color:#1f2937;font-size:14px;}
@@ -7929,7 +7929,7 @@ function openCardPasteWindow(){
 </head>
 <body>
   <div class="wrap">
-    <div class="head"><h1>信用卡刷卡紀錄整理 <span class="badge">V293</span></h1><div class="cloud-sync-box"><span id="cardPasteCloudPill" class="cloud-pill off">雲端狀態確認中</span><div id="cardPasteCloudDetail" class="cloud-detail">另開視窗資料會先同步主畫面</div></div></div>
+    <div class="head"><h1>信用卡刷卡紀錄整理 <span class="badge">V294</span></h1><div class="cloud-sync-box"><span id="cardPasteCloudPill" class="cloud-pill off">雲端狀態確認中</span><div id="cardPasteCloudDetail" class="cloud-detail">另開視窗資料會先同步主畫面</div></div></div>
     <div class="panel">
       <div class="controls">
         <div class="field"><label>歸屬年月</label><input id="belongMonth" placeholder="115/5"><div id="belongMonthErr" class="err"></div></div>
@@ -9725,7 +9725,7 @@ function safeWriteLocalJSON(key,val){
 let lastCardPasteRestoreCount=0;
 function buildCardPasteBackup(){
   return {
-    version:'V293',
+    version:'V294',
     exportedAt:new Date().toISOString(),
     records:safeReadLocalJSON('lihui_card_paste_records_v4',[]),
     legacyRecords:safeReadLocalJSON('lihui_card_paste_records_v3',[]),
