@@ -6,7 +6,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
-  <title>麗卉每月帳款｜V266 志偉逐筆分類</title>
+  <title>麗卉每月帳款｜V267 志偉年度自動列表</title>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
   <style>
@@ -2344,7 +2344,7 @@
   <div class="topbar">
     <div class="top-title top-title-v120">
       <div class="top-main-line">
-        <h1>麗卉每月帳款 <span class="app-version">V266</span></h1>
+        <h1>麗卉每月帳款 <span class="app-version">V267</span></h1>
         <div class="actions action-row action-row-main top-main-actions">
           <button class="act-btn act-add" onclick="addMonth()">＋新增月份</button>
           <button class="act-btn act-copy" onclick="copyCurrentMonth()">複製月份</button>
@@ -7304,7 +7304,7 @@ function openCardPasteWindow(){
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>信用卡刷卡紀錄整理｜V266</title>
+<title>信用卡刷卡紀錄整理｜V267</title>
 <style>
   *{box-sizing:border-box}
   body{margin:0;background:linear-gradient(145deg,#fff7ed 0%,#f0f9ff 48%,#f5f3ff 100%);font-family:"Microsoft JhengHei","Noto Sans TC",Arial,sans-serif;color:#1f2937;font-size:14px;}
@@ -7832,7 +7832,7 @@ function openCardPasteWindow(){
 </head>
 <body>
   <div class="wrap">
-    <div class="head"><h1>信用卡刷卡紀錄整理 <span class="badge">V266</span></h1><div class="cloud-sync-box"><span id="cardPasteCloudPill" class="cloud-pill off">雲端狀態確認中</span><div id="cardPasteCloudDetail" class="cloud-detail">另開視窗資料會先同步主畫面</div></div></div>
+    <div class="head"><h1>信用卡刷卡紀錄整理 <span class="badge">V267</span></h1><div class="cloud-sync-box"><span id="cardPasteCloudPill" class="cloud-pill off">雲端狀態確認中</span><div id="cardPasteCloudDetail" class="cloud-detail">另開視窗資料會先同步主畫面</div></div></div>
     <div class="panel">
       <div class="controls">
         <div class="field"><label>歸屬年月</label><input id="belongMonth" placeholder="115/5"><div id="belongMonthErr" class="err"></div></div>
@@ -7842,7 +7842,7 @@ function openCardPasteWindow(){
         <div id="inputMissingBanks" class="input-missing-banks"></div>
       </div>
       <div class="field paste"><label>貼上信用卡刷卡紀錄</label><textarea id="pasteBox" placeholder="可貼上整段信用卡刷卡紀錄"></textarea></div>
-      <div class="toolbar"><button id="parseBtn" class="btn main" type="button" onclick="window.__ccParsePaste&&window.__ccParsePaste()">產生整理列表</button><button id="clearBtn" class="btn rose" type="button" onclick="window.__ccClearRows&&window.__ccClearRows()">清空整理列表</button><button id="zhiweiAutoBtn" class="btn blue" type="button">志偉負擔自動列表</button><span id="saveMsg" class="savehint"></span></div>
+      <div class="toolbar"><button id="parseBtn" class="btn main" type="button" onclick="window.__ccParsePaste&&window.__ccParsePaste()">產生整理列表</button><button id="clearBtn" class="btn rose" type="button" onclick="window.__ccClearRows&&window.__ccClearRows()">清空整理列表</button><button id="zhiweiAutoBtn" class="btn blue" type="button">志偉負擔分類設定</button><button id="zhiweiAnnualBtn" class="btn green" type="button">年度自動列表</button><span id="saveMsg" class="savehint"></span></div>
       <details class="owner-manager">
         <summary>歸屬誰設定</summary>
         <div class="owner-tools">
@@ -8316,6 +8316,31 @@ function openCardPasteWindow(){
   function zhiweiFilterPillsHtml(){
     return '<div class="zhiwei-filter-pills">'+ZHIWEI_CATEGORY_OPTIONS.map(o=>'<button type="button" class="zhiwei-filter-pill '+(zhiweiCategoryFilter===o.value?'active':'')+'" title="'+o.label+'" data-zhiwei-filter="'+o.value+'">'+zhiweiCategoryShortLabel(o.value)+'</button>').join('')+'<button type="button" class="zhiwei-filter-pill unclassified '+(zhiweiCategoryFilter==='unclassified'?'active':'')+'" title="未分類" data-zhiwei-filter="unclassified">未</button><button type="button" class="zhiwei-filter-pill clear" title="清除篩選" data-zhiwei-filter="">清</button></div>';
   }
+  function openZhiweiAnnualWindow(){
+    const all=allZhiweiAutoRows().filter(r=>r.category);
+    const selected=normalizeRocMonthValue(zhiweiSelectedMonth||doc.getElementById('belongMonth')?.value||'');
+    const fallbackYear=all.map(r=>String(r.month||'').split('/')[0]).filter(Boolean).sort((a,b)=>Number(b)-Number(a))[0]||String(new Date().getFullYear()-1911);
+    const year=selected.ok?String(selected.y):fallbackYear;
+    const yearRows=all.filter(r=>String(r.month||'').split('/')[0]===year);
+    const defaultDivisor=Math.max(1,Math.min(12,selected.ok&&String(selected.y)===year?selected.m:12));
+    const months=Array.from({length:12},(_,i)=>year+'/'+(i+1));
+    const ownerRows=['家庭支出','小孩部分','志偉個人'];
+    const cats=['necessary','need','needWant','want'];
+    const rowDefs=[];
+    cats.forEach(cat=>ownerRows.forEach(owner=>rowDefs.push({cat,owner,label:zhiweiCategoryLabel(cat)+owner})));
+    rowDefs.push({cat:'none',owner:'',label:'無'});
+    const tableRows=rowDefs.map(def=>{
+      const values=months.map(month=>yearRows.filter(r=>r.month===month&&r.category===def.cat&&(!def.owner||zhiweiRowOwnerLabel(r)===def.owner)).reduce((s,r)=>s+r.zhiwei,0));
+      const total=values.reduce((s,v)=>s+v,0);
+      return '<tr><th>'+esc2(def.label)+'</th>'+values.map(v=>'<td>'+(v?esc2(fmt(v)):'')+'</td>').join('')+'<td class="avg" data-total="'+total+'"></td></tr>';
+    }).join('');
+    const popup=w.open('','zhiweiAnnualAutoList','width=1500,height=850,resizable=yes,scrollbars=yes');
+    if(!popup){w.alert('瀏覽器阻擋另開視窗，請允許此網站開啟彈出式視窗。');return;}
+    popup.document.open();
+    popup.document.write('<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><title>志偉負擔年度自動列表 '+esc2(year)+'</title><style>body{font-family:"Microsoft JhengHei",sans-serif;margin:18px;color:#172033;background:#f8fbff}h1{margin:0 0 12px;font-size:24px;color:#075985}.tools{display:flex;align-items:center;gap:10px;margin-bottom:12px;font-weight:900}.tools input{width:70px;padding:7px;border:1px solid #94a3b8;border-radius:9px;font-size:16px;text-align:center}.wrap{overflow:auto;background:#fff;border:1px solid #cbd5e1;border-radius:14px}table{border-collapse:collapse;min-width:1420px;width:100%;font-size:14px}th,td{border:1px solid #cbd5e1;padding:8px;text-align:right;white-space:nowrap}thead th{background:#eaf4ff;text-align:center;position:sticky;top:0}tbody th{background:#f8fafc;text-align:left;position:sticky;left:0;min-width:155px}tr:nth-child(3n+1) th{border-top:2px solid #475569}.avg{background:#fff7ed;color:#c2410c;font-weight:950}.note{margin-top:10px;color:#64748b;font-size:13px}</style></head><body><h1>志偉負擔年度自動列表｜'+esc2(year)+'年</h1><div class="tools"><label>年平均除以 <input id="divisor" type="number" min="1" max="12" value="'+defaultDivisor+'"> 個月</label><button onclick="window.print()">列印</button></div><div class="wrap"><table><thead><tr><th>分類／歸屬</th>'+months.map(m=>'<th>'+esc2(m)+'</th>').join('')+'<th>目前年平均</th></tr></thead><tbody>'+tableRows+'</tbody></table></div><div class="note">年平均＝各月份合計 ÷ 你指定的月份數。未分類項目不列入本表。</div><script>function updateAvg(){var d=Math.max(1,Math.min(12,Number(document.getElementById("divisor").value)||1));document.querySelectorAll("td.avg").forEach(function(td){var v=Number(td.dataset.total||0)/d;td.textContent=v?"$"+Math.round(v).toLocaleString("en-US"):"";});}document.getElementById("divisor").addEventListener("input",updateAvg);updateAvg();<\/script></body></html>');
+    popup.document.close();
+    popup.focus();
+  }
   function renderZhiweiPanel(){
     const panel=doc.getElementById('zhiweiAutoPanel');if(!panel||panel.classList.contains('hidden'))return;
     const all=allZhiweiAutoRows();
@@ -8339,11 +8364,12 @@ function openCardPasteWindow(){
       return '<div class="zhiwei-category"><div class="zhiwei-owner-heading">'+owner+'｜'+fmt(ownerRows.reduce((s,r)=>s+r.zhiwei,0))+'</div>'+categoryHtml+'</div>';
     }).join('');
     const total=list.reduce((s,r)=>s+r.zhiwei,0);
-    panel.innerHTML='<div class="zhiwei-head"><div><h2>志偉負擔自動列表</h2><div class="muted">左邊依帳單歸屬年月列出全部項目供分類；右邊依消費日期歸入月份。選錯直接點另一個，再點一次目前分類可取消。</div></div><div class="zhiwei-head-actions"><span class="zhiwei-total">'+esc2(zhiweiSelectedMonth||'')+'｜'+list.length+'筆｜'+esc2(fmt(total))+'</span><button id="closeZhiweiPanel" class="btn gray" type="button">關閉</button></div></div><div class="zhiwei-months">'+months.map(m=>'<button class="month-chip '+(m===zhiweiSelectedMonth?'active':'')+'" data-zhiwei-month="'+esc2(m)+'" type="button">'+esc2(m)+'</button>').join('')+'</div><div class="zhiwei-grid"><div class="zhiwei-box"><div class="zhiwei-box-title"><span>項目分類設定｜帳單歸屬 '+esc2(zhiweiSelectedMonth||'')+'</span><span class="'+(unclassifiedItemCount?'warnhint':'okhint')+'">未分類 '+unclassifiedItemCount+' 項</span></div><div class="zhiwei-setting-scroll">'+settingsHtml+'</div></div><div class="zhiwei-box"><div class="zhiwei-box-title"><span>月份自動列表｜消費日期 '+esc2(zhiweiSelectedMonth||'')+'</span><span>合計 '+esc2(fmt(total))+'</span></div><div class="zhiwei-summary">'+summary.map(x=>'<div class="zhiwei-summary-card"><b>'+x.label+'｜'+x.count+'筆</b><span>'+esc2(fmt(x.total))+'</span></div>').join('')+'</div><div class="zhiwei-auto-scroll">'+(categoriesHtml||'<div class="empty">沒有資料</div>')+'</div></div></div>';
+    panel.innerHTML='<div class="zhiwei-head"><div><h2>志偉負擔分類設定</h2><div class="muted">依帳單歸屬年月逐筆分類；年度自動列表改在另一個視窗顯示。</div></div><div class="zhiwei-head-actions"><button id="openZhiweiAnnualBtn" class="btn blue" type="button">另開年度自動列表</button><button id="closeZhiweiPanel" class="btn gray" type="button">關閉</button></div></div><div class="zhiwei-months">'+months.map(m=>'<button class="month-chip '+(m===zhiweiSelectedMonth?'active':'')+'" data-zhiwei-month="'+esc2(m)+'" type="button">'+esc2(m)+'</button>').join('')+'</div><div class="zhiwei-grid" style="grid-template-columns:1fr"><div class="zhiwei-box"><div class="zhiwei-box-title"><span>項目分類設定｜帳單歸屬 '+esc2(zhiweiSelectedMonth||'')+'</span><span class="'+(unclassifiedItemCount?'warnhint':'okhint')+'">未分類 '+unclassifiedItemCount+' 項</span></div><div class="zhiwei-setting-scroll">'+settingsHtml+'</div></div></div>';
     panel.querySelectorAll('[data-zhiwei-category]').forEach(btn=>btn.addEventListener('click',()=>setZhiweiCategory(btn.dataset.zhiweiCategory,btn.dataset.zhiweiItem,btn.classList.contains('active')?'':btn.dataset.zhiweiValue)));
     panel.querySelectorAll('[data-zhiwei-filter]').forEach(btn=>btn.addEventListener('click',()=>{zhiweiCategoryFilter=(btn.dataset.zhiweiFilter===zhiweiCategoryFilter?'':btn.dataset.zhiweiFilter);renderZhiweiPanel();}));
     panel.querySelectorAll('[data-zhiwei-jump]').forEach(btn=>btn.addEventListener('click',()=>jumpToZhiweiAccount(btn.dataset.zhiweiJump,btn.dataset.zhiweiJumpType,btn.dataset.zhiweiJumpMonth)));
     panel.querySelectorAll('[data-zhiwei-month]').forEach(btn=>btn.addEventListener('click',()=>{zhiweiSelectedMonth=btn.dataset.zhiweiMonth;renderZhiweiPanel();}));
+    const openAnnual=doc.getElementById('openZhiweiAnnualBtn');if(openAnnual)openAnnual.addEventListener('click',openZhiweiAnnualWindow);
     const close=doc.getElementById('closeZhiweiPanel');if(close)close.addEventListener('click',()=>panel.classList.add('hidden'));
   }
   function toggleZhiweiPanel(){const panel=doc.getElementById('zhiweiAutoPanel');if(!panel)return;panel.classList.toggle('hidden');if(!panel.classList.contains('hidden'))renderZhiweiPanel();}
@@ -9396,6 +9422,7 @@ function openCardPasteWindow(){
   const saveRowsBtn=doc.getElementById('saveRowsBtn');
   const clearBtn=doc.getElementById('clearBtn');
   const zhiweiAutoBtn=doc.getElementById('zhiweiAutoBtn');if(zhiweiAutoBtn)zhiweiAutoBtn.addEventListener('click',toggleZhiweiPanel);
+  const zhiweiAnnualBtn=doc.getElementById('zhiweiAnnualBtn');if(zhiweiAnnualBtn)zhiweiAnnualBtn.addEventListener('click',openZhiweiAnnualWindow);
   const ownerAddBtn=doc.getElementById('ownerAddBtn');if(ownerAddBtn)ownerAddBtn.addEventListener('click',addOwnerOption);
   const ownerRenameBtn=doc.getElementById('ownerRenameBtn');if(ownerRenameBtn)ownerRenameBtn.addEventListener('click',renameOwnerOption);
   const ownerDeleteBtn=doc.getElementById('ownerDeleteBtn');if(ownerDeleteBtn)ownerDeleteBtn.addEventListener('click',deleteOwnerOption);
@@ -9436,7 +9463,7 @@ function safeWriteLocalJSON(key,val){
 let lastCardPasteRestoreCount=0;
 function buildCardPasteBackup(){
   return {
-    version:'V266',
+    version:'V267',
     exportedAt:new Date().toISOString(),
     records:safeReadLocalJSON('lihui_card_paste_records_v4',[]),
     legacyRecords:safeReadLocalJSON('lihui_card_paste_records_v3',[]),
