@@ -6,7 +6,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
-  <title>麗卉每月帳款｜V287 Excel期間欄</title>
+  <title>麗卉每月帳款｜V288 小孩學費分帳</title>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
@@ -2273,6 +2273,13 @@
 .bridge-pct-amounts span:first-child{color:#2563eb}
 .bridge-pct-amounts span:last-child{color:#0369a1}
 .child-fee-split{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-top:5px;padding:5px;border:1px solid #f9a8d4;border-radius:9px;background:#fff7fb}.child-fee-split label{font-size:10px;font-weight:950;color:#9d174d}.child-fee-split input{margin-top:2px!important;height:28px!important;padding:3px 5px!important;text-align:right}
+.child-tuition-row{width:calc(100% - 20px);margin:8px 10px;padding:10px;border:1px solid #d8e2ef;border-radius:16px;background:#fff;box-shadow:0 3px 10px rgba(42,65,105,.05)}
+.child-tuition-row input{width:100%;height:34px;border:1px solid #d2ddec;border-radius:10px;padding:6px 8px;background:#fff}
+.child-tuition-top{display:grid;grid-template-columns:minmax(260px,1fr) 180px;gap:10px;align-items:end}.child-tuition-school{display:grid;gap:2px;padding:7px 10px;border-radius:11px;background:#fff7ed;color:#9a3412;text-align:right}.child-tuition-school span,.child-tuition-fees span,.child-tuition-dates span{font-size:11px;font-weight:950}.child-tuition-school strong{font-size:18px}.child-tuition-school small{font-size:10px}
+.child-tuition-fees{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}.child-tuition-fees label,.child-tuition-registration label,.child-tuition-dates label{display:grid;gap:3px}.child-tuition-fees input,.child-tuition-registration input{text-align:right;font-weight:950;color:#2563eb}.child-tuition-registration{grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:7px;border:1px solid #f9a8d4;border-radius:10px;background:#fff7fb}.child-tuition-subtitle{grid-column:1/-1;font-size:11px;font-weight:950;color:#9d174d}
+.child-tuition-funding{display:grid;grid-template-columns:1.35fr 1fr 1fr 1fr;gap:8px;margin-top:8px;padding:8px;border-radius:12px;background:#ecfdf5}.child-tuition-funding>div{display:grid;gap:2px;padding:6px 8px;border-radius:9px;background:#fff;color:#065f46}.child-tuition-funding span{font-size:10.5px;font-weight:950}.child-tuition-funding strong{text-align:right;font-size:14px}.child-tuition-funding small{font-size:9.5px;color:#557565}.child-tuition-funded{background:#d1fae5!important}
+.child-tuition-dates{display:grid;grid-template-columns:118px 118px 118px minmax(160px,1fr) 70px;gap:7px;align-items:end;margin-top:8px}.child-tuition-dates .row-actions{justify-content:flex-end;flex-wrap:nowrap}
+@media(max-width:980px){.child-tuition-top,.child-tuition-fees,.child-tuition-funding,.child-tuition-dates{grid-template-columns:1fr 1fr}.child-tuition-school,.child-tuition-note{grid-column:1/-1}.child-tuition-dates .row-actions{justify-content:flex-start}}
 @media(max-width:980px){.bridge-share-row{grid-template-columns:1fr 1fr!important}.bridge-share-row .row-actions{justify-content:flex-start!important}}
 
 
@@ -2346,7 +2353,7 @@
   <div class="topbar">
     <div class="top-title top-title-v120">
       <div class="top-main-line">
-        <h1>麗卉每月帳款 <span class="app-version">V287</span></h1>
+        <h1>麗卉每月帳款 <span class="app-version">V288</span></h1>
         <div class="actions action-row action-row-main top-main-actions">
           <button class="act-btn act-add" onclick="addMonth()">＋新增月份</button>
           <button class="act-btn act-copy" onclick="copyCurrentMonth()">複製月份</button>
@@ -4407,7 +4414,14 @@ function switchMonthInput(){const raw=prompt('輸入月份，例如 115/5');if(!
 function clearCopiedItemData(it){
   it.amount='';
   it.date='';
+  it.bridgeLihuiTransferDate='';
   it.bridgeZhiweiTransferDate='';
+  it.childXifengTuition='';
+  it.childJimuTuition='';
+  it.childXifengRegistration='';
+  it.childJimuRegistration='';
+  it.zhiweiChildTuition='';
+  it.zhiweiChildRegistration='';
   it.note='';
   it._autoNote='';
   if(it.isCard){
@@ -4426,6 +4440,7 @@ function prepareCopiedMonthData(sourceMonth,fromId,toId){
   (((copied.personal||{}).sections)||[]).forEach(sec=>{
     (sec.items||[]).forEach(it=>{
       // 志偉匯款日期屬於當月請款完成紀錄，複製月份時一律清空。
+      it.bridgeLihuiTransferDate='';
       it.bridgeZhiweiTransferDate='';
       const dp=dateParts(it.date||'');
       const keepBecauseNotSourceMonth=!!(it.date && dp && dp.monthId!==fromId);
@@ -5558,6 +5573,7 @@ function renderFixedRow(it,secIdx,idx){
   return `<div class="fixed-row normalrow"><div><div class="tiny">項目${fixedAmt?`｜固定預設${fmt(fixedAmt,true)}`:''}</div><input class="labelcell" value="${esc(it.label)}" oninput="setItem(${secIdx},${idx},'label',this.value)"></div><div><div class="tiny">金額</div><input inputmode="numeric" class="amountinp" value="${esc(it.amount)}" oninput="this.value=moneyOnly(this.value);setItem(${secIdx},${idx},'amount',this.value)" placeholder="0"></div><div><div class="tiny">${esc(it.dateType)}</div><input value="${esc(it.date)}" onchange="this.value=normalizeDateInput(this);setItem(${secIdx},${idx},'date',this.value)" placeholder="115/5/8"></div><div><div class="tiny">備註</div><input value="${esc(it.note)}" oninput="setItem(${secIdx},${idx},'note',this.value)" placeholder="備註事項"></div><div>${split?`<div class="tiny">零用金</div><select onchange="setItem(${secIdx},${idx},'splitMode',this.value)"><option value="none" ${it.splitMode==='none'?'selected':''}>不扣</option><option value="2" ${it.splitMode==='2'?'selected':''}>/2</option><option value="3" ${it.splitMode==='3'?'selected':''}>/3</option><option value="dadLiving" ${it.splitMode==='dadLiving'?'selected':''}>爸生活費規則</option></select>`:'<div class="tiny">&nbsp;</div><div class="compact-empty"></div>'}</div><div><div class="tiny">&nbsp;</div><div class="row-actions"><button class="iconbtn keep" onclick="clearPersonalItemData(${secIdx},${idx})">清</button><button class="iconbtn del" onclick="deletePersonalItem(${secIdx},${idx})">刪</button></div></div></div>`
 }
 function renderBridgeShareFixedRow(it,secIdx,idx){
+  if(String(it.label||'').includes('小孩月費')&&compareMonthId(state.activeMonth,'2026-08')>=0)return renderChildTuitionFixedRow(it,secIdx,idx);
   const base=bridgeItemBaseAmount(state.activeMonth,it);
   const fixedNote=(String(it.label||'')==='管理費'||String(it.label||'').includes('大橋管理費'))&&!itemSignedAmount(it)?`｜預設${fmt(calcBridgeManagementDefault(state.activeMonth),true)}`:'';
   const lp=bridgePctValue(it,'lihui'), zp=bridgePctValue(it,'zhiwei');
@@ -5567,6 +5583,28 @@ function renderBridgeShareFixedRow(it,secIdx,idx){
   const zhiweiDate=needsZhiweiTransferDate?`<div><div class="tiny">志偉匯款日期</div><input value="${esc(it.bridgeZhiweiTransferDate||'')}" onchange="this.value=normalizeDateInput(this);setItem(${secIdx},${idx},'bridgeZhiweiTransferDate',this.value)" placeholder="115/7/15"></div>`:'<div class="bridge-zhiwei-date-placeholder" aria-hidden="true"></div>';
   const childSplit=String(it.label||'').includes('小孩月費')?`<div class="child-fee-split"><label>單月學費<input inputmode="numeric" value="${esc(it.zhiweiChildTuition||'')}" oninput="this.value=moneyOnly(this.value);setItem(${secIdx},${idx},'zhiweiChildTuition',this.value)" placeholder="0"></label><label>半年註冊費<input inputmode="numeric" value="${esc(it.zhiweiChildRegistration||'')}" oninput="this.value=moneyOnly(this.value);setItem(${secIdx},${idx},'zhiweiChildRegistration',this.value)" placeholder="0"></label></div>`:'';
   return `<div class="fixed-row normalrow bridge-share-row has-zhiwei-date"><div><div class="tiny">項目${fixedNote}</div><input class="labelcell" value="${esc(it.label)}" oninput="setItem(${secIdx},${idx},'label',this.value)">${childSplit}</div><div><div class="tiny">金額</div><input inputmode="numeric" class="amountinp" value="${esc(it.amount)}" oninput="this.value=moneyOnly(this.value);setItem(${secIdx},${idx},'amount',this.value)" placeholder="0"></div><div><div class="tiny">負擔比例</div><div class="bridge-pct-pack"><div class="bridge-pct-cell"><input inputmode="decimal" value="${esc(bridgeCleanPct(lp))}" onchange="setBridgePct(${secIdx},${idx},'bridgeLihuiPct',this.value)" placeholder="麗卉%"><input inputmode="decimal" value="${esc(bridgeCleanPct(zp))}" onchange="setBridgePct(${secIdx},${idx},'bridgeZhiweiPct',this.value)" placeholder="志偉%"></div><div class="bridge-pct-amounts"><span>麗卉 ${esc(fmt(lAmt,true))}</span><span>志偉 ${esc(fmt(zAmt,true))}</span></div></div></div><div><div class="tiny">${esc(it.dateType)}</div><input value="${esc(it.date)}" onchange="this.value=normalizeDateInput(this);setItem(${secIdx},${idx},'date',this.value)" placeholder="115/6/8"></div>${zhiweiDate}<div><div class="tiny">備註</div><input value="${esc(it.note)}" oninput="setItem(${secIdx},${idx},'note',this.value)" placeholder="備註事項"></div><div><div class="tiny">&nbsp;</div><div class="row-actions"><button class="iconbtn keep" onclick="clearPersonalItemData(${secIdx},${idx})">清</button><button class="iconbtn del" onclick="deletePersonalItem(${secIdx},${idx})">刪</button></div></div></div>`
+}
+function childTuitionCalculation(it,monthId){
+  const mid=monthId||state.activeMonth,month=Number(String(mid||'').slice(5,7)),showRegistration=month===1||month===7;
+  const legacyTotal=num(it.amount),legacyTuition=num(it.zhiweiChildTuition);
+  const xifengTuition=hasAnyText(it.childXifengTuition)?num(it.childXifengTuition):legacyTuition;
+  const jimuTuition=hasAnyText(it.childJimuTuition)?num(it.childJimuTuition):Math.max(0,legacyTotal-xifengTuition);
+  const xifengRegistration=showRegistration?(hasAnyText(it.childXifengRegistration)?num(it.childXifengRegistration):num(it.zhiweiChildRegistration)):0;
+  const jimuRegistration=showRegistration?num(it.childJimuRegistration):0;
+  const schoolTotal=xifengTuition+jimuTuition+xifengRegistration+jimuRegistration;
+  const subsidy=11000,parentTotal=Math.max(0,schoolTotal-subsidy),lihui=Math.round(parentTotal*.4),zhiwei=parentTotal-lihui;
+  return {showRegistration,xifengTuition,jimuTuition,xifengRegistration,jimuRegistration,schoolTotal,subsidy,parentTotal,lihui,zhiwei};
+}
+function setChildTuitionField(si,ii,field,val){
+  const it=getMonth().personal.sections[si].items[ii];if(!it)return;
+  it[field]=moneyOnly(val);it.bridgeLihuiPct='40';it.bridgeZhiweiPct='60';
+  const c=childTuitionCalculation(it,state.activeMonth);it.amount=String(c.schoolTotal||'');
+  save();render();
+}
+function renderChildTuitionFixedRow(it,secIdx,idx){
+  const c=childTuitionCalculation(it,state.activeMonth);
+  const registration=c.showRegistration?`<div class="child-tuition-registration"><div class="child-tuition-subtitle">半年註冊費｜每年1月、7月</div><label><span>析楓註冊費</span><input inputmode="numeric" value="${esc(hasAnyText(it.childXifengRegistration)?it.childXifengRegistration:(it.zhiweiChildRegistration||''))}" onchange="setChildTuitionField(${secIdx},${idx},'childXifengRegistration',this.value)" placeholder="0"></label><label><span>佶睦註冊費</span><input inputmode="numeric" value="${esc(it.childJimuRegistration||'')}" onchange="setChildTuitionField(${secIdx},${idx},'childJimuRegistration',this.value)" placeholder="0"></label></div>`:'';
+  return `<div class="child-tuition-row"><div class="child-tuition-top"><div><div class="tiny">項目｜115年8月起</div><input class="labelcell" value="${esc(it.label)}" oninput="setItem(${secIdx},${idx},'label',this.value)"></div><div class="child-tuition-school"><span>實際繳給學校</span><strong>${esc(fmt(c.schoolTotal,true))}</strong><small>照全額繳款</small></div></div><div class="child-tuition-fees"><label><span>析楓學費</span><input inputmode="numeric" value="${esc(hasAnyText(it.childXifengTuition)?it.childXifengTuition:(it.zhiweiChildTuition||''))}" onchange="setChildTuitionField(${secIdx},${idx},'childXifengTuition',this.value)" placeholder="0"></label><label><span>佶睦學費</span><input inputmode="numeric" value="${esc(hasAnyText(it.childJimuTuition)?it.childJimuTuition:(c.jimuTuition||''))}" onchange="setChildTuitionField(${secIdx},${idx},'childJimuTuition',this.value)" placeholder="0"></label>${registration}</div><div class="child-tuition-funding"><div><span>育兒補助入帳</span><strong>${esc(fmt(c.subsidy,true))}</strong><small>析楓 $5,000＋佶睦 $6,000</small></div><div><span>麗卉匯入 40%</span><strong>${esc(fmt(c.lihui,true))}</strong></div><div><span>志偉匯入 60%</span><strong>${esc(fmt(c.zhiwei,true))}</strong></div><div class="child-tuition-funded"><span>帳戶資金合計</span><strong>${esc(fmt(c.subsidy+c.lihui+c.zhiwei,true))}</strong></div></div><div class="child-tuition-dates"><label><span>麗卉匯款日期</span><input value="${esc(it.bridgeLihuiTransferDate||'')}" onchange="this.value=normalizeDateInput(this);setItem(${secIdx},${idx},'bridgeLihuiTransferDate',this.value)" placeholder="115/8/10"></label><label><span>志偉匯款日期</span><input value="${esc(it.bridgeZhiweiTransferDate||'')}" onchange="this.value=normalizeDateInput(this);setItem(${secIdx},${idx},'bridgeZhiweiTransferDate',this.value)" placeholder="115/8/10"></label><label><span>匯款學費日期</span><input value="${esc(it.date||'')}" onchange="this.value=normalizeDateInput(this);setItem(${secIdx},${idx},'date',this.value)" placeholder="115/8/15"></label><label class="child-tuition-note"><span>備註</span><input value="${esc(it.note||'')}" oninput="setItem(${secIdx},${idx},'note',this.value)" placeholder="備註事項"></label><div class="row-actions"><button class="iconbtn keep" onclick="clearPersonalItemData(${secIdx},${idx})">清</button><button class="iconbtn del" onclick="deletePersonalItem(${secIdx},${idx})">刪</button></div></div></div>`;
 }
 function extractRocDateFromMainCardText(raw){
   const s=String(raw||'').trim();
@@ -5675,7 +5713,14 @@ function clearPersonalItemData(si,ii){
   const fixed=getFixedDefaultAmount(it.label);
   it.amount=fixed||'';
   it.date='';
+  it.bridgeLihuiTransferDate='';
   it.bridgeZhiweiTransferDate='';
+  it.childXifengTuition='';
+  it.childJimuTuition='';
+  it.childXifengRegistration='';
+  it.childJimuRegistration='';
+  it.zhiweiChildTuition='';
+  it.zhiweiChildRegistration='';
   it.note='';
   it._autoNote='';
   if(it.isCard){
@@ -7307,7 +7352,7 @@ function openCardPasteWindow(){
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>信用卡刷卡紀錄整理｜V287</title>
+<title>信用卡刷卡紀錄整理｜V288</title>
 <style>
   *{box-sizing:border-box}
   body{margin:0;background:linear-gradient(145deg,#fff7ed 0%,#f0f9ff 48%,#f5f3ff 100%);font-family:"Microsoft JhengHei","Noto Sans TC",Arial,sans-serif;color:#1f2937;font-size:14px;}
@@ -7837,7 +7882,7 @@ function openCardPasteWindow(){
 </head>
 <body>
   <div class="wrap">
-    <div class="head"><h1>信用卡刷卡紀錄整理 <span class="badge">V287</span></h1><div class="cloud-sync-box"><span id="cardPasteCloudPill" class="cloud-pill off">雲端狀態確認中</span><div id="cardPasteCloudDetail" class="cloud-detail">另開視窗資料會先同步主畫面</div></div></div>
+    <div class="head"><h1>信用卡刷卡紀錄整理 <span class="badge">V288</span></h1><div class="cloud-sync-box"><span id="cardPasteCloudPill" class="cloud-pill off">雲端狀態確認中</span><div id="cardPasteCloudDetail" class="cloud-detail">另開視窗資料會先同步主畫面</div></div></div>
     <div class="panel">
       <div class="controls">
         <div class="field"><label>歸屬年月</label><input id="belongMonth" placeholder="115/5"><div id="belongMonthErr" class="err"></div></div>
@@ -8316,12 +8361,14 @@ function openCardPasteWindow(){
     Object.entries((state&&state.months)||{}).forEach(([mid,m])=>{
       const pageMonth=zhiweiMonthFromId(mid);if(!pageMonth)return;
       ((((m||{}).personal||{}).sections)||[]).forEach(sec=>(sec.items||[]).forEach(it=>{
-        const pct=pctValue(it.bridgeZhiweiPct),amount=moneyNum(it.amount);
-        if(pct<=0||!amount)return;
         const item=String(it.label||'未命名項目').trim();
+        const childNewMode=item.includes('小孩月費')&&compareMonthId(mid,'2026-08')>=0;
+        const childCalc=childNewMode?(()=>{const monthNo=Number(String(mid).slice(5,7)),showRegistration=monthNo===1||monthNo===7,legacyTotal=moneyNum(it.amount),legacyTuition=moneyNum(it.zhiweiChildTuition),xifeng=String(it.childXifengTuition||'').trim()?moneyNum(it.childXifengTuition):legacyTuition,jimu=String(it.childJimuTuition||'').trim()?moneyNum(it.childJimuTuition):Math.max(0,legacyTotal-xifeng),xReg=showRegistration?(String(it.childXifengRegistration||'').trim()?moneyNum(it.childXifengRegistration):moneyNum(it.zhiweiChildRegistration)):0,jReg=showRegistration?moneyNum(it.childJimuRegistration):0,schoolTotal=xifeng+jimu+xReg+jReg,parentTotal=Math.max(0,schoolTotal-11000),lihui=Math.round(parentTotal*.4);return {parentTotal,zhiwei:parentTotal-lihui};})():null;
+        const pct=childNewMode?60:pctValue(it.bridgeZhiweiPct),amount=childNewMode?childCalc.parentTotal:moneyNum(it.amount);
+        if(pct<=0||!amount)return;
         const expenseDate=normalizeRocDateValue(it.date||'','');
-        const month=expenseDate.ok?(expenseDate.y+'/'+expenseDate.m):pageMonth;
-        const row={id:'monthly_'+mid+'_'+String(it.id||ruleKey(item)),sourceType:'monthly',month,billMonth:pageMonth,item,source:String(sec.title||'每月帳款'),bank:'每月帳款',date:String(it.date||''),amount,pct,zhiwei:Math.round(amount*pct/100),note:String(it.note||''),owner:'志偉負擔',childTuition:moneyNum(it.zhiweiChildTuition),childRegistration:moneyNum(it.zhiweiChildRegistration)};row.category=zhiweiCategoryForRow(row,item,migratedLegacyKeys);out.push(row);
+        const month=childNewMode?pageMonth:(expenseDate.ok?(expenseDate.y+'/'+expenseDate.m):pageMonth);
+        const row={id:'monthly_'+mid+'_'+String(it.id||ruleKey(item)),sourceType:'monthly',month,billMonth:pageMonth,item,source:String(sec.title||'每月帳款'),bank:'每月帳款',date:String(it.date||''),amount,pct,zhiwei:childNewMode?childCalc.zhiwei:Math.round(amount*pct/100),note:String(it.note||''),owner:'志偉負擔',childNewMode,childTuition:moneyNum(it.zhiweiChildTuition),childRegistration:moneyNum(it.zhiweiChildRegistration)};row.category=zhiweiCategoryForRow(row,item,migratedLegacyKeys);out.push(row);
       }));
     });
     if(migratedLegacyKeys.size){migratedLegacyKeys.forEach(key=>delete zhiweiCategories[key]);saveZhiweiCategories();}
@@ -8341,7 +8388,7 @@ function openCardPasteWindow(){
     const year=selected.ok?String(selected.y):fallbackYear;
     const allocated=[];
     const addSpread=(r,count,label,amount)=>{const parts=String(r.month||'').split('/'),sy=Number(parts[0]),sm=Number(parts[1]);if(!sy||!sm)return;const share=amount/count;for(let i=0;i<count;i++){const idx=(sm-1)+i,ty=sy+Math.floor(idx/12),tm=(idx%12)+1;allocated.push(Object.assign({},r,{item:label||r.item,month:ty+'/'+tm,zhiwei:share}));}};
-    raw.forEach(r=>{if(r.sourceType==='monthly'){const label=String(r.item||'');if(label==='管理費'||label.includes('大橋管理費')||label.includes('志偉_台灣大哥大')||label.includes('大橋房貸'))return;if(label.includes('雙月天然氣')){addSpread(r,2,label,r.zhiwei);return;}if(label.includes('小孩月費')&&(r.childTuition||r.childRegistration)){const pct=Number(r.pct||0)/100;if(r.childTuition)addSpread(r,1,label+'｜單月學費',r.childTuition*pct);if(r.childRegistration)addSpread(r,6,label+'｜半年註冊費',r.childRegistration*pct);return;}allocated.push(Object.assign({},r));return;}if(!r.category)return;const p=zhiweiPeriods[zhiweiRowCategoryKey(r)];if(!p||!p.mode)return;const count=p.mode==='annual'?12:(p.mode==='custom'?Math.max(1,Math.min(36,Number(p.months)||1)):1);addSpread(r,count,r.item,r.zhiwei);});
+    raw.forEach(r=>{if(r.sourceType==='monthly'){const label=String(r.item||'');if(label==='管理費'||label.includes('大橋管理費')||label.includes('志偉_台灣大哥大')||label.includes('大橋房貸'))return;if(r.childNewMode){allocated.push(Object.assign({},r));return;}if(label.includes('雙月天然氣')){addSpread(r,2,label,r.zhiwei);return;}if(label.includes('小孩月費')&&(r.childTuition||r.childRegistration)){const pct=Number(r.pct||0)/100;if(r.childTuition)addSpread(r,1,label+'｜單月學費',r.childTuition*pct);if(r.childRegistration)addSpread(r,6,label+'｜半年註冊費',r.childRegistration*pct);return;}allocated.push(Object.assign({},r));return;}if(!r.category)return;const p=zhiweiPeriods[zhiweiRowCategoryKey(r)];if(!p||!p.mode)return;const count=p.mode==='annual'?12:(p.mode==='custom'?Math.max(1,Math.min(36,Number(p.months)||1)):1);addSpread(r,count,r.item,r.zhiwei);});
     const recurringTemplate=(match,startMonth,fixedAmount)=>{const candidates=raw.filter(r=>r.sourceType==='monthly'&&match(String(r.item||''))&&r.zhiwei>0).sort((a,b)=>compareMonthDesc(a.billMonth,b.billMonth));const sample=candidates[0];if(!sample||Number(year)<115)return;const first=Number(year)===115?startMonth:1,amount=fixedAmount||sample.zhiwei;for(let m=first;m<=12;m++)allocated.push(Object.assign({},sample,{month:year+'/'+m,billMonth:year+'/'+m,zhiwei:amount}));};
     recurringTemplate(label=>label==='管理費'||label.includes('大橋管理費'),6,1150);
     recurringTemplate(label=>label.includes('志偉_台灣大哥大'),7,0);
@@ -8375,7 +8422,7 @@ function openCardPasteWindow(){
     const target=normalizeRocMonthValue(targetMonth||'');if(!target.ok)return [];
     const raw=allZhiweiAutoRows(),allocated=[];
     const addSpread=(r,count,label,amount)=>{const p=normalizeRocMonthValue(r.month||'');if(!p.ok)return;const share=amount/count;for(let i=0;i<count;i++){const idx=(p.m-1)+i,ty=p.y+Math.floor(idx/12),tm=(idx%12)+1;allocated.push(Object.assign({},r,{item:label||r.item,month:ty+'/'+tm,zhiwei:share}));}};
-    raw.forEach(r=>{if(r.sourceType==='monthly'){const label=String(r.item||'');if(label==='管理費'||label.includes('大橋管理費')||label.includes('志偉_台灣大哥大')||label.includes('大橋房貸'))return;if(label.includes('雙月天然氣')){addSpread(r,2,label,r.zhiwei);return;}if(label.includes('小孩月費')&&(r.childTuition||r.childRegistration)){const pct=Number(r.pct||0)/100;if(r.childTuition)addSpread(r,1,label+'｜單月學費',r.childTuition*pct);if(r.childRegistration)addSpread(r,6,label+'｜半年註冊費',r.childRegistration*pct);return;}allocated.push(Object.assign({},r));return;}if(!r.category)return;const period=zhiweiPeriods[zhiweiRowCategoryKey(r)];if(!period||!period.mode)return;const count=period.mode==='annual'?12:(period.mode==='custom'?Math.max(1,Math.min(36,Number(period.months)||1)):1);addSpread(r,count,r.item,r.zhiwei);});
+    raw.forEach(r=>{if(r.sourceType==='monthly'){const label=String(r.item||'');if(label==='管理費'||label.includes('大橋管理費')||label.includes('志偉_台灣大哥大')||label.includes('大橋房貸'))return;if(r.childNewMode){allocated.push(Object.assign({},r));return;}if(label.includes('雙月天然氣')){addSpread(r,2,label,r.zhiwei);return;}if(label.includes('小孩月費')&&(r.childTuition||r.childRegistration)){const pct=Number(r.pct||0)/100;if(r.childTuition)addSpread(r,1,label+'｜單月學費',r.childTuition*pct);if(r.childRegistration)addSpread(r,6,label+'｜半年註冊費',r.childRegistration*pct);return;}allocated.push(Object.assign({},r));return;}if(!r.category)return;const period=zhiweiPeriods[zhiweiRowCategoryKey(r)];if(!period||!period.mode)return;const count=period.mode==='annual'?12:(period.mode==='custom'?Math.max(1,Math.min(36,Number(period.months)||1)):1);addSpread(r,count,r.item,r.zhiwei);});
     const recurring=(match,startMonth,fixedAmount)=>{if(target.y<115||(target.y===115&&target.m<startMonth))return;const candidates=raw.filter(r=>r.sourceType==='monthly'&&match(String(r.item||''))&&r.zhiwei>0).sort((a,b)=>compareMonthDesc(a.billMonth,b.billMonth));const sample=candidates[0];if(sample)allocated.push(Object.assign({},sample,{month:target.value,billMonth:target.value,zhiwei:fixedAmount||sample.zhiwei}));};
     recurring(label=>label==='管理費'||label.includes('大橋管理費'),6,1150);
     recurring(label=>label.includes('志偉_台灣大哥大'),7,0);
@@ -9631,7 +9678,7 @@ function safeWriteLocalJSON(key,val){
 let lastCardPasteRestoreCount=0;
 function buildCardPasteBackup(){
   return {
-    version:'V287',
+    version:'V288',
     exportedAt:new Date().toISOString(),
     records:safeReadLocalJSON('lihui_card_paste_records_v4',[]),
     legacyRecords:safeReadLocalJSON('lihui_card_paste_records_v3',[]),
