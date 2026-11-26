@@ -6,7 +6,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
-  <title>麗卉每月帳款｜V286 Excel一頁寬</title>
+  <title>麗卉每月帳款｜V287 Excel期間欄</title>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
@@ -2346,7 +2346,7 @@
   <div class="topbar">
     <div class="top-title top-title-v120">
       <div class="top-main-line">
-        <h1>麗卉每月帳款 <span class="app-version">V286</span></h1>
+        <h1>麗卉每月帳款 <span class="app-version">V287</span></h1>
         <div class="actions action-row action-row-main top-main-actions">
           <button class="act-btn act-add" onclick="addMonth()">＋新增月份</button>
           <button class="act-btn act-copy" onclick="copyCurrentMonth()">複製月份</button>
@@ -7307,7 +7307,7 @@ function openCardPasteWindow(){
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>信用卡刷卡紀錄整理｜V286</title>
+<title>信用卡刷卡紀錄整理｜V287</title>
 <style>
   *{box-sizing:border-box}
   body{margin:0;background:linear-gradient(145deg,#fff7ed 0%,#f0f9ff 48%,#f5f3ff 100%);font-family:"Microsoft JhengHei","Noto Sans TC",Arial,sans-serif;color:#1f2937;font-size:14px;}
@@ -7837,7 +7837,7 @@ function openCardPasteWindow(){
 </head>
 <body>
   <div class="wrap">
-    <div class="head"><h1>信用卡刷卡紀錄整理 <span class="badge">V286</span></h1><div class="cloud-sync-box"><span id="cardPasteCloudPill" class="cloud-pill off">雲端狀態確認中</span><div id="cardPasteCloudDetail" class="cloud-detail">另開視窗資料會先同步主畫面</div></div></div>
+    <div class="head"><h1>信用卡刷卡紀錄整理 <span class="badge">V287</span></h1><div class="cloud-sync-box"><span id="cardPasteCloudPill" class="cloud-pill off">雲端狀態確認中</span><div id="cardPasteCloudDetail" class="cloud-detail">另開視窗資料會先同步主畫面</div></div></div>
     <div class="panel">
       <div class="controls">
         <div class="field"><label>歸屬年月</label><input id="belongMonth" placeholder="115/5"><div id="belongMonthErr" class="err"></div></div>
@@ -8383,15 +8383,18 @@ function openCardPasteWindow(){
     return allocated.filter(r=>r.month===target.value&&r.zhiwei!==0);
   }
   function zhiweiMonthExcelRows(month){
-    const list=zhiweiRowsForTargetMonth(month),rows=[],sum=x=>x.reduce((s,r)=>s+r.zhiwei,0),groupItems=x=>{const map=new Map();x.forEach(r=>{const k=ruleKey(r.item);if(!map.has(k))map.set(k,{item:r.item,total:0});map.get(k).total+=r.zhiwei;});return [...map.values()].sort((a,b)=>a.item.localeCompare(b.item,'zh-Hant'));};
+    const list=zhiweiRowsForTargetMonth(month),rows=[],sum=x=>x.reduce((s,r)=>s+r.zhiwei,0);
+    const periodLabel=r=>{if(r.sourceType==='card'){const p=zhiweiPeriods[zhiweiRowCategoryKey(r)];if(!p||!p.mode)return '';if(p.mode==='annual')return '年';if(p.mode==='custom')return Math.max(1,Number(p.months)||1)+'個月';return '單月';}const label=String(r.item||'');if(label.includes('雙月天然氣'))return '雙月';if(label.includes('半年註冊費'))return '6個月';return '單月';};
+    const groupItems=x=>{const map=new Map();x.forEach(r=>{const period=periodLabel(r),k=ruleKey(r.item)+'|'+period;if(!map.has(k))map.set(k,{item:r.item,total:0,period});map.get(k).total+=r.zhiwei;});return [...map.values()].sort((a,b)=>a.item.localeCompare(b.item,'zh-Hant')||a.period.localeCompare(b.period,'zh-Hant'));};
     rows.push(['志偉負擔月份自動列表｜'+rocMonthText(month)]);
     rows.push(['志偉負擔每月總計',sum(list)]);
+    rows.push(['項目','金額','月']);
     const pendingSetup=allZhiweiAutoRows().filter(r=>r.sourceType==='card'&&r.billMonth===month&&(!r.category||!zhiweiPeriods[zhiweiRowCategoryKey(r)]));
     if(pendingSetup.length){rows.push([]);rows.push(['尚未設定分類／期間']);pendingSetup.forEach(r=>rows.push([r.item+'｜'+(!r.category?'未分類':'未選期間'),r.zhiwei]));rows.push(['尚未設定小計',sum(pendingSetup)]);}
     const fixed=list.filter(r=>r.sourceType==='monthly');
-    rows.push([]);rows.push(['固定支出']);groupItems(fixed).forEach(x=>rows.push([x.item,x.total]));rows.push(['固定支出小計',sum(fixed)]);
+    rows.push([]);rows.push(['固定支出']);groupItems(fixed).forEach(x=>rows.push([x.item,x.total,x.period]));rows.push(['固定支出小計',sum(fixed)]);
     const cards=list.filter(r=>r.sourceType==='card');
-    ['necessary','need','needWant','want','none'].forEach(cat=>{const catRows=cards.filter(r=>r.category===cat);rows.push([]);rows.push([zhiweiCategoryLabel(cat)]);['家庭支出','小孩部分','志偉個人'].forEach(owner=>{const ownerRows=catRows.filter(r=>zhiweiRowOwnerLabel(r)===owner);if(ownerRows.length){rows.push([owner]);groupItems(ownerRows).forEach(x=>rows.push(['　'+x.item,x.total]));}});rows.push([zhiweiCategoryLabel(cat)+'小計',sum(catRows)]);});
+    ['necessary','need','needWant','want','none'].forEach(cat=>{const catRows=cards.filter(r=>r.category===cat);rows.push([]);rows.push([zhiweiCategoryLabel(cat)]);['家庭支出','小孩部分','志偉個人'].forEach(owner=>{const ownerRows=catRows.filter(r=>zhiweiRowOwnerLabel(r)===owner);if(ownerRows.length){rows.push([owner]);groupItems(ownerRows).forEach(x=>rows.push(['　'+x.item,x.total,x.period]));}});rows.push([zhiweiCategoryLabel(cat)+'小計',sum(catRows)]);});
     return rows;
   }
   function renderZhiweiPanel(){
@@ -9207,25 +9210,28 @@ function openCardPasteWindow(){
       pending.columns=[{width:13},{width:15},{width:20},{width:15},{width:14},{width:52},{width:16},{width:28}];
       const pendingHeader=addStyledRows(pending,rows);if(pendingHeader)pending.autoFilter={from:'A'+pendingHeader,to:'H'+pendingHeader};
       monthKeys.forEach((month,monthIndex)=>{
-        const sheet=wb.addWorksheet((rocMonthText(month)+'平均').slice(0,31),{views:[{state:'frozen',ySplit:2,showGridLines:false}]});
+        const sheet=wb.addWorksheet((rocMonthText(month)+'平均').slice(0,31),{views:[{state:'frozen',ySplit:3,showGridLines:false}]});
         sheet.properties.tabColor={argb:monthIndex%2?'FF7C3AED':'FF0EA5E9'};sheet.pageSetup=pageSetup;sheet.headerFooter.oddFooter='第 &P 頁／共 &N 頁';
-        sheet.columns=[{width:88},{width:19}];
+        sheet.columns=[{width:74},{width:19},{width:14}];
         const monthRows=zhiweiMonthExcelRows(month);
         monthRows.forEach((vals,i)=>{
           const row=sheet.addRow(vals);row.height=15;row.eachCell({includeEmpty:true},baseCell);
           const label=String(vals[0]||'');
           if(i===0){
-            sheet.mergeCells(row.number,1,row.number,2);row.height=34;row.getCell(1).font={name:fontName,bold:true,size:16,color:{argb:'FFFFFFFF'}};row.getCell(1).fill=solid('FF0284C7');
+            sheet.mergeCells(row.number,1,row.number,3);row.height=34;row.getCell(1).font={name:fontName,bold:true,size:16,color:{argb:'FFFFFFFF'}};row.getCell(1).fill=solid('FF0284C7');
+          }else if(label==='項目'){
+            row.height=20;row.eachCell(cell=>{cell.font={name:fontName,bold:true,size:11,color:{argb:'FFFFFFFF'}};cell.fill=solid('FF334155');cell.alignment={horizontal:'center',vertical:'middle',wrapText:false};});
           }else if(label==='志偉負擔每月總計'){
             row.height=29;row.eachCell(cell=>{cell.font={name:fontName,bold:true,size:13,color:{argb:'FF065F46'}};cell.fill=solid('FFD1FAE5');});
           }else if(label.includes('小計')){
             row.eachCell(cell=>{cell.font={name:fontName,bold:true,size:11,color:{argb:'FF78350F'}};cell.fill=solid('FFFEF3C7');});
           }else if(['固定支出','必要','需要','需要＋想要','想要','無','尚未設定分類／期間'].includes(label)){
-            sheet.mergeCells(row.number,1,row.number,2);row.height=26;row.getCell(1).font={name:fontName,bold:true,size:12,color:{argb:'FF075985'}};row.getCell(1).fill=solid('FFDBEAFE');
+            sheet.mergeCells(row.number,1,row.number,3);row.height=26;row.getCell(1).font={name:fontName,bold:true,size:12,color:{argb:'FF075985'}};row.getCell(1).fill=solid('FFDBEAFE');
           }else if(label&&typeof vals[1]!=='number'){
             row.getCell(1).font={name:fontName,bold:true,size:11,color:{argb:'FF475569'}};row.getCell(1).fill=solid('FFF1F5F9');row.getCell(2).fill=solid('FFF1F5F9');
           }
           if(typeof vals[1]==='number'){row.getCell(2).numFmt=moneyFormat;row.getCell(2).alignment={horizontal:'right',vertical:'middle',wrapText:false,shrinkToFit:true};}
+          if(vals[2])row.getCell(3).alignment={horizontal:'center',vertical:'middle',wrapText:false,shrinkToFit:true};
         });
       });
       const buffer=await wb.xlsx.writeBuffer();
@@ -9243,7 +9249,7 @@ function openCardPasteWindow(){
         const detailAoa=rows.map(row=>{const cells=(row.cells||[]).slice();while(cells.length<8)cells.push('');return cells.map(c=>(c&&typeof c==='object'&&c.formula)?'':c);});
         const detailWs=X.utils.aoa_to_sheet(detailAoa);detailWs['!cols']=[{wch:34},{wch:16},{wch:20},{wch:15},{wch:14},{wch:52},{wch:15},{wch:28}];detailWs['!merges']=rows.map((row,ri)=>(row.type==='title'||row.type==='info'||row.type==='blank')?{s:{r:ri,c:0},e:{r:ri,c:7}}:null).filter(Boolean);for(let ri=0;ri<detailAoa.length;ri++){const cell=detailWs['G'+(ri+1)];if(cell&&cell.t==='n')cell.z='$#,##0';}
         X.utils.book_append_sheet(wb,detailWs,'尚未請款');
-        monthKeys.forEach(monthKey=>{const autoRows=zhiweiMonthExcelRows(monthKey);const autoWs=X.utils.aoa_to_sheet(autoRows);autoWs['!cols']=[{wch:52},{wch:18}];for(let ri=0;ri<autoRows.length;ri++){const cell=autoWs['B'+(ri+1)];if(cell&&cell.t==='n')cell.z='$#,##0';}X.utils.book_append_sheet(wb,autoWs,String(rocMonthText(monthKey)+'平均').replace(/[\\\/?*\[\]:]/g,'').slice(0,31));});
+        monthKeys.forEach(monthKey=>{const autoRows=zhiweiMonthExcelRows(monthKey);const autoWs=X.utils.aoa_to_sheet(autoRows);autoWs['!cols']=[{wch:44},{wch:18},{wch:14}];for(let ri=0;ri<autoRows.length;ri++){const cell=autoWs['B'+(ri+1)];if(cell&&cell.t==='n')cell.z='$#,##0';}X.utils.book_append_sheet(wb,autoWs,String(rocMonthText(monthKey)+'平均').replace(/[\\\/?*\[\]:]/g,'').slice(0,31));});
         const safe=String('全部年月_志偉負擔_篩選結果').replace(/[\/:*?"<>|\s]+/g,'_');
         X.writeFile(wb,safe+'.xlsx',{compression:true});
         setMsg('已下載EXCEL：1張尚未請款＋'+monthKeys.length+'張月份平均。',true);
@@ -9625,7 +9631,7 @@ function safeWriteLocalJSON(key,val){
 let lastCardPasteRestoreCount=0;
 function buildCardPasteBackup(){
   return {
-    version:'V286',
+    version:'V287',
     exportedAt:new Date().toISOString(),
     records:safeReadLocalJSON('lihui_card_paste_records_v4',[]),
     legacyRecords:safeReadLocalJSON('lihui_card_paste_records_v3',[]),
