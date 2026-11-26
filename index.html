@@ -6,7 +6,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
-  <title>麗卉每月帳款｜V276 每月總計置頂</title>
+  <title>麗卉每月帳款｜V277 Excel移除月平均</title>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
   <style>
@@ -2345,7 +2345,7 @@
   <div class="topbar">
     <div class="top-title top-title-v120">
       <div class="top-main-line">
-        <h1>麗卉每月帳款 <span class="app-version">V276</span></h1>
+        <h1>麗卉每月帳款 <span class="app-version">V277</span></h1>
         <div class="actions action-row action-row-main top-main-actions">
           <button class="act-btn act-add" onclick="addMonth()">＋新增月份</button>
           <button class="act-btn act-copy" onclick="copyCurrentMonth()">複製月份</button>
@@ -7306,7 +7306,7 @@ function openCardPasteWindow(){
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>信用卡刷卡紀錄整理｜V276</title>
+<title>信用卡刷卡紀錄整理｜V277</title>
 <style>
   *{box-sizing:border-box}
   body{margin:0;background:linear-gradient(145deg,#fff7ed 0%,#f0f9ff 48%,#f5f3ff 100%);font-family:"Microsoft JhengHei","Noto Sans TC",Arial,sans-serif;color:#1f2937;font-size:14px;}
@@ -7836,7 +7836,7 @@ function openCardPasteWindow(){
 </head>
 <body>
   <div class="wrap">
-    <div class="head"><h1>信用卡刷卡紀錄整理 <span class="badge">V276</span></h1><div class="cloud-sync-box"><span id="cardPasteCloudPill" class="cloud-pill off">雲端狀態確認中</span><div id="cardPasteCloudDetail" class="cloud-detail">另開視窗資料會先同步主畫面</div></div></div>
+    <div class="head"><h1>信用卡刷卡紀錄整理 <span class="badge">V277</span></h1><div class="cloud-sync-box"><span id="cardPasteCloudPill" class="cloud-pill off">雲端狀態確認中</span><div id="cardPasteCloudDetail" class="cloud-detail">另開視窗資料會先同步主畫面</div></div></div>
     <div class="panel">
       <div class="controls">
         <div class="field"><label>歸屬年月</label><input id="belongMonth" placeholder="115/5"><div id="belongMonthErr" class="err"></div></div>
@@ -9105,23 +9105,19 @@ function openCardPasteWindow(){
     rows.push({type:'info',cells:['搜尋範圍：'+scope+(selectedMonth?'｜目前年月：'+rocMonthText(selectedMonth):'')]});
     if(filters.length)rows.push({type:'info',cells:['篩選條件：'+filters.join('｜')]});
     rows.push({type:'blank',cells:[]});
-    rows.push({type:'header',cells:['年月','歸屬誰','負擔比例','銀行','消費日期','項目',filteredCopyAmountLabel(),'匯款備註','月平均']});
-    const subtotalExcelRows=[];
+    rows.push({type:'header',cells:['年月','歸屬誰','負擔比例','銀行','消費日期','項目',filteredCopyAmountLabel(),'匯款備註']});
     keys.forEach(owner=>{
       const glist=filteredGroupSortRecords(groups[owner]);
-      glist.forEach(r=>rows.push({type:'data',cells:[rocMonthText(r.belongMonth||''),ownerDisplay(r),filteredBurdenDisplay(r),bankCell(r),filteredSpendDate(r),itemDisplay(r),filteredSearchAmount(r),rowClaimNoteText(r),'']}));
+      glist.forEach(r=>rows.push({type:'data',cells:[rocMonthText(r.belongMonth||''),ownerDisplay(r),filteredBurdenDisplay(r),bankCell(r),filteredSpendDate(r),itemDisplay(r),filteredSearchAmount(r),rowClaimNoteText(r)]}));
       const subtotal=glist.reduce((s,r)=>s+filteredSearchAmount(r),0);
-      const subtotalRowNumber=rows.length+1;
-      rows.push({type:'subtotal',cells:['','','','','',owner+' 小計',subtotal,'',{formula:'=SUM(I'+(subtotalRowNumber-glist.length)+':I'+(subtotalRowNumber-1)+')'}]});
-      subtotalExcelRows.push(rows.length);
+      rows.push({type:'subtotal',cells:['','','','','',owner+' 小計',subtotal,'']});
     });
     const total=list.reduce((s,r)=>s+filteredSearchAmount(r),0);
-    rows.push({type:'total',cells:['','','','','','總計',total,'',{formula:'=SUM('+subtotalExcelRows.map(n=>'I'+n).join(',')+')'}]});
+    rows.push({type:'total',cells:['','','','','','總計',total,'']});
     return rows;
   }
   function excelHtmlCell(v,type,idx){
     const isNum=idx===6 && (type==='data'||type==='subtotal'||type==='total');
-    const isAverage=idx===8 && (type==='data'||type==='subtotal'||type==='total');
     const isSumLabel=idx===5 && (type==='subtotal'||type==='total');
     const cls=(isNum?'num ':'')+(isSumLabel?'sumlabel ':'')+(type==='header'?'hdr':type==='subtotal'?'sub':type==='total'?'tot':type==='title'?'ttl':type==='info'?'info':'');
     const styles=['border:1px solid #cbd5e1','padding:6px 8px','vertical-align:middle'];
@@ -9140,7 +9136,6 @@ function openCardPasteWindow(){
       styles.push('text-align:right','mso-number-format:&quot;$#,##0&quot;');
       return '<td class="'+cls+'" x:num="'+n+'" style="'+styles.join(';')+'">'+String(n)+'</td>';
     }
-    if(isAverage){styles.push('text-align:right','mso-number-format:&quot;$#,##0&quot;');return '<td class="num '+cls+'" style="'+styles.join(';')+'"></td>';}
     return '<td class="'+cls+'" style="'+styles.join(';')+'">'+esc2(v==null?'':v)+'</td>';
   }
   function downloadFilteredExcel(){
@@ -9149,12 +9144,12 @@ function openCardPasteWindow(){
     if(!confirmUnselected(list))return;
     const rows=filteredGroupedExportRows(list);
     if(w.XLSX){
-      const aoa=rows.map(row=>{const cells=(row.cells||[]).slice();while(cells.length<9)cells.push('');return cells.map(c=>(c&&typeof c==='object'&&c.formula)?'':c);});
+      const aoa=rows.map(row=>{const cells=(row.cells||[]).slice();while(cells.length<8)cells.push('');return cells.map(c=>(c&&typeof c==='object'&&c.formula)?'':c);});
       const ws=w.XLSX.utils.aoa_to_sheet(aoa);
       rows.forEach((row,ri)=>(row.cells||[]).forEach((cell,ci)=>{if(cell&&typeof cell==='object'&&cell.formula){const addr=w.XLSX.utils.encode_cell({r:ri,c:ci});ws[addr]={t:'n',f:String(cell.formula).replace(/^=/,''),v:0,z:'$#,##0'};}}));
-      ws['!cols']=[{wch:12},{wch:14},{wch:20},{wch:15},{wch:14},{wch:52},{wch:15},{wch:28},{wch:15}];
-      ws['!merges']=rows.map((row,ri)=>(row.type==='title'||row.type==='info'||row.type==='blank')?{s:{r:ri,c:0},e:{r:ri,c:8}}:null).filter(Boolean);
-      for(let ri=0;ri<rows.length;ri++){['G','I'].forEach(col=>{const cell=ws[col+(ri+1)];if(cell&&cell.t==='n')cell.z='$#,##0';});}
+      ws['!cols']=[{wch:12},{wch:14},{wch:20},{wch:15},{wch:14},{wch:52},{wch:15},{wch:28}];
+      ws['!merges']=rows.map((row,ri)=>(row.type==='title'||row.type==='info'||row.type==='blank')?{s:{r:ri,c:0},e:{r:ri,c:7}}:null).filter(Boolean);
+      for(let ri=0;ri<rows.length;ri++){const cell=ws['G'+(ri+1)];if(cell&&cell.t==='n')cell.z='$#,##0';}
       const wb=w.XLSX.utils.book_new();
       wb.Workbook={CalcPr:{calcMode:'auto',fullCalcOnLoad:true,forceFullCalc:true}};
       w.XLSX.utils.book_append_sheet(wb,ws,'信用卡篩選結果');
@@ -9163,10 +9158,10 @@ function openCardPasteWindow(){
       const safe=String(month+'_'+payer+'_篩選結果').replace(/[\/:*?"<>|\s]+/g,'_');
       w.XLSX.writeFile(wb,safe+'.xlsx',{compression:true});
       const total=list.reduce((s,r)=>s+filteredSearchAmount(r),0);
-      setMsg('已下載EXCEL，月平均小計與總計會自動計算；總計 '+fmt(total)+'。',true);
+      setMsg('已下載EXCEL，總計 '+fmt(total)+'。',true);
       return;
     }
-    const colCount=9;
+    const colCount=8;
     const htmlRows=rows.map(row=>{
       if(row.type==='blank')return '<tr><td colspan="'+colCount+'" class="blank" style="border:none;height:8px;"></td></tr>';
       if(row.type==='title')return '<tr><td colspan="'+colCount+'" class="ttl" style="border:1px solid #cbd5e1;padding:6px 8px;font-size:16pt;font-weight:700;background:#dbeafe;text-align:left;">'+esc2(row.cells[0]||'')+'</td></tr>';
@@ -9188,7 +9183,7 @@ function openCardPasteWindow(){
       '.sumlabel{text-align:right;}'+
       '.blank{border:none;height:8px;}'+
       '</style></head><body><table>'+
-      '<colgroup><col style="width:90px"><col style="width:110px"><col style="width:170px"><col style="width:120px"><col style="width:105px"><col style="width:460px"><col style="width:120px"><col style="width:220px"><col style="width:120px"></colgroup>'+
+      '<colgroup><col style="width:90px"><col style="width:110px"><col style="width:170px"><col style="width:120px"><col style="width:105px"><col style="width:460px"><col style="width:120px"><col style="width:220px"></colgroup>'+
       htmlRows+'</table></body></html>';
     const blob=new Blob(['﻿'+excel],{type:'application/vnd.ms-excel;charset=utf-8'});
     const payer=searchVal('searchPayer')||'全部負擔';
@@ -9521,7 +9516,7 @@ function safeWriteLocalJSON(key,val){
 let lastCardPasteRestoreCount=0;
 function buildCardPasteBackup(){
   return {
-    version:'V276',
+    version:'V277',
     exportedAt:new Date().toISOString(),
     records:safeReadLocalJSON('lihui_card_paste_records_v4',[]),
     legacyRecords:safeReadLocalJSON('lihui_card_paste_records_v3',[]),
