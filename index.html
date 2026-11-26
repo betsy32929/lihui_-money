@@ -6,7 +6,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
-  <title>麗卉每月帳款｜V262 志偉分類按鈕簡寫</title>
+  <title>麗卉每月帳款｜V263 未分類不進自動列表</title>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
   <style>
@@ -2344,7 +2344,7 @@
   <div class="topbar">
     <div class="top-title top-title-v120">
       <div class="top-main-line">
-        <h1>麗卉每月帳款 <span class="app-version">V262</span></h1>
+        <h1>麗卉每月帳款 <span class="app-version">V263</span></h1>
         <div class="actions action-row action-row-main top-main-actions">
           <button class="act-btn act-add" onclick="addMonth()">＋新增月份</button>
           <button class="act-btn act-copy" onclick="copyCurrentMonth()">複製月份</button>
@@ -7304,7 +7304,7 @@ function openCardPasteWindow(){
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>信用卡刷卡紀錄整理｜V262</title>
+<title>信用卡刷卡紀錄整理｜V263</title>
 <style>
   *{box-sizing:border-box}
   body{margin:0;background:linear-gradient(145deg,#fff7ed 0%,#f0f9ff 48%,#f5f3ff 100%);font-family:"Microsoft JhengHei","Noto Sans TC",Arial,sans-serif;color:#1f2937;font-size:14px;}
@@ -7829,7 +7829,7 @@ function openCardPasteWindow(){
 </head>
 <body>
   <div class="wrap">
-    <div class="head"><h1>信用卡刷卡紀錄整理 <span class="badge">V262</span></h1><div class="cloud-sync-box"><span id="cardPasteCloudPill" class="cloud-pill off">雲端狀態確認中</span><div id="cardPasteCloudDetail" class="cloud-detail">另開視窗資料會先同步主畫面</div></div></div>
+    <div class="head"><h1>信用卡刷卡紀錄整理 <span class="badge">V263</span></h1><div class="cloud-sync-box"><span id="cardPasteCloudPill" class="cloud-pill off">雲端狀態確認中</span><div id="cardPasteCloudDetail" class="cloud-detail">另開視窗資料會先同步主畫面</div></div></div>
     <div class="panel">
       <div class="controls">
         <div class="field"><label>歸屬年月</label><input id="belongMonth" placeholder="115/5"><div id="belongMonthErr" class="err"></div></div>
@@ -8329,7 +8329,8 @@ function openCardPasteWindow(){
     const settingsHtml='<table class="zhiwei-setting-table"><thead><tr><th>項目</th><th>明細</th><th>志偉負擔</th><th>'+zhiweiFilterPillsHtml()+'</th></tr></thead><tbody>'+settingBody+'</tbody></table>';
     const categoriesHtml=ownerOrder.map(owner=>{
       const ownerRows=list.filter(r=>zhiweiRowOwnerLabel(r)===owner);if(!ownerRows.length)return '';
-      const categoryHtml=categoryOrder.map(cat=>{const catRows=ownerRows.filter(r=>(r.category||'')===cat);if(!catRows.length)return '';const grouped=new Map();catRows.forEach(r=>{const k=ruleKey(r.item);if(!grouped.has(k))grouped.set(k,{item:r.item,rows:[],total:0});const g=grouped.get(k);g.rows.push(r);g.total+=r.zhiwei;});const itemHtml=[...grouped.values()].map(g=>'<details class="zhiwei-item"><summary><span>'+esc2(g.item)+'｜'+g.rows.length+'筆</span><span>'+esc2(fmt(g.total))+'</span></summary><table class="zhiwei-detail-table"><thead><tr><th>日期</th><th>來源／銀行</th><th>原金額</th><th>比例</th><th>志偉負擔</th><th>備註</th></tr></thead><tbody>'+g.rows.map(r=>'<tr><td>'+esc2(r.date||'')+'</td><td>'+esc2([r.source,r.bank].filter((v,i,a)=>v&&a.indexOf(v)===i).join('｜'))+'</td><td class="num">'+esc2(fmt(r.amount))+'</td><td class="num">'+esc2(cleanPct(r.pct))+'%</td><td class="num">'+esc2(fmt(r.zhiwei))+'</td><td>'+esc2(r.note||'')+'</td></tr>').join('')+'</tbody></table></details>').join('');return '<h3>'+zhiweiCategoryLabel(cat)+'｜'+catRows.length+'筆｜'+fmt(catRows.reduce((s,r)=>s+r.zhiwei,0))+'</h3>'+itemHtml;}).join('');
+      const categoryHtml=categoryOrder.filter(cat=>cat!=='').map(cat=>{const catRows=ownerRows.filter(r=>(r.category||'')===cat);if(!catRows.length)return '';const grouped=new Map();catRows.forEach(r=>{const k=ruleKey(r.item);if(!grouped.has(k))grouped.set(k,{item:r.item,rows:[],total:0});const g=grouped.get(k);g.rows.push(r);g.total+=r.zhiwei;});const itemHtml=[...grouped.values()].map(g=>'<details class="zhiwei-item"><summary><span>'+esc2(g.item)+'｜'+g.rows.length+'筆</span><span>'+esc2(fmt(g.total))+'</span></summary><table class="zhiwei-detail-table"><thead><tr><th>日期</th><th>來源／銀行</th><th>原金額</th><th>比例</th><th>志偉負擔</th><th>備註</th></tr></thead><tbody>'+g.rows.map(r=>'<tr><td>'+esc2(r.date||'')+'</td><td>'+esc2([r.source,r.bank].filter((v,i,a)=>v&&a.indexOf(v)===i).join('｜'))+'</td><td class="num">'+esc2(fmt(r.amount))+'</td><td class="num">'+esc2(cleanPct(r.pct))+'%</td><td class="num">'+esc2(fmt(r.zhiwei))+'</td><td>'+esc2(r.note||'')+'</td></tr>').join('')+'</tbody></table></details>').join('');return '<h3>'+zhiweiCategoryLabel(cat)+'｜'+catRows.length+'筆｜'+fmt(catRows.reduce((s,r)=>s+r.zhiwei,0))+'</h3>'+itemHtml;}).join('');
+      if(!categoryHtml)return '';
       return '<div class="zhiwei-category"><div class="zhiwei-owner-heading">'+owner+'｜'+ownerRows.length+'筆｜'+fmt(ownerRows.reduce((s,r)=>s+r.zhiwei,0))+'</div>'+categoryHtml+'</div>';
     }).join('');
     const total=list.reduce((s,r)=>s+r.zhiwei,0);
@@ -9430,7 +9431,7 @@ function safeWriteLocalJSON(key,val){
 let lastCardPasteRestoreCount=0;
 function buildCardPasteBackup(){
   return {
-    version:'V262',
+    version:'V263',
     exportedAt:new Date().toISOString(),
     records:safeReadLocalJSON('lihui_card_paste_records_v4',[]),
     legacyRecords:safeReadLocalJSON('lihui_card_paste_records_v3',[]),
