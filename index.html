@@ -6,7 +6,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
-  <title>麗卉每月帳款｜V269 志偉每月總計平均</title>
+  <title>麗卉每月帳款｜V270 取消歸屬誰設定</title>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
   <style>
@@ -2344,7 +2344,7 @@
   <div class="topbar">
     <div class="top-title top-title-v120">
       <div class="top-main-line">
-        <h1>麗卉每月帳款 <span class="app-version">V269</span></h1>
+        <h1>麗卉每月帳款 <span class="app-version">V270</span></h1>
         <div class="actions action-row action-row-main top-main-actions">
           <button class="act-btn act-add" onclick="addMonth()">＋新增月份</button>
           <button class="act-btn act-copy" onclick="copyCurrentMonth()">複製月份</button>
@@ -7304,7 +7304,7 @@ function openCardPasteWindow(){
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>信用卡刷卡紀錄整理｜V269</title>
+<title>信用卡刷卡紀錄整理｜V270</title>
 <style>
   *{box-sizing:border-box}
   body{margin:0;background:linear-gradient(145deg,#fff7ed 0%,#f0f9ff 48%,#f5f3ff 100%);font-family:"Microsoft JhengHei","Noto Sans TC",Arial,sans-serif;color:#1f2937;font-size:14px;}
@@ -7832,7 +7832,7 @@ function openCardPasteWindow(){
 </head>
 <body>
   <div class="wrap">
-    <div class="head"><h1>信用卡刷卡紀錄整理 <span class="badge">V269</span></h1><div class="cloud-sync-box"><span id="cardPasteCloudPill" class="cloud-pill off">雲端狀態確認中</span><div id="cardPasteCloudDetail" class="cloud-detail">另開視窗資料會先同步主畫面</div></div></div>
+    <div class="head"><h1>信用卡刷卡紀錄整理 <span class="badge">V270</span></h1><div class="cloud-sync-box"><span id="cardPasteCloudPill" class="cloud-pill off">雲端狀態確認中</span><div id="cardPasteCloudDetail" class="cloud-detail">另開視窗資料會先同步主畫面</div></div></div>
     <div class="panel">
       <div class="controls">
         <div class="field"><label>歸屬年月</label><input id="belongMonth" placeholder="115/5"><div id="belongMonthErr" class="err"></div></div>
@@ -7843,17 +7843,6 @@ function openCardPasteWindow(){
       </div>
       <div class="field paste"><label>貼上信用卡刷卡紀錄</label><textarea id="pasteBox" placeholder="可貼上整段信用卡刷卡紀錄"></textarea></div>
       <div class="toolbar"><button id="parseBtn" class="btn main" type="button" onclick="window.__ccParsePaste&&window.__ccParsePaste()">產生整理列表</button><button id="clearBtn" class="btn rose" type="button" onclick="window.__ccClearRows&&window.__ccClearRows()">清空整理列表</button><button id="zhiweiAutoBtn" class="btn blue" type="button">志偉負擔分類設定</button><button id="zhiweiAnnualBtn" class="btn green" type="button">年度自動列表</button><span id="saveMsg" class="savehint"></span></div>
-      <details class="owner-manager">
-        <summary>歸屬誰設定</summary>
-        <div class="owner-tools">
-          <input id="ownerAddInput" placeholder="新增歸屬誰">
-          <button id="ownerAddBtn" class="btn blue" type="button">新增</button>
-          <select id="ownerEditSelect"></select>
-          <input id="ownerEditInput" placeholder="改名">
-          <span><button id="ownerRenameBtn" class="btn amber" type="button">改名</button> <button id="ownerDeleteBtn" class="btn rose" type="button">刪除</button></span>
-        </div>
-        <div id="ownerChipList" class="owner-chip-list"></div>
-      </details>
       <details class="item-rule-manager" hidden>
         <summary>項目歸屬／負擔比例記憶</summary>
         <div class="item-rule-form">
@@ -9467,7 +9456,7 @@ function safeWriteLocalJSON(key,val){
 let lastCardPasteRestoreCount=0;
 function buildCardPasteBackup(){
   return {
-    version:'V269',
+    version:'V270',
     exportedAt:new Date().toISOString(),
     records:safeReadLocalJSON('lihui_card_paste_records_v4',[]),
     legacyRecords:safeReadLocalJSON('lihui_card_paste_records_v3',[]),
