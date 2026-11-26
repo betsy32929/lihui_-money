@@ -6,7 +6,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
-  <title>麗卉每月帳款｜V248 志偉負擔自動列表</title>
+  <title>麗卉每月帳款｜V249 項目紀錄未來日期可儲存</title>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
   <style>
@@ -2344,7 +2344,7 @@
   <div class="topbar">
     <div class="top-title top-title-v120">
       <div class="top-main-line">
-        <h1>麗卉每月帳款 <span class="app-version">V248</span></h1>
+        <h1>麗卉每月帳款 <span class="app-version">V249</span></h1>
         <div class="actions action-row action-row-main top-main-actions">
           <button class="act-btn act-add" onclick="addMonth()">＋新增月份</button>
           <button class="act-btn act-copy" onclick="copyCurrentMonth()">複製月份</button>
@@ -3691,8 +3691,21 @@ function isDateInActiveMonth(s){const p=dateParts(s);return !!p&&p.monthId===sta
 function normalizeItemRecordDateInput(el){
   // 項目紀錄是全域延續資料，日期可輸入任一月份；
   // 只有「從項目紀錄帶入每月帳款」時，才依目前月份篩選。
-  // 未來日期可先登記，並套用到期後回首頁確認生效的共同規則。
-  return normalizeDateInput(el);
+  // 未來日期一定允許儲存：只顯示通知，不提供取消，並在日期到達後回首頁確認生效。
+  const old=el?.value||'';
+  const r=parseRocDateInput(old);
+  if(r.empty){clearDateFieldError(el);el.value='';return ''}
+  if(r.error){showDateFieldError(el,'日期格式錯誤');return old}
+  if(isFutureRocDate(r.value)){
+    registerFutureDateCheck(el,r.value);
+    if(el.dataset.futureNotified!==r.value){
+      el.dataset.futureNotified=r.value;
+      alert(`這是未來日期 ${r.value}，已先登記。\n日期到達後，首頁會提醒你確認是否生效。`);
+    }
+  }
+  clearDateFieldError(el);
+  el.value=r.value;
+  return r.value;
 }
 function makeItem(label,dateType,type='expense',opts={}){return {id:cryptoId(),label,dateType,type,amount:'',date:'',note:'',_autoNote:'',isCard:!!opts.isCard,noBill:false,detailsHidden:opts.detailsHidden!==undefined?!!opts.detailsHidden:!!opts.isCard,subItems:[],dueInfo:opts.dueInfo||'',splitMode:opts.splitMode||'none'}}
 
@@ -7291,7 +7304,7 @@ function openCardPasteWindow(){
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>信用卡刷卡紀錄整理｜V248</title>
+<title>信用卡刷卡紀錄整理｜V249</title>
 <style>
   *{box-sizing:border-box}
   body{margin:0;background:linear-gradient(145deg,#fff7ed 0%,#f0f9ff 48%,#f5f3ff 100%);font-family:"Microsoft JhengHei","Noto Sans TC",Arial,sans-serif;color:#1f2937;font-size:14px;}
@@ -7801,7 +7814,7 @@ function openCardPasteWindow(){
 </head>
 <body>
   <div class="wrap">
-    <div class="head"><h1>信用卡刷卡紀錄整理 <span class="badge">V248</span></h1><div class="cloud-sync-box"><span id="cardPasteCloudPill" class="cloud-pill off">雲端狀態確認中</span><div id="cardPasteCloudDetail" class="cloud-detail">另開視窗資料會先同步主畫面</div></div></div>
+    <div class="head"><h1>信用卡刷卡紀錄整理 <span class="badge">V249</span></h1><div class="cloud-sync-box"><span id="cardPasteCloudPill" class="cloud-pill off">雲端狀態確認中</span><div id="cardPasteCloudDetail" class="cloud-detail">另開視窗資料會先同步主畫面</div></div></div>
     <div class="panel">
       <div class="controls">
         <div class="field"><label>歸屬年月</label><input id="belongMonth" placeholder="115/5"><div id="belongMonthErr" class="err"></div></div>
@@ -9363,7 +9376,7 @@ function safeWriteLocalJSON(key,val){
 let lastCardPasteRestoreCount=0;
 function buildCardPasteBackup(){
   return {
-    version:'V248',
+    version:'V249',
     exportedAt:new Date().toISOString(),
     records:safeReadLocalJSON('lihui_card_paste_records_v4',[]),
     legacyRecords:safeReadLocalJSON('lihui_card_paste_records_v3',[]),
