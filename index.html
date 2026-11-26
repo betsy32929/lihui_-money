@@ -6,7 +6,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
-  <title>麗卉每月帳款｜V278 Excel單月工作表</title>
+  <title>麗卉每月帳款｜V279 Excel月份雙工作表</title>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
   <style>
@@ -2345,7 +2345,7 @@
   <div class="topbar">
     <div class="top-title top-title-v120">
       <div class="top-main-line">
-        <h1>麗卉每月帳款 <span class="app-version">V278</span></h1>
+        <h1>麗卉每月帳款 <span class="app-version">V279</span></h1>
         <div class="actions action-row action-row-main top-main-actions">
           <button class="act-btn act-add" onclick="addMonth()">＋新增月份</button>
           <button class="act-btn act-copy" onclick="copyCurrentMonth()">複製月份</button>
@@ -7306,7 +7306,7 @@ function openCardPasteWindow(){
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>信用卡刷卡紀錄整理｜V278</title>
+<title>信用卡刷卡紀錄整理｜V279</title>
 <style>
   *{box-sizing:border-box}
   body{margin:0;background:linear-gradient(145deg,#fff7ed 0%,#f0f9ff 48%,#f5f3ff 100%);font-family:"Microsoft JhengHei","Noto Sans TC",Arial,sans-serif;color:#1f2937;font-size:14px;}
@@ -7836,7 +7836,7 @@ function openCardPasteWindow(){
 </head>
 <body>
   <div class="wrap">
-    <div class="head"><h1>信用卡刷卡紀錄整理 <span class="badge">V278</span></h1><div class="cloud-sync-box"><span id="cardPasteCloudPill" class="cloud-pill off">雲端狀態確認中</span><div id="cardPasteCloudDetail" class="cloud-detail">另開視窗資料會先同步主畫面</div></div></div>
+    <div class="head"><h1>信用卡刷卡紀錄整理 <span class="badge">V279</span></h1><div class="cloud-sync-box"><span id="cardPasteCloudPill" class="cloud-pill off">雲端狀態確認中</span><div id="cardPasteCloudDetail" class="cloud-detail">另開視窗資料會先同步主畫面</div></div></div>
     <div class="panel">
       <div class="controls">
         <div class="field"><label>歸屬年月</label><input id="belongMonth" placeholder="115/5"><div id="belongMonthErr" class="err"></div></div>
@@ -9166,11 +9166,20 @@ function openCardPasteWindow(){
     if(w.XLSX){
       const wb=w.XLSX.utils.book_new();
       wb.Workbook={CalcPr:{calcMode:'auto',fullCalcOnLoad:true,forceFullCalc:true}};
+      const splitPendingSheets=searchVal('searchScope')==='all'&&searchVal('searchPayer')==='志偉負擔'&&searchVal('searchClaim')==='pending';
       const monthGroups={};list.forEach(r=>{const m=normalizeRocMonthValue(r.belongMonth||'');const key=m.ok?m.value:'未分類';if(!monthGroups[key])monthGroups[key]=[];monthGroups[key].push(r);});
       Object.keys(monthGroups).sort((a,b)=>a==='未分類'?1:(b==='未分類'?-1:compareMonthDesc(a,b))).forEach((monthKey,index)=>{
         const monthList=monthGroups[monthKey],detailRows=filteredGroupedExportRows(monthList);
         const detailAoa=detailRows.map(row=>{const cells=(row.cells||[]).slice();while(cells.length<8)cells.push('');return cells.map(c=>(c&&typeof c==='object'&&c.formula)?'':c);});
         const autoRows=monthKey==='未分類'?[['志偉負擔月份自動列表｜未分類月份'],['無法依月份統整']]:zhiweiMonthExcelRows(monthKey);
+        if(splitPendingSheets){
+          const detailWs=w.XLSX.utils.aoa_to_sheet(detailAoa);detailWs['!cols']=[{wch:34},{wch:16},{wch:20},{wch:15},{wch:14},{wch:52},{wch:15},{wch:28}];detailWs['!merges']=detailRows.map((row,ri)=>(row.type==='title'||row.type==='info'||row.type==='blank')?{s:{r:ri,c:0},e:{r:ri,c:7}}:null).filter(Boolean);for(let ri=0;ri<detailAoa.length;ri++){const cell=detailWs['G'+(ri+1)];if(cell&&cell.t==='n')cell.z='$#,##0';}
+          const autoWs=w.XLSX.utils.aoa_to_sheet(autoRows);autoWs['!cols']=[{wch:52},{wch:18}];for(let ri=0;ri<autoRows.length;ri++){const cell=autoWs['B'+(ri+1)];if(cell&&cell.t==='n')cell.z='$#,##0';}
+          const base=monthKey==='未分類'?'未分類':rocMonthText(monthKey),clean=s=>String(s).replace(/[\\\/?*\[\]:]/g,'').slice(0,31);
+          w.XLSX.utils.book_append_sheet(wb,detailWs,clean(base+'尚未請款'));
+          w.XLSX.utils.book_append_sheet(wb,autoWs,clean(base+'平均'));
+          return;
+        }
         const aoa=[...detailAoa,[],[],...autoRows];
         const ws=w.XLSX.utils.aoa_to_sheet(aoa);
         detailRows.forEach((row,ri)=>(row.cells||[]).forEach((cell,ci)=>{if(cell&&typeof cell==='object'&&cell.formula){const addr=w.XLSX.utils.encode_cell({r:ri,c:ci});ws[addr]={t:'n',f:String(cell.formula).replace(/^=/,''),v:0,z:'$#,##0'};}}));
@@ -9543,7 +9552,7 @@ function safeWriteLocalJSON(key,val){
 let lastCardPasteRestoreCount=0;
 function buildCardPasteBackup(){
   return {
-    version:'V278',
+    version:'V279',
     exportedAt:new Date().toISOString(),
     records:safeReadLocalJSON('lihui_card_paste_records_v4',[]),
     legacyRecords:safeReadLocalJSON('lihui_card_paste_records_v3',[]),
