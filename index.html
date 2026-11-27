@@ -6,7 +6,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
-  <title>麗卉每月帳款｜V317 志偉查看短網址</title>
+  <title>麗卉每月帳款｜V318 修正手機雲端讀取</title>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
@@ -2381,7 +2381,7 @@
   <div class="topbar">
     <div class="top-title top-title-v120">
       <div class="top-main-line">
-        <h1>麗卉每月帳款 <span class="app-version">V317</span></h1>
+        <h1>麗卉每月帳款 <span class="app-version">V318</span></h1>
         <div class="actions action-row action-row-main top-main-actions">
           <button class="act-btn act-add" onclick="addMonth()">＋新增月份</button>
           <button class="act-btn act-copy" onclick="copyCurrentMonth()">複製月份</button>
@@ -7526,7 +7526,7 @@ function openCardPasteWindow(options={}){
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>信用卡刷卡紀錄整理｜V317</title>
+<title>信用卡刷卡紀錄整理｜V318</title>
 <style>
   *{box-sizing:border-box}
   body{margin:0;background:linear-gradient(145deg,#fff7ed 0%,#f0f9ff 48%,#f5f3ff 100%);font-family:"Microsoft JhengHei","Noto Sans TC",Arial,sans-serif;color:#1f2937;font-size:14px;}
@@ -8058,7 +8058,7 @@ function openCardPasteWindow(options={}){
 </head>
 <body>
   <div class="wrap">
-    <div class="head"><h1>信用卡刷卡紀錄整理 <span class="badge">V317</span></h1><div class="cloud-sync-box"><span id="cardPasteCloudPill" class="cloud-pill off">雲端狀態確認中</span><div id="cardPasteCloudDetail" class="cloud-detail">另開視窗資料會先同步主畫面</div></div></div>
+    <div class="head"><h1>信用卡刷卡紀錄整理 <span class="badge">V318</span></h1><div class="cloud-sync-box"><span id="cardPasteCloudPill" class="cloud-pill off">雲端狀態確認中</span><div id="cardPasteCloudDetail" class="cloud-detail">另開視窗資料會先同步主畫面</div></div></div>
     <div class="panel">
       <div class="controls">
         <div class="field"><label>歸屬年月</label><input id="belongMonth" placeholder="115/5"><div id="belongMonthErr" class="err"></div></div>
@@ -9934,7 +9934,7 @@ function safeWriteLocalJSON(key,val){
 let lastCardPasteRestoreCount=0;
 function buildCardPasteBackup(){
   return {
-    version:'V317',
+    version:'V318',
     exportedAt:new Date().toISOString(),
     records:safeReadLocalJSON('lihui_card_paste_records_v4',[]),
     legacyRecords:safeReadLocalJSON('lihui_card_paste_records_v3',[]),
@@ -10115,7 +10115,23 @@ function setZhiweiReadonlyReady(ok,msg){
   if(status)status.textContent=msg||(ok?'已讀取最新資料，可以開啟。':'雲端資料讀取失敗。');
   if(btn){btn.disabled=!ok;btn.style.background=ok?'#7257d6':'#94a3b8';}
 }
-window.addEventListener('load',()=>{prepareZhiweiShareSettings();load();render();loadSupabaseSettings();showZhiweiReadonlyLanding();autoConnectSupabase()});
+async function loadZhiweiReadonlyDirect(){
+  try{
+    const cfg=ZHIWEI_SHARE_SUPABASE;
+    const endpoint=cfg.url+'/rest/v1/'+SUPA_TABLE+'?workspace_key=eq.'+encodeURIComponent(SUPA_WORKSPACE)+'&select=payload,updated_at';
+    const response=await fetch(endpoint,{method:'GET',headers:{apikey:cfg.key,Authorization:'Bearer '+cfg.key,Accept:'application/json'},cache:'no-store'});
+    if(!response.ok)throw new Error('HTTP '+response.status);
+    const rows=await response.json(),remote=Array.isArray(rows)?rows[0]:null;
+    if(!remote||!remote.payload)throw new Error('雲端沒有資料');
+    supaApplyingRemote=true;applySupabasePayload(remote.payload,remote.updated_at||'');supaApplyingRemote=false;
+    ensureMonth();render();
+    setZhiweiReadonlyReady(true,'已讀取雲端最新資料，可以開啟月平均表。');
+  }catch(err){
+    console.error('志偉唯讀資料讀取失敗',err);supaApplyingRemote=false;
+    setZhiweiReadonlyReady(false,'雲端資料讀取失敗，請重新整理後再試。');
+  }
+}
+window.addEventListener('load',()=>{prepareZhiweiShareSettings();load();render();loadSupabaseSettings();showZhiweiReadonlyLanding();if(isZhiweiReadonlyView())loadZhiweiReadonlyDirect();else autoConnectSupabase()});
 
 </script>
 </body>
