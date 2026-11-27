@@ -6,7 +6,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
-  <title>麗卉每月帳款｜V315 修正志偉分享按鈕</title>
+  <title>麗卉每月帳款｜V316 修正手機唯讀表</title>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
@@ -2381,7 +2381,7 @@
   <div class="topbar">
     <div class="top-title top-title-v120">
       <div class="top-main-line">
-        <h1>麗卉每月帳款 <span class="app-version">V315</span></h1>
+        <h1>麗卉每月帳款 <span class="app-version">V316</span></h1>
         <div class="actions action-row action-row-main top-main-actions">
           <button class="act-btn act-add" onclick="addMonth()">＋新增月份</button>
           <button class="act-btn act-copy" onclick="copyCurrentMonth()">複製月份</button>
@@ -7517,7 +7517,7 @@ function notifyCardPasteChanged(){
 }
 
 function openCardPasteWindow(options={}){
-  const w=window.open('', 'creditCardPasteWindow', 'width=1240,height=850,scrollbars=yes,resizable=yes');
+  const w=options.currentWindow?window:window.open('', 'creditCardPasteWindow', 'width=1240,height=850,scrollbars=yes,resizable=yes');
   if(!w){alert('請允許瀏覽器跳出視窗，才能開啟信用卡刷卡紀錄整理視窗。');return;}
   cardPasteWindowRef=w;
   const html=`<!doctype html>
@@ -7525,7 +7525,7 @@ function openCardPasteWindow(options={}){
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>信用卡刷卡紀錄整理｜V315</title>
+<title>信用卡刷卡紀錄整理｜V316</title>
 <style>
   *{box-sizing:border-box}
   body{margin:0;background:linear-gradient(145deg,#fff7ed 0%,#f0f9ff 48%,#f5f3ff 100%);font-family:"Microsoft JhengHei","Noto Sans TC",Arial,sans-serif;color:#1f2937;font-size:14px;}
@@ -8057,7 +8057,7 @@ function openCardPasteWindow(options={}){
 </head>
 <body>
   <div class="wrap">
-    <div class="head"><h1>信用卡刷卡紀錄整理 <span class="badge">V315</span></h1><div class="cloud-sync-box"><span id="cardPasteCloudPill" class="cloud-pill off">雲端狀態確認中</span><div id="cardPasteCloudDetail" class="cloud-detail">另開視窗資料會先同步主畫面</div></div></div>
+    <div class="head"><h1>信用卡刷卡紀錄整理 <span class="badge">V316</span></h1><div class="cloud-sync-box"><span id="cardPasteCloudPill" class="cloud-pill off">雲端狀態確認中</span><div id="cardPasteCloudDetail" class="cloud-detail">另開視窗資料會先同步主畫面</div></div></div>
     <div class="panel">
       <div class="controls">
         <div class="field"><label>歸屬年月</label><input id="belongMonth" placeholder="115/5"><div id="belongMonthErr" class="err"></div></div>
@@ -9933,7 +9933,7 @@ function safeWriteLocalJSON(key,val){
 let lastCardPasteRestoreCount=0;
 function buildCardPasteBackup(){
   return {
-    version:'V315',
+    version:'V316',
     exportedAt:new Date().toISOString(),
     records:safeReadLocalJSON('lihui_card_paste_records_v4',[]),
     legacyRecords:safeReadLocalJSON('lihui_card_paste_records_v3',[]),
@@ -10105,7 +10105,7 @@ function showZhiweiReadonlyLanding(){
   const cover=document.createElement('div');cover.id='zhiweiReadonlyCover';cover.style.cssText='position:fixed;inset:0;z-index:99999;background:linear-gradient(145deg,#eff6ff,#f5f3ff);display:flex;align-items:center;justify-content:center;padding:20px;font-family:Microsoft JhengHei,sans-serif';
   cover.innerHTML='<div style="width:min(560px,100%);background:#fff;border:1px solid #cbd5e1;border-radius:24px;padding:28px;text-align:center;box-shadow:0 20px 55px rgba(42,65,105,.18)"><h1 style="margin:0 0 10px;color:#075985">志偉負擔月平均表</h1><p id="zhiweiReadonlyStatus" style="color:#64748b;font-weight:850;line-height:1.6">正在讀取雲端最新資料…</p><button id="zhiweiReadonlyOpen" disabled style="border:0;border-radius:999px;background:#94a3b8;color:#fff;padding:12px 22px;font-size:16px;font-weight:950;cursor:pointer">開啟月平均表</button><div style="margin-top:13px;color:#94a3b8;font-size:12px">此頁只能查看，不能修改帳務資料。</div></div>';
   document.body.appendChild(cover);
-  cover.querySelector('#zhiweiReadonlyOpen').onclick=()=>openCardPasteWindow({monthAverageOnly:true});
+  cover.querySelector('#zhiweiReadonlyOpen').onclick=()=>openCardPasteWindow({monthAverageOnly:true,currentWindow:true});
 }
 function setZhiweiReadonlyReady(ok,msg){
   if(!isZhiweiReadonlyView())return;
