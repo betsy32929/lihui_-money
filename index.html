@@ -6,7 +6,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
-  <title>麗卉每月帳款｜V306 修正月平均切換</title>
+  <title>麗卉每月帳款｜V307 列印麗卉國泰匯款</title>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
@@ -2374,7 +2374,7 @@
   <div class="topbar">
     <div class="top-title top-title-v120">
       <div class="top-main-line">
-        <h1>麗卉每月帳款 <span class="app-version">V306</span></h1>
+        <h1>麗卉每月帳款 <span class="app-version">V307</span></h1>
         <div class="actions action-row action-row-main top-main-actions">
           <button class="act-btn act-add" onclick="addMonth()">＋新增月份</button>
           <button class="act-btn act-copy" onclick="copyCurrentMonth()">複製月份</button>
@@ -6924,11 +6924,20 @@ function printRowHeightByLines(lines){
 function printBuildRows(sectionTitle,sec,isCard){
   const items=[...(((sec||{}).items)||[])].sort((a,b)=>printSortKey(a)-printSortKey(b));
   return items.map(it=>{
-    const date=String(it.date||'').trim();
-    const dateType=date?String(it.dateType||''):'';
+    let date=String(it.date||'').trim();
+    let dateType=date?String(it.dateType||''):'';
     let note=printCleanNote(it.note);
-    const amount=isCard?printMoney(printCardTotal(it),true):printMoney(it.amount,true);
+    let amount=isCard?printMoney(printCardTotal(it),true):printMoney(it.amount,true);
     const label=printDisplayLabel(sectionTitle,it);
+
+    // 國泰COCO 小孩月費：麗卉帳務列印只顯示麗卉實際匯款國泰的金額與日期。
+    if(sectionTitle==='大橋'&&String(it.label||'').includes('小孩月費')&&childTuitionNewModeEnabled(state.activeMonth)){
+      const c=childTuitionCalculation(it,state.activeMonth);
+      const lihuiTransfer=hasAnyText(it.childLihuiTransferAmount)?it.childLihuiTransferAmount:c.lihui;
+      amount=printMoney(lihuiTransfer,true);
+      date=String(it.bridgeLihuiTransferDate||'').trim();
+      dateType='麗卉匯款國泰';
+    }
 
     // 列印：信用卡無帳單要在備註欄顯示「無帳單」
     if(isCard && it.noBill && !note) note='無帳單';
@@ -7405,7 +7414,7 @@ function openCardPasteWindow(){
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>信用卡刷卡紀錄整理｜V306</title>
+<title>信用卡刷卡紀錄整理｜V307</title>
 <style>
   *{box-sizing:border-box}
   body{margin:0;background:linear-gradient(145deg,#fff7ed 0%,#f0f9ff 48%,#f5f3ff 100%);font-family:"Microsoft JhengHei","Noto Sans TC",Arial,sans-serif;color:#1f2937;font-size:14px;}
@@ -7935,7 +7944,7 @@ function openCardPasteWindow(){
 </head>
 <body>
   <div class="wrap">
-    <div class="head"><h1>信用卡刷卡紀錄整理 <span class="badge">V306</span></h1><div class="cloud-sync-box"><span id="cardPasteCloudPill" class="cloud-pill off">雲端狀態確認中</span><div id="cardPasteCloudDetail" class="cloud-detail">另開視窗資料會先同步主畫面</div></div></div>
+    <div class="head"><h1>信用卡刷卡紀錄整理 <span class="badge">V307</span></h1><div class="cloud-sync-box"><span id="cardPasteCloudPill" class="cloud-pill off">雲端狀態確認中</span><div id="cardPasteCloudDetail" class="cloud-detail">另開視窗資料會先同步主畫面</div></div></div>
     <div class="panel">
       <div class="controls">
         <div class="field"><label>歸屬年月</label><input id="belongMonth" placeholder="115/5"><div id="belongMonthErr" class="err"></div></div>
@@ -9806,7 +9815,7 @@ function safeWriteLocalJSON(key,val){
 let lastCardPasteRestoreCount=0;
 function buildCardPasteBackup(){
   return {
-    version:'V306',
+    version:'V307',
     exportedAt:new Date().toISOString(),
     records:safeReadLocalJSON('lihui_card_paste_records_v4',[]),
     legacyRecords:safeReadLocalJSON('lihui_card_paste_records_v3',[]),
