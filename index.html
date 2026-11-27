@@ -6,7 +6,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
-  <title>麗卉每月帳款｜V326 手機欄寬調整</title>
+  <title>麗卉每月帳款｜V327 唯讀頁不寫本機</title>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
@@ -2381,7 +2381,7 @@
   <div class="topbar">
     <div class="top-title top-title-v120">
       <div class="top-main-line">
-        <h1>麗卉每月帳款 <span class="app-version">V326</span></h1>
+        <h1>麗卉每月帳款 <span class="app-version">V327</span></h1>
         <div class="actions action-row action-row-main top-main-actions">
           <button class="act-btn act-add" onclick="addMonth()">＋新增月份</button>
           <button class="act-btn act-copy" onclick="copyCurrentMonth()">複製月份</button>
@@ -7518,6 +7518,7 @@ function notifyCardPasteChanged(){
 }
 
 function openCardPasteWindow(options={}){
+  const readonlyCardData=options.readonlyViewer?(window.__zhiweiReadonlyCardData||{}):null;
   const w=options.currentWindow?window:window.open('', 'creditCardPasteWindow', 'width=1240,height=850,scrollbars=yes,resizable=yes');
   if(!w){alert('請允許瀏覽器跳出視窗，才能開啟信用卡刷卡紀錄整理視窗。');return;}
   cardPasteWindowRef=w;
@@ -7526,7 +7527,7 @@ function openCardPasteWindow(options={}){
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>信用卡刷卡紀錄整理｜V326</title>
+<title>信用卡刷卡紀錄整理｜V327</title>
 <style>
   *{box-sizing:border-box}
   body{margin:0;background:linear-gradient(145deg,#fff7ed 0%,#f0f9ff 48%,#f5f3ff 100%);font-family:"Microsoft JhengHei","Noto Sans TC",Arial,sans-serif;color:#1f2937;font-size:14px;}
@@ -8058,7 +8059,7 @@ function openCardPasteWindow(options={}){
 </head>
 <body>
   <div class="wrap">
-    <div class="head"><h1>信用卡刷卡紀錄整理 <span class="badge">V326</span></h1><div class="cloud-sync-box"><span id="cardPasteCloudPill" class="cloud-pill off">雲端狀態確認中</span><div id="cardPasteCloudDetail" class="cloud-detail">另開視窗資料會先同步主畫面</div></div></div>
+    <div class="head"><h1>信用卡刷卡紀錄整理 <span class="badge">V327</span></h1><div class="cloud-sync-box"><span id="cardPasteCloudPill" class="cloud-pill off">雲端狀態確認中</span><div id="cardPasteCloudDetail" class="cloud-detail">另開視窗資料會先同步主畫面</div></div></div>
     <div class="panel">
       <div class="controls">
         <div class="field"><label>歸屬年月</label><input id="belongMonth" placeholder="115/5"><div id="belongMonthErr" class="err"></div></div>
@@ -8160,9 +8161,12 @@ function openCardPasteWindow(options={}){
   function currentRocYear(){return new Date().getFullYear()-1911;}
   function todayRocDate(){const d=new Date();return (d.getFullYear()-1911)+'/'+(d.getMonth()+1)+'/'+d.getDate();}
   function currentRocMonth(){const d=new Date();return (d.getFullYear()-1911)+'/'+(d.getMonth()+1);}
-  function readJson(key,def){try{const raw=w.localStorage.getItem(key);return raw?JSON.parse(raw):def}catch(e){return def}}
-  function writeJson(key,val){w.localStorage.setItem(key,JSON.stringify(val));notifyCardPasteChanged();}
-  function removeJson(key){try{w.localStorage.removeItem(key);notifyCardPasteChanged()}catch(e){}}
+  function readJson(key,def){
+    if(readonlyCardData&&Object.prototype.hasOwnProperty.call(readonlyCardData,key))return JSON.parse(JSON.stringify(readonlyCardData[key]));
+    try{const raw=w.localStorage.getItem(key);return raw?JSON.parse(raw):def}catch(e){return def}
+  }
+  function writeJson(key,val){if(options.readonlyViewer)return;w.localStorage.setItem(key,JSON.stringify(val));notifyCardPasteChanged();}
+  function removeJson(key){if(options.readonlyViewer)return;try{w.localStorage.removeItem(key);notifyCardPasteChanged()}catch(e){}}
   function normalizeOwnerList(list){
     const stored=Array.isArray(list)?list:[];
     const merged=[...defaultOwnerOptions,...stored.filter(v=>!legacyOwnerOptions.includes(String(v||'').trim()))]
@@ -9942,7 +9946,7 @@ function safeWriteLocalJSON(key,val){
 let lastCardPasteRestoreCount=0;
 function buildCardPasteBackup(){
   return {
-    version:'V326',
+    version:'V327',
     exportedAt:new Date().toISOString(),
     records:safeReadLocalJSON('lihui_card_paste_records_v4',[]),
     legacyRecords:safeReadLocalJSON('lihui_card_paste_records_v3',[]),
@@ -10106,7 +10110,7 @@ async function copyZhiweiViewLink(){
 function getZhiweiViewLink(){
   const s=getSupabaseSettings();
   if(!s.url||!s.key)return '';
-  return location.origin+location.pathname+'?zhiwei-view=1&v=326';
+  return location.origin+location.pathname+'?zhiwei-view=1&v=327';
 }
 window.__copyZhiweiViewLink=copyZhiweiViewLink;
 window.__getZhiweiViewLink=getZhiweiViewLink;
@@ -10131,12 +10135,26 @@ async function loadZhiweiReadonlyDirect(){
     if(!response.ok)throw new Error('HTTP '+response.status);
     const rows=await response.json(),remote=Array.isArray(rows)?rows[0]:null;
     if(!remote||!remote.payload)throw new Error('雲端沒有資料');
-    supaApplyingRemote=true;applySupabasePayload(remote.payload,remote.updated_at||'');supaApplyingRemote=false;
+    const cloned=JSON.parse(JSON.stringify(remote.payload||{}));
+    const cardBackup=extractCardPasteBackup(cloned)||{};
+    window.__zhiweiReadonlyCardData={
+      lihui_card_paste_records_v4:Array.isArray(cardBackup.records)?cardBackup.records:(Array.isArray(cardBackup.legacyRecords)?cardBackup.legacyRecords:[]),
+      lihui_card_paste_records_v3:Array.isArray(cardBackup.legacyRecords)?cardBackup.legacyRecords:[],
+      lihui_card_paste_claims_v3:cardBackup.claims&&typeof cardBackup.claims==='object'?cardBackup.claims:{},
+      lihui_card_paste_current_rows_v4:cardBackup.currentRows&&typeof cardBackup.currentRows==='object'?cardBackup.currentRows:null,
+      lihui_card_paste_owner_options_v1:Array.isArray(cardBackup.ownerOptions)?cardBackup.ownerOptions:null,
+      lihui_card_paste_item_share_rules_v1:Array.isArray(cardBackup.shareRules)?cardBackup.shareRules:null,
+      lihui_card_paste_zhiwei_categories_v1:cardBackup.zhiweiCategories&&typeof cardBackup.zhiweiCategories==='object'?cardBackup.zhiweiCategories:{},
+      lihui_card_paste_zhiwei_periods_v1:cardBackup.zhiweiPeriods&&typeof cardBackup.zhiweiPeriods==='object'?cardBackup.zhiweiPeriods:{}
+    };
+    state=stripCardPasteBackupFields(cloned);
+    if(!state._meta)state._meta={};
+    if(remote.updated_at)state._meta.cloudUpdatedAt=remote.updated_at;
     ensureMonth();render();
     setZhiweiReadonlyReady(true,'已讀取雲端最新資料，可以開啟月平均表。');
   }catch(err){
     console.error('志偉唯讀資料讀取失敗',err);supaApplyingRemote=false;
-    setZhiweiReadonlyReady(false,'雲端資料讀取失敗（V326：'+(err&&err.message?err.message:'未知錯誤')+'），請按 Ctrl＋F5 後再試。');
+    setZhiweiReadonlyReady(false,'雲端資料讀取失敗（V327：'+(err&&err.message?err.message:'未知錯誤')+'），請按 Ctrl＋F5 後再試。');
   }
 }
 window.addEventListener('load',()=>{prepareZhiweiShareSettings();load();render();loadSupabaseSettings();showZhiweiReadonlyLanding();if(isZhiweiReadonlyView())loadZhiweiReadonlyDirect();else autoConnectSupabase()});
