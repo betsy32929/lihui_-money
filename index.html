@@ -6,7 +6,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
-  <title>麗卉每月帳款｜V311 共同存款算式</title>
+  <title>麗卉每月帳款｜V312 共同存款等號算式</title>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
@@ -1506,6 +1506,12 @@
     .dad-living-tools button{border:1px solid #cbd5e1;border-radius:999px;background:#fff;color:#334155;font-weight:950;padding:7px 10px;font-size:12px;}
     .dad-living-tools button.add{background:#dcfce7;border-color:#86efac;color:#047857;}
     .dad-living-tools button.copy{background:#e0f2fe;border-color:#7dd3fc;color:#0369a1;}
+    .asset-formula-modal{position:fixed;inset:0;z-index:9999;background:rgba(15,23,42,.42);display:flex;align-items:center;justify-content:center;padding:18px}
+    .asset-formula-card{width:min(430px,100%);background:#fff;border:1px solid #cbd5e1;border-radius:20px;padding:18px;box-shadow:0 22px 60px rgba(15,23,42,.28)}
+    .asset-formula-card h3{margin:0 0 6px;color:#334155}.asset-formula-help{font-size:13px;color:#64748b;line-height:1.6;margin-bottom:10px}
+    .asset-formula-card input{width:100%;border:2px solid #a78bfa;border-radius:12px;padding:11px 12px;font:900 18px/1.2 Consolas,"Microsoft JhengHei",sans-serif;color:#5b21b6}
+    .asset-formula-result{margin-top:10px;padding:9px 11px;border-radius:12px;background:#eff6ff;color:#1d4ed8;font-weight:950}.asset-formula-result.error{background:#fff1f2;color:#be123c}
+    .asset-formula-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:14px}.asset-formula-actions button{border:1px solid #cbd5e1;border-radius:999px;background:#fff;padding:8px 15px;font-weight:950}.asset-formula-actions .ok{background:#7257d6;border-color:#7257d6;color:#fff}
     .dad-living-body{padding:12px 14px;}
     .dad-missing{border:1px solid #fcd34d;background:#fef3c7;color:#92400e;border-radius:14px;padding:9px 10px;font-size:13px;font-weight:950;line-height:1.45;margin-bottom:10px;}
     .dad-missing.ok{border-color:#86efac;background:#dcfce7;color:#047857;}
@@ -2375,7 +2381,7 @@
   <div class="topbar">
     <div class="top-title top-title-v120">
       <div class="top-main-line">
-        <h1>麗卉每月帳款 <span class="app-version">V311</span></h1>
+        <h1>麗卉每月帳款 <span class="app-version">V312</span></h1>
         <div class="actions action-row action-row-main top-main-actions">
           <button class="act-btn act-add" onclick="addMonth()">＋新增月份</button>
           <button class="act-btn act-copy" onclick="copyCurrentMonth()">複製月份</button>
@@ -2433,6 +2439,16 @@
       </div>
     </div>
     <div id="fixedAmountList" class="fixed-amount-list"></div>
+  </div>
+
+  <div id="assetFormulaModal" class="asset-formula-modal hidden" onclick="if(event.target===this)closeAssetFormulaModal()">
+    <div class="asset-formula-card">
+      <h3>共同存款算式</h3>
+      <div class="asset-formula-help">可輸入例如 <b>=500000-450000</b><br>支援 ＋、－、×、÷（鍵盤可輸入 +、-、*、/）</div>
+      <input id="assetFormulaInput" inputmode="text" placeholder="=500000-450000" oninput="previewAssetFormula()" onkeydown="if(event.key==='Enter'){event.preventDefault();saveAssetFormulaModal()}else if(event.key==='Escape'){closeAssetFormulaModal()}">
+      <div id="assetFormulaResult" class="asset-formula-result">計算結果：$0</div>
+      <div class="asset-formula-actions"><button type="button" onclick="closeAssetFormulaModal()">取消</button><button type="button" class="ok" onclick="saveAssetFormulaModal()">確定</button></div>
+    </div>
   </div>
 
   <div id="monthlyItemManagerPanel" class="monthly-item-panel hidden">
@@ -5195,14 +5211,16 @@ function cleanAssetFormula(value){
   return String(value||'').replace(/[，,\s]/g,'').replace(/[＋]/g,'+').replace(/[－−]/g,'-').replace(/[×xX]/g,'*').replace(/[÷]/g,'/').replace(/[（）]/g,m=>m==='（'?'(':')');
 }
 function calculateAssetFormula(value){
-  const expr=cleanAssetFormula(value);
+  const original=cleanAssetFormula(value);
+  const hasEquals=original.startsWith('=');
+  const expr=hasEquals?original.slice(1):original;
   if(!expr)return {ok:true,expr:'',result:''};
-  if(!/^[0-9+\-*/().]+$/.test(expr))return {ok:false,expr,result:''};
+  if(!/^[0-9+\-*/().]+$/.test(expr))return {ok:false,expr:original,result:''};
   try{
     const result=Function('"use strict";return ('+expr+')')();
-    if(!Number.isFinite(result))return {ok:false,expr,result:''};
-    return {ok:true,expr,result:Math.round(result)};
-  }catch(_){return {ok:false,expr,result:''};}
+    if(!Number.isFinite(result))return {ok:false,expr:original,result:''};
+    return {ok:true,expr:(hasEquals?'=':'')+expr,result:Math.round(result)};
+  }catch(_){return {ok:false,expr:original,result:''};}
 }
 function assetFormulaFocus(kind,i,el){
   const row=(ensureAssetOverview()[kind]||[])[i];
@@ -5227,6 +5245,38 @@ function assetFormulaBlur(kind,i,el){
   const timeEl=document.getElementById(`assetTime_${kind}_${i}`);
   if(timeEl)timeEl.textContent=row.updatedAt||'';
   updateAssetOverviewTotalsOnly();
+}
+let assetFormulaTarget=null;
+function openAssetFormulaModal(kind,i){
+  const row=(ensureAssetOverview()[kind]||[])[i];
+  if(!row||!isAssetFormulaRow(row))return;
+  assetFormulaTarget={kind,i};
+  const modal=document.getElementById('assetFormulaModal'),input=document.getElementById('assetFormulaInput');
+  if(!modal||!input)return;
+  input.value=String(row.amountExpr||row.amount||'');
+  modal.classList.remove('hidden');
+  previewAssetFormula();
+  setTimeout(()=>{input.focus();input.select();},0);
+}
+function closeAssetFormulaModal(){
+  const modal=document.getElementById('assetFormulaModal');if(modal)modal.classList.add('hidden');
+  assetFormulaTarget=null;
+}
+function previewAssetFormula(){
+  const input=document.getElementById('assetFormulaInput'),result=document.getElementById('assetFormulaResult');
+  if(!input||!result)return;
+  const calc=calculateAssetFormula(input.value);
+  result.classList.toggle('error',!calc.ok);
+  result.textContent=calc.ok?'計算結果：'+fmt(calc.result||0,true):'算式格式不正確';
+}
+function saveAssetFormulaModal(){
+  if(!assetFormulaTarget)return;
+  const input=document.getElementById('assetFormulaInput');if(!input)return;
+  const calc=calculateAssetFormula(input.value);
+  if(!calc.ok){previewAssetFormula();input.focus();return;}
+  const {kind,i}=assetFormulaTarget,data=ensureAssetOverview(),row=(data[kind]||[])[i];if(!row)return;
+  row.amountExpr=calc.expr;row.amount=calc.result===''?'':String(calc.result);row.updatedAt=assetNowText();
+  save();closeAssetFormulaModal();renderSummaryTable();
 }
 function addAssetRow(kind){
   const label=kind==='savings'?'新增應有項目':'新增欠我對象';
@@ -5291,7 +5341,7 @@ function autoGrowAssetNotes(){
 function renderAssetRows(kind,rows){
   return (rows||[]).map((r,i)=>{const formulaRow=isAssetFormulaRow(r);return `<tr class="asset-draggable" draggable="true" ondragstart="assetDragStart('${kind}',${i},event)" ondragend="assetDragEnd(event)" ondragover="assetDragOver('${kind}',${i},event)" ondrop="assetDrop('${kind}',${i},event)">
     <td><input value="${esc(r.name||'')}" oninput="assetSet('${kind}',${i},'name',this.value)"></td>
-    <td><div class="asset-money-wrap"><span>$</span>${formulaRow?`<input class="asset-money-input" inputmode="text" value="${esc(r.amount||'')}" title="點選可編輯算式" placeholder="例如 385000+163" onfocus="assetFormulaFocus('${kind}',${i},this)" onblur="assetFormulaBlur('${kind}',${i},this)" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur()}">`:`<input class="asset-money-input" inputmode="numeric" value="${esc(r.amount||'')}" oninput="this.value=moneyOnly(this.value);assetSet('${kind}',${i},'amount',this.value)">`}</div></td>
+    <td><div class="asset-money-wrap"><span>$</span>${formulaRow?`<input class="asset-money-input" inputmode="none" readonly value="${esc(r.amount||'')}" title="點選開啟算式視窗" onclick="openAssetFormulaModal('${kind}',${i})">`:`<input class="asset-money-input" inputmode="numeric" value="${esc(r.amount||'')}" oninput="this.value=moneyOnly(this.value);assetSet('${kind}',${i},'amount',this.value)">`}</div></td>
     <td><textarea class="asset-note-input" rows="1" oninput="assetSet('${kind}',${i},'note',this.value);autoGrowAssetNote(this)" onfocus="autoGrowAssetNote(this)">${esc(r.note||'')}</textarea></td>
     <td id="assetTime_${kind}_${i}" class="asset-updated">${esc(r.updatedAt||'')}</td>
     <td><div class="asset-actions"><button type="button" class="iconbtn del" onclick="deleteAssetRow('${kind}',${i})">刪</button></div></td>
@@ -7472,7 +7522,7 @@ function openCardPasteWindow(){
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>信用卡刷卡紀錄整理｜V311</title>
+<title>信用卡刷卡紀錄整理｜V312</title>
 <style>
   *{box-sizing:border-box}
   body{margin:0;background:linear-gradient(145deg,#fff7ed 0%,#f0f9ff 48%,#f5f3ff 100%);font-family:"Microsoft JhengHei","Noto Sans TC",Arial,sans-serif;color:#1f2937;font-size:14px;}
@@ -8004,7 +8054,7 @@ function openCardPasteWindow(){
 </head>
 <body>
   <div class="wrap">
-    <div class="head"><h1>信用卡刷卡紀錄整理 <span class="badge">V311</span></h1><div class="cloud-sync-box"><span id="cardPasteCloudPill" class="cloud-pill off">雲端狀態確認中</span><div id="cardPasteCloudDetail" class="cloud-detail">另開視窗資料會先同步主畫面</div></div></div>
+    <div class="head"><h1>信用卡刷卡紀錄整理 <span class="badge">V312</span></h1><div class="cloud-sync-box"><span id="cardPasteCloudPill" class="cloud-pill off">雲端狀態確認中</span><div id="cardPasteCloudDetail" class="cloud-detail">另開視窗資料會先同步主畫面</div></div></div>
     <div class="panel">
       <div class="controls">
         <div class="field"><label>歸屬年月</label><input id="belongMonth" placeholder="115/5"><div id="belongMonthErr" class="err"></div></div>
@@ -9878,7 +9928,7 @@ function safeWriteLocalJSON(key,val){
 let lastCardPasteRestoreCount=0;
 function buildCardPasteBackup(){
   return {
-    version:'V311',
+    version:'V312',
     exportedAt:new Date().toISOString(),
     records:safeReadLocalJSON('lihui_card_paste_records_v4',[]),
     legacyRecords:safeReadLocalJSON('lihui_card_paste_records_v3',[]),
