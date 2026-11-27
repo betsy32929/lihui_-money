@@ -6,7 +6,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
-  <title>麗卉每月帳款｜V307 列印麗卉國泰匯款</title>
+  <title>麗卉每月帳款｜V308 信用卡零元提醒修正</title>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
@@ -2374,7 +2374,7 @@
   <div class="topbar">
     <div class="top-title top-title-v120">
       <div class="top-main-line">
-        <h1>麗卉每月帳款 <span class="app-version">V307</span></h1>
+        <h1>麗卉每月帳款 <span class="app-version">V308</span></h1>
         <div class="actions action-row action-row-main top-main-actions">
           <button class="act-btn act-add" onclick="addMonth()">＋新增月份</button>
           <button class="act-btn act-copy" onclick="copyCurrentMonth()">複製月份</button>
@@ -4616,8 +4616,11 @@ function getLaiyaManagementMissingMonths(){
 function hasAnyText(v){return String(v??'').trim()!==''}
 function cardHomeReminderHasInput(it){
   if(!it)return false;
-  // V183：首頁提醒的信用卡項目只看備註欄；備註沒文字就提醒，不看繳款日期/小計/無帳單勾選。
-  return hasAnyText(it.note);
+  // 信用卡有帳單、已填繳款日期，但沒有明細或明細合計為 0，代表本月帳務金額為 $0，視為已確認。
+  const details=Array.isArray(it.subItems)?it.subItems:[];
+  const detailTotal=details.reduce((sum,row)=>sum+num(row&&row.amount),0);
+  const confirmedZeroBill=!it.noBill&&hasAnyText(it.date)&&detailTotal===0;
+  return hasAnyText(it.note)||confirmedZeroBill;
 }
 function personalMonthHasInput(monthId){const m=(state.months||{})[monthId];if(!m)return false;if(m.notice&&m.notice.done)return true;return (((m.personal||{}).sections||[]).some(sec=>(sec.items||[]).some(it=>it.isCard?cardHomeReminderHasInput(it):!!(hasAnyText(it.amount)||hasAnyText(it.date)||hasAnyText(it.note)))));}
 function textHasAny(text,keys){const t=String(text||'').toLowerCase();return (keys||[]).some(k=>t.includes(String(k||'').toLowerCase()));}
@@ -4661,7 +4664,7 @@ function personalItemHasInput(monthId,rule){
   const it=(sec&&sec.items||[]).find(item=>rule.match(String(item.label||''),item));
   if(!it)return false;
   if(it.isCard){
-    // V183：信用卡首頁提醒只看備註欄，備註空白就算缺。
+    // 信用卡備註有內容，或已有繳款日期且本月明細合計為 0，都視為已確認。
     return cardHomeReminderHasInput(it);
   }
   if(rule.requireDate)return hasAnyText(it.date);
@@ -4674,7 +4677,7 @@ function personalHomeItemRequiresDate(it,sectionTitle){
 function personalHomeItemHasInput(it,sectionTitle){
   if(!it)return false;
   if(it.isCard){
-    // V183：帶入本月信用卡後小計為列表自動計算，首頁提醒只看備註欄。
+    // 帶入本月信用卡後，小計為列表自動計算；零元帳單已確認時不再提醒。
     return cardHomeReminderHasInput(it);
   }
   // 大橋管理費即使已有預設金額或備註，仍須填寫日期才算完成。
@@ -7414,7 +7417,7 @@ function openCardPasteWindow(){
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>信用卡刷卡紀錄整理｜V307</title>
+<title>信用卡刷卡紀錄整理｜V308</title>
 <style>
   *{box-sizing:border-box}
   body{margin:0;background:linear-gradient(145deg,#fff7ed 0%,#f0f9ff 48%,#f5f3ff 100%);font-family:"Microsoft JhengHei","Noto Sans TC",Arial,sans-serif;color:#1f2937;font-size:14px;}
@@ -7944,7 +7947,7 @@ function openCardPasteWindow(){
 </head>
 <body>
   <div class="wrap">
-    <div class="head"><h1>信用卡刷卡紀錄整理 <span class="badge">V307</span></h1><div class="cloud-sync-box"><span id="cardPasteCloudPill" class="cloud-pill off">雲端狀態確認中</span><div id="cardPasteCloudDetail" class="cloud-detail">另開視窗資料會先同步主畫面</div></div></div>
+    <div class="head"><h1>信用卡刷卡紀錄整理 <span class="badge">V308</span></h1><div class="cloud-sync-box"><span id="cardPasteCloudPill" class="cloud-pill off">雲端狀態確認中</span><div id="cardPasteCloudDetail" class="cloud-detail">另開視窗資料會先同步主畫面</div></div></div>
     <div class="panel">
       <div class="controls">
         <div class="field"><label>歸屬年月</label><input id="belongMonth" placeholder="115/5"><div id="belongMonthErr" class="err"></div></div>
@@ -9815,7 +9818,7 @@ function safeWriteLocalJSON(key,val){
 let lastCardPasteRestoreCount=0;
 function buildCardPasteBackup(){
   return {
-    version:'V307',
+    version:'V308',
     exportedAt:new Date().toISOString(),
     records:safeReadLocalJSON('lihui_card_paste_records_v4',[]),
     legacyRecords:safeReadLocalJSON('lihui_card_paste_records_v3',[]),
