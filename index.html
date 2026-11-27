@@ -6,10 +6,11 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
-  <title>麗卉每月帳款｜V309 未選負擔快速篩選</title>
+  <title>麗卉每月帳款｜V310 欠款明細圖片</title>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js" defer></script>
   <style>
     :root{
       --bg:#eef3fb;
@@ -2374,7 +2375,7 @@
   <div class="topbar">
     <div class="top-title top-title-v120">
       <div class="top-main-line">
-        <h1>麗卉每月帳款 <span class="app-version">V309</span></h1>
+        <h1>麗卉每月帳款 <span class="app-version">V310</span></h1>
         <div class="actions action-row action-row-main top-main-actions">
           <button class="act-btn act-add" onclick="addMonth()">＋新增月份</button>
           <button class="act-btn act-copy" onclick="copyCurrentMonth()">複製月份</button>
@@ -6592,7 +6593,22 @@ function renderLaiyaDebtPanel(){
   const paid=rows.reduce((s,r)=>s+r.amount,0);
   const remain=LAIYA_DEBT_TOTAL-paid;
   const display=rows.slice().reverse();
-  return `<div class="dad-living-panel"><div class="dad-living-head"><h3 class="dad-living-title">麗雅還志偉款 / 欠志偉款 $${esc(LAIYA_DEBT_TOTAL.toLocaleString('en-US'))}</h3><div class="dad-living-tools"><button type="button" class="copy" onclick="showTab('bank')">前往台灣銀行</button></div></div><div class="dad-living-body"><div class="dad-missing-box"><b>目前已還：</b>${esc(fmt(paid,true))}　<b>尚欠餘額：</b>${esc(fmt(remain,true))}<br>來源：台灣銀行帳款項目/備註含「麗雅還志偉款」的明細。</div><table class="dad-living-table"><thead><tr><th>日期</th><th>金額</th><th>餘額</th><th>備註</th></tr></thead><tbody>${display.map(r=>`<tr><td>${esc(r.t.date||'')}</td><td class="num">${esc(fmt(r.amount,true))}</td><td class="num ${r.balance<0?'negative':''}">${esc(fmt(r.balance,true))}</td><td>${esc([r.t.item||'',r.t.note||''].filter(Boolean).join('｜'))}</td></tr>`).join('')||'<tr><td colspan="4" class="empty">台灣銀行尚無「麗雅還志偉款」紀錄</td></tr>'}</tbody></table></div></div>`;
+  return `<div id="laiyaDebtCapture" class="dad-living-panel"><div class="dad-living-head"><h3 class="dad-living-title">麗雅還志偉款 / 欠志偉款 $${esc(LAIYA_DEBT_TOTAL.toLocaleString('en-US'))}</h3><div class="dad-living-tools" data-html2canvas-ignore="true"><button type="button" class="copy" onclick="downloadLaiyaDebtImage(this)">產生圖片</button><button type="button" class="copy" onclick="showTab('bank')">前往台灣銀行</button></div></div><div class="dad-living-body"><div class="dad-missing-box"><b>目前已還：</b>${esc(fmt(paid,true))}　<b>尚欠餘額：</b>${esc(fmt(remain,true))}<br>來源：台灣銀行帳款項目/備註含「麗雅還志偉款」的明細。</div><table class="dad-living-table"><thead><tr><th>日期</th><th>金額</th><th>餘額</th><th>備註</th></tr></thead><tbody>${display.map(r=>`<tr><td>${esc(r.t.date||'')}</td><td class="num">${esc(fmt(r.amount,true))}</td><td class="num ${r.balance<0?'negative':''}">${esc(fmt(r.balance,true))}</td><td>${esc([r.t.item||'',r.t.note||''].filter(Boolean).join('｜'))}</td></tr>`).join('')||'<tr><td colspan="4" class="empty">台灣銀行尚無「麗雅還志偉款」紀錄</td></tr>'}</tbody></table></div></div>`;
+}
+async function downloadLaiyaDebtImage(btn){
+  const box=document.getElementById('laiyaDebtCapture');
+  if(!box)return;
+  if(!window.html2canvas){alert('圖片功能載入中，請稍後再試。');return;}
+  const oldText=btn?btn.textContent:'';
+  if(btn){btn.disabled=true;btn.textContent='圖片產生中…';}
+  try{
+    const canvas=await window.html2canvas(box,{scale:2,backgroundColor:'#ffffff',useCORS:true,logging:false});
+    const link=document.createElement('a');
+    link.download='麗雅還志偉款_欠款明細.png';
+    link.href=canvas.toDataURL('image/png');
+    document.body.appendChild(link);link.click();link.remove();
+  }catch(err){console.error(err);alert('圖片產生失敗，請重新整理後再試。');}
+  finally{if(btn){btn.disabled=false;btn.textContent=oldText||'產生圖片';}}
 }
 function getDadLivingData(){const g=getGlobalData();if(!g.dadLiving)g.dadLiving={target:DAD_LIVING_TARGET,startMonth:DAD_LIVING_REMINDER_START_MONTH,rows:[]};if(!Array.isArray(g.dadLiving.rows))g.dadLiving.rows=[];if(g.dadLiving.target===undefined)g.dadLiving.target=DAD_LIVING_TARGET;if(!g.dadLiving.startMonth||compareMonthId(g.dadLiving.startMonth,DAD_LIVING_REMINDER_START_MONTH)<0)g.dadLiving.startMonth=DAD_LIVING_REMINDER_START_MONTH;return g.dadLiving}
 function getDadLivingTarget(){return moneyOnly(getDadLivingData().target)||String(DAD_LIVING_TARGET)}
@@ -7417,7 +7433,7 @@ function openCardPasteWindow(){
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>信用卡刷卡紀錄整理｜V309</title>
+<title>信用卡刷卡紀錄整理｜V310</title>
 <style>
   *{box-sizing:border-box}
   body{margin:0;background:linear-gradient(145deg,#fff7ed 0%,#f0f9ff 48%,#f5f3ff 100%);font-family:"Microsoft JhengHei","Noto Sans TC",Arial,sans-serif;color:#1f2937;font-size:14px;}
@@ -7949,7 +7965,7 @@ function openCardPasteWindow(){
 </head>
 <body>
   <div class="wrap">
-    <div class="head"><h1>信用卡刷卡紀錄整理 <span class="badge">V309</span></h1><div class="cloud-sync-box"><span id="cardPasteCloudPill" class="cloud-pill off">雲端狀態確認中</span><div id="cardPasteCloudDetail" class="cloud-detail">另開視窗資料會先同步主畫面</div></div></div>
+    <div class="head"><h1>信用卡刷卡紀錄整理 <span class="badge">V310</span></h1><div class="cloud-sync-box"><span id="cardPasteCloudPill" class="cloud-pill off">雲端狀態確認中</span><div id="cardPasteCloudDetail" class="cloud-detail">另開視窗資料會先同步主畫面</div></div></div>
     <div class="panel">
       <div class="controls">
         <div class="field"><label>歸屬年月</label><input id="belongMonth" placeholder="115/5"><div id="belongMonthErr" class="err"></div></div>
@@ -9823,7 +9839,7 @@ function safeWriteLocalJSON(key,val){
 let lastCardPasteRestoreCount=0;
 function buildCardPasteBackup(){
   return {
-    version:'V309',
+    version:'V310',
     exportedAt:new Date().toISOString(),
     records:safeReadLocalJSON('lihui_card_paste_records_v4',[]),
     legacyRecords:safeReadLocalJSON('lihui_card_paste_records_v3',[]),
