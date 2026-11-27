@@ -6,7 +6,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
-  <title>麗卉每月帳款｜V313 加大共同存款算式框</title>
+  <title>麗卉每月帳款｜V314 志偉月平均唯讀分享</title>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
@@ -2381,7 +2381,7 @@
   <div class="topbar">
     <div class="top-title top-title-v120">
       <div class="top-main-line">
-        <h1>麗卉每月帳款 <span class="app-version">V313</span></h1>
+        <h1>麗卉每月帳款 <span class="app-version">V314</span></h1>
         <div class="actions action-row action-row-main top-main-actions">
           <button class="act-btn act-add" onclick="addMonth()">＋新增月份</button>
           <button class="act-btn act-copy" onclick="copyCurrentMonth()">複製月份</button>
@@ -6758,7 +6758,7 @@ function copyDadLivingTableForExcel(btn){
 function getSupabaseSettings(){try{return JSON.parse(localStorage.getItem(SUPA_STORE)||'{}')}catch(e){return {}}}
 function saveSupabaseSettings(){const s=getSupabaseSettings();const url=document.getElementById('supabaseUrl')?.value.trim()||'';const key=document.getElementById('supabaseKey')?.value.trim()||'';localStorage.setItem(SUPA_STORE,JSON.stringify({...s,url,key,panelOpen:!document.getElementById('supabasePanel')?.classList.contains('hidden')}))}
 function loadSupabaseSettings(){const s=getSupabaseSettings();const u=document.getElementById('supabaseUrl'),k=document.getElementById('supabaseKey'),p=document.getElementById('supabasePanel');if(u)u.value=s.url||'';if(k)k.value=s.key||'';if(p&&s.panelOpen)p.classList.remove('hidden');updateSupabaseStatus(supaConnected?'已連線':'未連線',supaConnected?'ok':'off',s.lastSyncAt||'')}
-function autoConnectSupabase(){const s=getSupabaseSettings();if(!s.url||!s.key)return;let tries=0;const run=()=>{tries++;const u=document.getElementById('supabaseUrl'),k=document.getElementById('supabaseKey');if(u)u.value=s.url||'';if(k)k.value=s.key||'';if(window.supabase&&window.supabase.createClient){setSyncMsg('正在自動連線...');connectSupabase();}else if(tries<15){setTimeout(run,300);}else{updateSupabaseStatus('未連線','off');setSyncMsg('Supabase 函式庫尚未載入，請確認網路後按連線。')}};setTimeout(run,250)}
+function autoConnectSupabase(){const s=getSupabaseSettings();if(!s.url||!s.key){setZhiweiReadonlyReady(false,'查看網址缺少雲端連線資料，請請麗卉重新複製網址。');return;}let tries=0;const run=()=>{tries++;const u=document.getElementById('supabaseUrl'),k=document.getElementById('supabaseKey');if(u)u.value=s.url||'';if(k)k.value=s.key||'';if(window.supabase&&window.supabase.createClient){setSyncMsg('正在自動連線...');connectSupabase();}else if(tries<15){setTimeout(run,300);}else{updateSupabaseStatus('未連線','off');setSyncMsg('Supabase 函式庫尚未載入，請確認網路後按連線。');setZhiweiReadonlyReady(false,'雲端元件載入失敗，請檢查網路後重新整理。')}};setTimeout(run,250)}
 function setSyncMsg(msg){const el=document.getElementById('syncMsg');if(el)el.textContent=msg||''}
 function setCardPasteCloudStatus(label,cls='off',detail=''){
   try{
@@ -6799,17 +6799,20 @@ async function connectSupabase(){
       ensureMonth();
       render();
       markSupabaseSynced(remoteAt,'已載入雲端最新資料；開啟本機不會自動上傳覆蓋雲端。');
+      setZhiweiReadonlyReady(true,'已讀取雲端最新資料，可以開啟月平均表。');
     }else{
       supaLastRemoteAt='';
       updateSupabaseStatus('已連線','ok');
       setSyncMsg('雲端目前沒有資料；不會自動上傳本機。請確認資料正確後再開始修改，修改後才會上傳。');
       refreshCardPasteCloudStatus('雲端目前沒有資料；本機修改後才會建立雲端資料');
+      setZhiweiReadonlyReady(false,'雲端目前沒有可顯示的資料。');
     }
   }catch(err){
     console.error(err);
     supaConnected=false;
     updateSupabaseStatus('連線失敗','warn');
     setSyncMsg('請確認資料表/RLS/URL/Key：'+(err.message||err));
+    setZhiweiReadonlyReady(false,'雲端資料讀取失敗，請重新整理後再試。');
   }
 }
 function markSupabaseSynced(remoteAt,msg){
@@ -7513,7 +7516,7 @@ function notifyCardPasteChanged(){
   }catch(e){}
 }
 
-function openCardPasteWindow(){
+function openCardPasteWindow(options={}){
   const w=window.open('', 'creditCardPasteWindow', 'width=1240,height=850,scrollbars=yes,resizable=yes');
   if(!w){alert('請允許瀏覽器跳出視窗，才能開啟信用卡刷卡紀錄整理視窗。');return;}
   cardPasteWindowRef=w;
@@ -7522,7 +7525,7 @@ function openCardPasteWindow(){
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>信用卡刷卡紀錄整理｜V313</title>
+<title>信用卡刷卡紀錄整理｜V314</title>
 <style>
   *{box-sizing:border-box}
   body{margin:0;background:linear-gradient(145deg,#fff7ed 0%,#f0f9ff 48%,#f5f3ff 100%);font-family:"Microsoft JhengHei","Noto Sans TC",Arial,sans-serif;color:#1f2937;font-size:14px;}
@@ -8054,7 +8057,7 @@ function openCardPasteWindow(){
 </head>
 <body>
   <div class="wrap">
-    <div class="head"><h1>信用卡刷卡紀錄整理 <span class="badge">V313</span></h1><div class="cloud-sync-box"><span id="cardPasteCloudPill" class="cloud-pill off">雲端狀態確認中</span><div id="cardPasteCloudDetail" class="cloud-detail">另開視窗資料會先同步主畫面</div></div></div>
+    <div class="head"><h1>信用卡刷卡紀錄整理 <span class="badge">V314</span></h1><div class="cloud-sync-box"><span id="cardPasteCloudPill" class="cloud-pill off">雲端狀態確認中</span><div id="cardPasteCloudDetail" class="cloud-detail">另開視窗資料會先同步主畫面</div></div></div>
     <div class="panel">
       <div class="controls">
         <div class="field"><label>歸屬年月</label><input id="belongMonth" placeholder="115/5"><div id="belongMonthErr" class="err"></div></div>
@@ -8647,7 +8650,7 @@ function openCardPasteWindow(){
     const X=w.XLSX;if(!X){w.alert('Excel 元件尚未載入，請稍後再試。');return;}
     const wb=X.utils.book_new(),ws=X.utils.aoa_to_sheet(rows);ws['!cols']=[{wch:44},{wch:18},{wch:14}];X.utils.book_append_sheet(wb,ws,(rocMonthText(monthInfo.value)+'平均').slice(0,31));X.writeFile(wb,'志偉負擔_'+rocMonthText(monthInfo.value)+'_月平均.xlsx',{compression:true});
   }
-  function openZhiweiMonthAverageWindow(){
+  function openZhiweiMonthAverageWindow(sameWindow=false){
     const raw=allZhiweiAutoRows();
     const selected=normalizeRocMonthValue(zhiweiSelectedMonth||doc.getElementById('belongMonth')?.value||'');
     const dataYears=raw.flatMap(r=>[r.month,r.billMonth]).map(v=>normalizeRocMonthValue(v||'')).filter(x=>x.ok).map(x=>x.y);
@@ -8667,11 +8670,11 @@ function openCardPasteWindow(){
       return '<tr class="'+cls+'"><td>'+esc2(label)+'</td><td class="money">'+(typeof vals[1]==='number'?esc2(fmt(vals[1])):esc2(vals[1]||''))+'</td><td>'+esc2(vals[2]||'')+'</td></tr>';
     };
     const sections=months.map(month=>'<section class="month-page" data-month="'+esc2(month)+'" style="display:'+(month===initial?'block':'none')+'"><table>'+zhiweiMonthExcelRows(month).map(rowHtml).join('')+'</table></section>').join('');
-    const popup=w.open('','zhiweiMonthAverage','width=980,height=880,resizable=yes,scrollbars=yes');
+    const popup=sameWindow?w:w.open('','zhiweiMonthAverage','width=980,height=880,resizable=yes,scrollbars=yes');
     if(!popup){w.alert('瀏覽器阻擋另開視窗，請允許此網站開啟彈出式視窗。');return;}
     w.__downloadZhiweiMonthAverageExcel=downloadZhiweiMonthAverageExcel;
     popup.document.open();
-    popup.document.write('<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><title>志偉負擔月平均表</title><script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"><\/script><style>body{font-family:"Microsoft JhengHei",sans-serif;margin:18px;background:#f5f9ff;color:#172033}h1{margin:0 0 12px;color:#075985}.tools,.years,.months{display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin-bottom:12px}.tools button,.years button,.months button{border:1px solid #bae6fd;border-radius:999px;background:#fff;color:#075985;padding:8px 12px;font-weight:900;cursor:pointer}.tools button{background:#e0f2fe}.years button.active{background:#0284c7;border-color:#0284c7;color:#fff}.months button.active{background:#7257d6;border-color:#7257d6;color:#fff}.card{max-width:900px;background:#fff;border:1px solid #cbd5e1;border-radius:16px;padding:12px;box-shadow:0 8px 24px rgba(42,65,105,.12)}table{width:100%;border-collapse:collapse;font-size:14px}th,td{border:1px solid #cbd5e1;padding:7px 9px}.title th{background:#0284c7;color:#fff;font-size:19px;text-align:left}.head th{background:#334155;color:#fff}.total th,.total td{background:#d1fae5;color:#065f46;font-size:16px;font-weight:950}.section th{background:#dbeafe;color:#075985;text-align:left}.subtotal td,.subtotal th{background:#fef3c7;color:#78350f;font-weight:950}.money{text-align:right}.spacer td{height:8px;border:0}.note{color:#64748b;font-size:12px;margin-top:9px}@media print{.tools,.years,.months{display:none}body{margin:0;background:#fff}.card{box-shadow:none;border:0}}</style></head><body><h1>志偉負擔月平均表</h1><div class="years">'+years.map(y=>'<button data-year="'+y+'" class="'+(y===initialYear?'active':'')+'">'+y+'年</button>').join('')+'</div><div class="months">'+months.map(m=>'<button data-month="'+esc2(m)+'" data-year="'+esc2(String(m).split('/')[0])+'" style="display:'+(Number(String(m).split('/')[0])===initialYear?'inline-block':'none')+'" class="'+(m===initial?'active':'')+'">'+esc2(String(m).split('/')[1])+'月</button>').join('')+'</div><div class="tools"><button id="excelBtn">下載目前月份 Excel</button><button id="imageBtn">下載目前月份圖片</button><button onclick="window.print()">列印</button></div><div id="capture" class="card">'+sections+'</div><div class="note">本視窗可獨立切換年份與月份，不受外面搜尋月份影響。</div><script>var current='+JSON.stringify(initial)+';function showYear(y){document.querySelectorAll(".years button").forEach(function(b){b.classList.toggle("active",b.dataset.year===String(y));});document.querySelectorAll(".months button").forEach(function(b){b.style.display=b.dataset.year===String(y)?"inline-block":"none";});var buttons=Array.from(document.querySelectorAll(".months button")),active=buttons.find(function(b){return b.dataset.year===String(y)&&b.classList.contains("active");})||buttons.find(function(b){return b.dataset.year===String(y);});if(active)showMonth(active.dataset.month);}function showMonth(m){current=m;document.querySelectorAll(".month-page").forEach(function(s){s.style.display=s.dataset.month===m?"block":"none";});document.querySelectorAll("[data-month]").forEach(function(b){if(b.tagName==="BUTTON")b.classList.toggle("active",b.dataset.month===m);});}document.querySelectorAll(".years button").forEach(function(b){b.onclick=function(){showYear(b.dataset.year);};});document.querySelectorAll(".months button").forEach(function(b){b.onclick=function(){showMonth(b.dataset.month);};});document.getElementById("excelBtn").onclick=function(){window.opener.__downloadZhiweiMonthAverageExcel(current);};document.getElementById("imageBtn").onclick=async function(){if(!window.html2canvas){alert("圖片元件載入中，請稍後再試");return;}var page=Array.from(document.querySelectorAll(".month-page")).find(function(s){return s.dataset.month===current;});if(!page)return;var old=page.style.display;page.style.display="block";var canvas=await html2canvas(page,{scale:2,backgroundColor:"#ffffff"});page.style.display=old;var a=document.createElement("a");a.download="志偉負擔_"+current.replace("/","年")+"月_月平均.png";a.href=canvas.toDataURL("image/png");a.click();};<\/script></body></html>');
+    popup.document.write('<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><title>志偉負擔月平均表</title><script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"><\/script><style>body{font-family:"Microsoft JhengHei",sans-serif;margin:18px;background:#f5f9ff;color:#172033}h1{margin:0 0 12px;color:#075985}.tools,.years,.months{display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin-bottom:12px}.tools button,.years button,.months button{border:1px solid #bae6fd;border-radius:999px;background:#fff;color:#075985;padding:8px 12px;font-weight:900;cursor:pointer}.tools button{background:#e0f2fe}.years button.active{background:#0284c7;border-color:#0284c7;color:#fff}.months button.active{background:#7257d6;border-color:#7257d6;color:#fff}.card{max-width:900px;background:#fff;border:1px solid #cbd5e1;border-radius:16px;padding:12px;box-shadow:0 8px 24px rgba(42,65,105,.12)}table{width:100%;border-collapse:collapse;font-size:14px}th,td{border:1px solid #cbd5e1;padding:7px 9px}.title th{background:#0284c7;color:#fff;font-size:19px;text-align:left}.head th{background:#334155;color:#fff}.total th,.total td{background:#d1fae5;color:#065f46;font-size:16px;font-weight:950}.section th{background:#dbeafe;color:#075985;text-align:left}.subtotal td,.subtotal th{background:#fef3c7;color:#78350f;font-weight:950}.money{text-align:right}.spacer td{height:8px;border:0}.note{color:#64748b;font-size:12px;margin-top:9px}@media print{.tools,.years,.months{display:none}body{margin:0;background:#fff}.card{box-shadow:none;border:0}}</style></head><body><h1>志偉負擔月平均表</h1><div class="years">'+years.map(y=>'<button data-year="'+y+'" class="'+(y===initialYear?'active':'')+'">'+y+'年</button>').join('')+'</div><div class="months">'+months.map(m=>'<button data-month="'+esc2(m)+'" data-year="'+esc2(String(m).split('/')[0])+'" style="display:'+(Number(String(m).split('/')[0])===initialYear?'inline-block':'none')+'" class="'+(m===initial?'active':'')+'">'+esc2(String(m).split('/')[1])+'月</button>').join('')+'</div><div class="tools"><button id="excelBtn">下載目前月份 Excel</button><button id="imageBtn">下載目前月份圖片</button><button id="shareBtn">複製志偉查看網址</button><button onclick="window.print()">列印</button></div><div id="capture" class="card">'+sections+'</div><div class="note">此表為唯讀顯示；重新開啟分享網址即可讀取雲端最新資料。</div><script>var current='+JSON.stringify(initial)+';function showYear(y){document.querySelectorAll(".years button").forEach(function(b){b.classList.toggle("active",b.dataset.year===String(y));});document.querySelectorAll(".months button").forEach(function(b){b.style.display=b.dataset.year===String(y)?"inline-block":"none";});var buttons=Array.from(document.querySelectorAll(".months button")),active=buttons.find(function(b){return b.dataset.year===String(y)&&b.classList.contains("active");})||buttons.find(function(b){return b.dataset.year===String(y);});if(active)showMonth(active.dataset.month);}function showMonth(m){current=m;document.querySelectorAll(".month-page").forEach(function(s){s.style.display=s.dataset.month===m?"block":"none";});document.querySelectorAll("[data-month]").forEach(function(b){if(b.tagName==="BUTTON")b.classList.toggle("active",b.dataset.month===m);});}document.querySelectorAll(".years button").forEach(function(b){b.onclick=function(){showYear(b.dataset.year);};});document.querySelectorAll(".months button").forEach(function(b){b.onclick=function(){showMonth(b.dataset.month);};});document.getElementById("excelBtn").onclick=function(){(window.__downloadZhiweiMonthAverageExcel||window.opener.__downloadZhiweiMonthAverageExcel)(current);};document.getElementById("shareBtn").onclick=function(){if(window.opener&&window.opener.__copyZhiweiViewLink)window.opener.__copyZhiweiViewLink();};document.getElementById("imageBtn").onclick=async function(){if(!window.html2canvas){alert("圖片元件載入中，請稍後再試");return;}var page=Array.from(document.querySelectorAll(".month-page")).find(function(s){return s.dataset.month===current;});if(!page)return;var old=page.style.display;page.style.display="block";var canvas=await html2canvas(page,{scale:2,backgroundColor:"#ffffff"});page.style.display=old;var a=document.createElement("a");a.download="志偉負擔_"+current.replace("/","年")+"月_月平均.png";a.href=canvas.toDataURL("image/png");a.click();};<\/script></body></html>');
     popup.document.close();popup.focus();
   }
   function renderZhiweiPanel(){
@@ -9900,6 +9903,7 @@ function openCardPasteWindow(){
   w.__ccParsePaste=parsePaste;
   w.__ccSaveRows=saveCurrentRows;
   w.__ccClearRows=clearAll;
+  w.__copyZhiweiViewLink=()=>window.__copyZhiweiViewLink&&window.__copyZhiweiViewLink();
   doc.getElementById('zeroBillBtn').addEventListener('click',addZeroBill);
   ['searchScope','searchOwner','searchPayer','searchClaim','searchBank','searchDate','searchItem','searchAmount','searchNote'].forEach(id=>{const el=doc.getElementById(id);if(el){el.addEventListener('input',renderOverview);el.addEventListener('change',renderOverview);}});
   const runSearchBtn=doc.getElementById('runSearchBtn');if(runSearchBtn)runSearchBtn.addEventListener('click',renderOverview);
@@ -9911,6 +9915,7 @@ function openCardPasteWindow(){
   renderOwnerManager();
   render();
   updatePayDateLookup();
+  if(options&&options.monthAverageOnly)setTimeout(()=>openZhiweiMonthAverageWindow(true),0);
 }
 
 function exportFileStamp(){
@@ -9928,7 +9933,7 @@ function safeWriteLocalJSON(key,val){
 let lastCardPasteRestoreCount=0;
 function buildCardPasteBackup(){
   return {
-    version:'V313',
+    version:'V314',
     exportedAt:new Date().toISOString(),
     records:safeReadLocalJSON('lihui_card_paste_records_v4',[]),
     legacyRecords:safeReadLocalJSON('lihui_card_paste_records_v3',[]),
@@ -10074,7 +10079,36 @@ function importJSONFile(ev){
   reader.readAsText(f,'utf-8');
 }
 function exportExcel(){const rows=[['月份','頁面','收支','項目/卡別/手機','日期1','日期2/期限','金額','分類/帳單月份','備註/說明']];const old=state.activeMonth;Object.keys(state.months).sort().forEach(mid=>{state.activeMonth=mid;const m=getMonth();m.personal.sections.forEach(sec=>sec.items.forEach(it=>{if(it.isCard){it.subItems.forEach(d=>rows.push([mid,'信用卡','支出',it.label,d.date1,d.date2,d.amount,d.category,d.desc+(d.note?'｜'+d.note:'')]))}else rows.push([mid,'麗卉每月帳款',it.type==='income'?'收入':'支出',it.label,'',it.date,it.amount,it.dateType,it.note])}));['postOffice','taiwanBank'].forEach(key=>(m[key].txs||[]).forEach(t=>rows.push([mid,key==='postOffice'?'郵局帳款':'台灣銀行帳款',t.type==='income'?'收入':'支出',t.item,'',t.date,t.amount,'',t.note])));Object.keys(m.mobile.numbers||{}).forEach(phone=>(m.mobile.numbers[phone].records||[]).forEach(r=>rows.push([mid,'項目紀錄','支出',phone,'',r.dueDate,r.amount,r.billMonth,(r.desc!==undefined?r.desc:(r.period+(r.note?'｜'+r.note:'')))])))});(getGlobalData().dadLiving?.rows||[]).forEach(r=>rows.push(['固定延續','項目紀錄-爸生活費','', '爸生活費$5000(匯款麗卉富邦)','',r.date,[r.laiya,r.liling,r.lihui].filter(Boolean).join(' / '),'麗雅/麗玲/麗卉',r.note||'']));state.activeMonth=old;if(window.XLSX){const wb=XLSX.utils.book_new();const ws=XLSX.utils.aoa_to_sheet(rows);XLSX.utils.book_append_sheet(wb,ws,'帳款明細');XLSX.writeFile(wb,`麗卉帳款_V60_${state.activeMonth}.xlsx`)}else{const csv=rows.map(r=>r.map(c=>'"'+String(c||'').replace(/"/g,'""')+'"').join(',')).join('\\n');const blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`麗卉帳款_V60_${state.activeMonth}.csv`;a.click();URL.revokeObjectURL(a.href)}}
-window.addEventListener('load',()=>{load();render();loadSupabaseSettings();autoConnectSupabase()});
+function isZhiweiReadonlyView(){return new URLSearchParams(location.search).get('zhiwei-view')==='1'}
+function encodeShareSettings(obj){return btoa(unescape(encodeURIComponent(JSON.stringify(obj))))}
+function decodeShareSettings(raw){try{return JSON.parse(decodeURIComponent(escape(atob(raw))))}catch(_){return null}}
+function prepareZhiweiShareSettings(){
+  if(!isZhiweiReadonlyView())return;
+  const raw=String(location.hash||'').replace(/^#/,''),shared=decodeShareSettings(raw);
+  if(shared&&shared.url&&shared.key)localStorage.setItem(SUPA_STORE,JSON.stringify({url:shared.url,key:shared.key,panelOpen:false}));
+}
+async function copyZhiweiViewLink(){
+  const s=getSupabaseSettings();
+  if(!s.url||!s.key){alert('請先完成 Supabase 雲端連線，才能建立即時查看網址。');return;}
+  const base=location.origin+location.pathname+'?zhiwei-view=1#'+encodeShareSettings({url:s.url,key:s.key});
+  try{await navigator.clipboard.writeText(base);alert('已複製「志偉負擔月平均表」查看網址。');}
+  catch(_){prompt('請複製以下網址：',base);}
+}
+window.__copyZhiweiViewLink=copyZhiweiViewLink;
+function showZhiweiReadonlyLanding(){
+  if(!isZhiweiReadonlyView())return;
+  const cover=document.createElement('div');cover.id='zhiweiReadonlyCover';cover.style.cssText='position:fixed;inset:0;z-index:99999;background:linear-gradient(145deg,#eff6ff,#f5f3ff);display:flex;align-items:center;justify-content:center;padding:20px;font-family:Microsoft JhengHei,sans-serif';
+  cover.innerHTML='<div style="width:min(560px,100%);background:#fff;border:1px solid #cbd5e1;border-radius:24px;padding:28px;text-align:center;box-shadow:0 20px 55px rgba(42,65,105,.18)"><h1 style="margin:0 0 10px;color:#075985">志偉負擔月平均表</h1><p id="zhiweiReadonlyStatus" style="color:#64748b;font-weight:850;line-height:1.6">正在讀取雲端最新資料…</p><button id="zhiweiReadonlyOpen" disabled style="border:0;border-radius:999px;background:#94a3b8;color:#fff;padding:12px 22px;font-size:16px;font-weight:950;cursor:pointer">開啟月平均表</button><div style="margin-top:13px;color:#94a3b8;font-size:12px">此頁只能查看，不能修改帳務資料。</div></div>';
+  document.body.appendChild(cover);
+  cover.querySelector('#zhiweiReadonlyOpen').onclick=()=>openCardPasteWindow({monthAverageOnly:true});
+}
+function setZhiweiReadonlyReady(ok,msg){
+  if(!isZhiweiReadonlyView())return;
+  const status=document.getElementById('zhiweiReadonlyStatus'),btn=document.getElementById('zhiweiReadonlyOpen');
+  if(status)status.textContent=msg||(ok?'已讀取最新資料，可以開啟。':'雲端資料讀取失敗。');
+  if(btn){btn.disabled=!ok;btn.style.background=ok?'#7257d6':'#94a3b8';}
+}
+window.addEventListener('load',()=>{prepareZhiweiShareSettings();load();render();loadSupabaseSettings();showZhiweiReadonlyLanding();autoConnectSupabase()});
 
 </script>
 </body>
